@@ -4,9 +4,30 @@ class AppConstants {
 
   static const String appName = 'Chefless';
 
-  static const String apiBaseUrl = 'http://localhost:3001/api';
+  /// Set to false before releasing to production. See DEPLOY_CHECKLIST.md.
+  static const bool debugMode = true;
 
-  static const Duration connectionTimeout = Duration(seconds: 30);
+  /// Set to true to use the local API server instead of Render.
+  /// Update [_localIp] to your Mac's current local IP address.
+  /// Find it with: `ifconfig | grep "inet " | grep -v 127.0.0.1`
+  static const bool useLocalApi = true;
+  static const String _defaultLocalIp = '192.168.86.49';
+  static const int _localPort = 3000;
+
+  static const String _prodApiUrl = 'https://chefless-web.onrender.com/api';
+
+  /// Mutable override for local dev. Set via the connection error screen.
+  static String? _apiBaseUrlOverride;
+
+  static String get apiBaseUrl {
+    if (_apiBaseUrlOverride != null) return _apiBaseUrlOverride!;
+    if (useLocalApi) return 'http://$_defaultLocalIp:$_localPort/api';
+    return _prodApiUrl;
+  }
+
+  static set apiBaseUrl(String url) => _apiBaseUrlOverride = url;
+
+  static const Duration connectionTimeout = Duration(seconds: 10);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
   static const int maxImageSizeMb = 10;
@@ -21,6 +42,9 @@ class RevenueCatConstants {
   static const String apiKey = 'REVENUECAT_API_KEY_PLACEHOLDER';
 
   static const String premiumEntitlementId = 'premium';
+
+  /// Returns true if RevenueCat has been configured with a real API key.
+  static bool get isConfigured => apiKey != 'REVENUECAT_API_KEY_PLACEHOLDER';
 }
 
 /// SharedPreferences key constants.

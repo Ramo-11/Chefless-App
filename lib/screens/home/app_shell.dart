@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/offline_provider.dart';
 import '../../widgets/offline_banner.dart';
 
@@ -21,6 +22,9 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Keep the sync trigger alive while the app shell is mounted.
     ref.watch(syncTriggerProvider);
+
+    // Initialize FCM token registration and push listener.
+    ref.watch(fcmInitProvider);
 
     return Scaffold(
       body: Column(

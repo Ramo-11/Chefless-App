@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +59,30 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _isSaving = false;
   String? _error;
 
+  // Snapshot of original values for dirty-checking.
+  String _originalName = '';
+  String _originalBio = '';
+  String _originalPhone = '';
+  bool _originalIsPublic = true;
+  Set<String> _originalDietary = {};
+  Set<String> _originalCuisine = {};
+  String? _originalProfilePicture;
+
+  bool get _hasChanges {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) return false;
+    return _nameController.text.trim() != _originalName ||
+        _bioController.text.trim() != _originalBio ||
+        _phoneController.text.trim() != _originalPhone ||
+        _isPublic != _originalIsPublic ||
+        !_setEquals(_selectedDietary, _originalDietary) ||
+        !_setEquals(_selectedCuisine, _originalCuisine) ||
+        _profilePictureUrl != _originalProfilePicture;
+  }
+
+  static bool _setEquals(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.containsAll(b);
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +111,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _selectedDietary = user.dietaryPreferences.toSet();
       _selectedCuisine = user.cuisinePreferences.toSet();
       _profilePictureUrl = user.profilePicture;
+
+      // Snapshot for dirty-checking.
+      _originalName = user.fullName;
+      _originalBio = user.bio ?? '';
+      _originalPhone = user.phone ?? '';
+      _originalIsPublic = user.isPublic;
+      _originalDietary = user.dietaryPreferences.toSet();
+      _originalCuisine = user.cuisinePreferences.toSet();
+      _originalProfilePicture = user.profilePicture;
     });
   }
 
@@ -126,12 +162,51 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
     if (pickedFile == null || !mounted) return;
 
-    // In a production flow this would upload to an API route which then
-    // uploads to Cloudinary and returns the URL. For now we store the local
-    // path as a placeholder.
+    // Show the local preview immediately while uploading
     setState(() {
       _profilePictureUrl = pickedFile.path;
+      _isSaving = true;
     });
+
+    try {
+      final bytes = await File(pickedFile.path).readAsBytes();
+      final ext = pickedFile.path.split('.').last.toLowerCase();
+      final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+      final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
+
+      final apiService = await ref.read(apiServiceProvider.future);
+      final result = await apiService.post(
+        '/users/me/profile-picture',
+        data: {'image': dataUri},
+      );
+
+      if (!mounted) return;
+
+      if (result.isSuccess && result.data != null) {
+        final userData = result.data!['user'];
+        if (userData is Map<String, dynamic>) {
+          setState(() {
+            _profilePictureUrl = userData['profilePicture'] as String?;
+          });
+          ref.invalidate(currentUserProvider);
+        }
+      } else {
+        setState(() {
+          _profilePictureUrl =
+              ref.read(currentUserProvider).valueOrNull?.profilePicture;
+          _error = result.error ?? 'Failed to upload photo.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _profilePictureUrl =
+            ref.read(currentUserProvider).valueOrNull?.profilePicture;
+        _error = 'Failed to upload photo.';
+      });
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   Future<void> _save() async {
@@ -144,7 +219,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     try {
       final apiService = await ref.read(apiServiceProvider.future);
-      final result = await apiService.put(
+      final result = await apiService.patch(
         '/users/me',
         data: {
           'fullName': _nameController.text.trim(),
@@ -168,8 +243,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         return;
       }
 
-      // Refresh profile data.
+      // Refresh profile data and wait for it before navigating back.
       ref.invalidate(currentUserProvider);
+      await ref.read(currentUserProvider.future);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -195,7 +271,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         title: const Text('Edit Profile'),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _save,
+            onPressed: _isSaving || !_hasChanges ? null : _save,
             child: _isSaving
                 ? const SizedBox(
                     width: 20,
@@ -275,6 +351,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       labelText: 'Full Name',
                     ),
                     textCapitalization: TextCapitalization.words,
+                    onChanged: (_) {
+                      if (mounted) setState(() {});
+                    },
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Name is required.';
@@ -296,7 +375,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     maxLength: 150,
                     maxLines: 3,
                     onChanged: (_) {
-                      // Force rebuild so the counter updates.
                       if (mounted) setState(() {});
                     },
                   ),
@@ -309,6 +387,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Phone (optional)',
                     ),
+                    onChanged: (_) {
+                      if (mounted) setState(() {});
+                    },
                     keyboardType: TextInputType.phone,
                   ),
 

@@ -13,7 +13,7 @@ final shoppingListsProvider =
     throw Exception(result.error ?? 'Failed to load shopping lists.');
   }
 
-  final lists = result.data!['lists'] as List<dynamic>;
+  final lists = result.data!['lists'] as List<dynamic>? ?? [];
   return lists
       .map((e) => ShoppingList.fromJson(e as Map<String, dynamic>))
       .toList();
@@ -29,8 +29,12 @@ final shoppingListDetailProvider =
     throw Exception(result.error ?? 'Failed to load shopping list.');
   }
 
+  final listData = result.data!['list'];
+  if (listData == null) {
+    throw Exception('Shopping list not found.');
+  }
   return ShoppingList.fromJson(
-    result.data!['list'] as Map<String, dynamic>,
+    listData as Map<String, dynamic>,
   );
 });
 
@@ -53,8 +57,11 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListsProvider);
       state = const AsyncData<void>(null);
-      final listData = result.data!['list'] as Map<String, dynamic>;
-      return listData['_id'] as String;
+      final listData = result.data!['list'];
+      if (listData == null) {
+        throw Exception('Failed to create shopping list: no data returned.');
+      }
+      return (listData as Map<String, dynamic>)['_id'] as String;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
       return null;
@@ -286,8 +293,11 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListsProvider);
       state = const AsyncData<void>(null);
-      final listData = result.data!['list'] as Map<String, dynamic>;
-      return listData['_id'] as String;
+      final listData = result.data!['list'];
+      if (listData == null) {
+        throw Exception('Failed to generate shopping list: no data returned.');
+      }
+      return (listData as Map<String, dynamic>)['_id'] as String;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
       return null;

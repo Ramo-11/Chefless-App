@@ -93,7 +93,13 @@ class AuthService {
       await _auth.signInWithCredential(credential);
       return const AuthResult.ok();
     } on FirebaseAuthException catch (e) {
-      return AuthResult.failed(_friendlyMessage(e.code));
+      debugPrint('Google sign-in FirebaseAuthException: ${e.code} – ${e.message}');
+      return AuthResult.failed(_friendlyOAuthMessage(e.code, 'Google'));
+    } catch (e) {
+      debugPrint('Google sign-in unexpected error: $e');
+      return const AuthResult.failed(
+        'Google sign-in failed. Please try again.',
+      );
     }
   }
 
@@ -112,9 +118,18 @@ class AuthService {
         nonce: nonceHash,
       );
 
+      final identityToken = appleCredential.identityToken;
+      if (identityToken == null) {
+        debugPrint('Apple sign-in: identityToken was null');
+        return const AuthResult.failed(
+          'Apple sign-in failed. Please try again.',
+        );
+      }
+
       final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
+        idToken: identityToken,
         rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
       );
 
       final userCredential = await _auth.signInWithCredential(oauthCredential);
@@ -136,9 +151,18 @@ class AuthService {
       if (e.code == AuthorizationErrorCode.canceled) {
         return const AuthResult.failed('Apple sign-in was cancelled.');
       }
-      return AuthResult.failed('Apple sign-in failed: ${e.message}');
+      debugPrint('Apple sign-in authorization error: ${e.code} – ${e.message}');
+      return const AuthResult.failed(
+        'Apple sign-in failed. Please try again.',
+      );
     } on FirebaseAuthException catch (e) {
-      return AuthResult.failed(_friendlyMessage(e.code));
+      debugPrint('Apple sign-in FirebaseAuthException: ${e.code} – ${e.message}');
+      return AuthResult.failed(_friendlyOAuthMessage(e.code, 'Apple'));
+    } catch (e) {
+      debugPrint('Apple sign-in unexpected error: $e');
+      return const AuthResult.failed(
+        'Apple sign-in failed. Please try again.',
+      );
     }
   }
 
@@ -147,6 +171,135 @@ class AuthService {
   Future<void> signOut() async {
     await GoogleSignIn().signOut();
     await _auth.signOut();
+  }
+
+  // ── Delete Firebase Auth Account ───────────────────────────────────────
+
+  /// Deletes the current Firebase Auth user. If a recent login is required,
+  /// automatically re-authenticates via the user's sign-in provider.
+  /// For email/password users, [password] must be provided.
+  Future<AuthResult> deleteFirebaseUser({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const AuthResult.failed('No user signed in.');
+    }
+
+    try {
+      await user.delete();
+      await GoogleSignIn().signOut();
+      return const AuthResult.ok();
+    } on FirebaseAuthException catch (e) {
+      if (e.code != 'requires-recent-login') {
+        debugPrint('Firebase user deletion failed: ${e.code} – ${e.message}');
+        return AuthResult.failed(_friendlyMessage(e.code));
+      }
+    }
+
+    // Re-authenticate then retry deletion
+    return _reauthenticateAndDelete(user, password: password);
+  }
+
+  Future<AuthResult> _reauthenticateAndDelete(
+    User user, {
+    String? password,
+  }) async {
+    final providerId = user.providerData.isNotEmpty
+        ? user.providerData.first.providerId
+        : 'password';
+
+    try {
+      switch (providerId) {
+        case 'apple.com':
+          await _reauthWithApple(user);
+        case 'google.com':
+          await _reauthWithGoogle(user);
+        case 'password':
+          if (password == null || password.isEmpty) {
+            return const AuthResult.failed('requires-password');
+          }
+          await _reauthWithEmail(user, password);
+        default:
+          return const AuthResult.failed(
+            'Unable to verify your identity. Please sign out and back in, '
+            'then try again.',
+          );
+      }
+
+      await user.delete();
+      await GoogleSignIn().signOut();
+      return const AuthResult.ok();
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return const AuthResult.failed('Verification cancelled.');
+      }
+      debugPrint('Apple re-auth failed: ${e.code} – ${e.message}');
+      return const AuthResult.failed(
+        'Apple verification failed. Please try again.',
+      );
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Re-auth + delete failed: ${e.code} – ${e.message}');
+      return AuthResult.failed(_friendlyOAuthMessage(e.code, providerId));
+    } catch (e) {
+      debugPrint('Re-auth unexpected error: $e');
+      return const AuthResult.failed(
+        'Verification failed. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _reauthWithApple(User user) async {
+    final rawNonce = _generateNonce();
+    final nonceHash = sha256.convert(utf8.encode(rawNonce)).toString();
+
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: nonceHash,
+    );
+
+    final identityToken = appleCredential.identityToken;
+    if (identityToken == null) {
+      throw FirebaseAuthException(
+        code: 'invalid-credential',
+        message: 'No identity token from Apple.',
+      );
+    }
+
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: identityToken,
+      rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
+    );
+
+    await user.reauthenticateWithCredential(oauthCredential);
+  }
+
+  Future<void> _reauthWithGoogle(User user) async {
+    final googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) {
+      throw FirebaseAuthException(
+        code: 'user-cancelled',
+        message: 'Google re-authentication was cancelled.',
+      );
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    await user.reauthenticateWithCredential(credential);
+  }
+
+  Future<void> _reauthWithEmail(User user, String password) async {
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
   }
 
   // ── Password Reset ───────────────────────────────────────────────────────
@@ -169,6 +322,28 @@ class AuthService {
     final random = Random.secure();
     return List.generate(length, (_) => charset[random.nextInt(charset.length)])
         .join();
+  }
+
+  /// Maps Firebase error codes to user-friendly messages for OAuth flows
+  /// (Apple / Google), where generic codes like `invalid-credential` need
+  /// provider-specific wording instead of "Invalid email or password".
+  static String _friendlyOAuthMessage(String code, String provider) {
+    switch (code) {
+      case 'invalid-credential':
+        return '$provider sign-in failed. Please try again.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with a different sign-in method.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'operation-not-allowed':
+        return '$provider sign-in is not enabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'Network error. Check your internet connection.';
+      default:
+        return '$provider sign-in failed. Please try again.';
+    }
   }
 
   /// Maps Firebase error codes to user-friendly messages.

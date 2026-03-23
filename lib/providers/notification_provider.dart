@@ -18,7 +18,7 @@ final notificationsProvider = FutureProvider.family<List<AppNotification>, int>(
       throw Exception(result.error ?? 'Failed to load notifications.');
     }
 
-    final notifications = result.data!['notifications'] as List<dynamic>;
+    final notifications = result.data!['data'] as List<dynamic>? ?? [];
     return notifications
         .map((n) => AppNotification.fromJson(n as Map<String, dynamic>))
         .toList();
@@ -46,13 +46,17 @@ class NotificationActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   final Ref _ref;
 
-  /// Marks a single notification as read.
+  /// Marks a single notification as read via POST /notifications/read.
   Future<void> markAsRead(String notificationId) async {
     state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
-      final result =
-          await apiService.put('/notifications/$notificationId/read');
+      final result = await apiService.post(
+        '/notifications/read',
+        data: {
+          'ids': [notificationId],
+        },
+      );
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to mark as read.');
       }
@@ -63,12 +67,12 @@ class NotificationActionNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Marks all notifications as read.
+  /// Marks all notifications as read via POST /notifications/read-all.
   Future<void> markAllAsRead() async {
     state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.put('/notifications/read-all');
+      final result = await apiService.post('/notifications/read-all');
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to mark all as read.');
       }

@@ -12,6 +12,7 @@ import '../../widgets/ingredient_scaling.dart';
 import '../../widgets/photo_carousel.dart';
 import '../../widgets/report_sheet.dart';
 import '../../widgets/signature_overlay.dart';
+import '../../widgets/user_avatar.dart';
 import 'share_recipe_sheet.dart';
 
 /// Full recipe detail screen with photo carousel, ingredients, steps,
@@ -172,17 +173,58 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         ),
                       ),
 
-                      // Author
-                      if (recipe.authorName != null) ...[
-                        const SizedBox(height: AppTheme.spacingXs),
+                      // Author card
+                      if (recipe.authorName != null && !isOwner) ...[
+                        const SizedBox(height: AppTheme.spacingMd),
                         GestureDetector(
                           onTap: () =>
                               context.push('/user/${recipe.authorId}'),
-                          child: Text(
-                            '@${recipe.authorName}',
-                            style: context.textTheme.bodyMedium?.copyWith(
-                              color: context.colorScheme.primary,
-                            ),
+                          child: Row(
+                            children: [
+                              UserAvatar(
+                                fullName: recipe.authorName!,
+                                profilePictureUrl: recipe.authorPhoto,
+                                size: 40,
+                              ),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      recipe.authorName!,
+                                      style: context.textTheme.titleSmall
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'View profile',
+                                      style: context.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: context
+                                            .colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right,
+                                color:
+                                    context.colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (recipe.authorName != null && isOwner) ...[
+                        const SizedBox(height: AppTheme.spacingXs),
+                        Text(
+                          'By you',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: context.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],

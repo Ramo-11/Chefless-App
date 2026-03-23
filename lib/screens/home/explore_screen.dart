@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
@@ -85,6 +86,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => context.push('/search'),
+          tooltip: 'Search',
+        ),
         title: const Text('Explore'),
         bottom: TabBar(
           controller: _tabController,
@@ -206,7 +212,10 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
               return Padding(
                 padding:
                     const EdgeInsets.only(bottom: AppTheme.spacingSm),
-                child: RecipeCard(recipe: recipes[index]),
+                child: RecipeCard(
+                  recipe: recipes[index],
+                  useRootRoute: true,
+                ),
               );
             },
           ),

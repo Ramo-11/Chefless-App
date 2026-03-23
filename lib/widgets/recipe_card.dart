@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
 import '../models/recipe.dart';
 import '../providers/recipe_provider.dart';
+import '../utils/cloudinary_url.dart';
 import '../utils/extensions.dart';
 
 /// A card widget that displays a recipe summary in a list or grid.
@@ -13,16 +14,24 @@ class RecipeCard extends ConsumerWidget {
   const RecipeCard({
     super.key,
     required this.recipe,
+    this.useRootRoute = false,
   });
 
   final Recipe recipe;
+
+  /// When true, navigates via the root-level `/recipe/:id` route instead of
+  /// the tab-nested `/recipes/:id`. Use this when the card is shown outside
+  /// the Recipes tab (e.g. on another user's profile, explore, search).
+  final bool useRootRoute;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/recipes/${recipe.id}'),
+        onTap: () => useRootRoute
+            ? context.push('/recipe/${recipe.id}')
+            : context.push('/recipes/${recipe.id}'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -31,7 +40,8 @@ class RecipeCard extends ConsumerWidget {
               aspectRatio: 16 / 10,
               child: recipe.photos.isNotEmpty
                   ? CachedNetworkImage(
-                      imageUrl: recipe.photos.first,
+                      imageUrl: cloudinaryUrl(recipe.photos.first,
+                          width: 500, height: 312),
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
                         color: context.colorScheme.surfaceContainerHighest,

@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,58 +52,94 @@ final _recipesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'recipes');
 final _shoppingNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shopping');
 final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
+/// Notifies GoRouter to re-evaluate redirects when auth or user state changes,
+/// without re-creating the entire router (which would cause GlobalKey conflicts).
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen(authStateProvider, (_, _) => notifyListeners());
+    ref.listen(currentUserProvider, (_, _) => notifyListeners());
+  }
+}
+
 /// Auth-aware router that redirects unauthenticated users to /login and
 /// users who haven't completed onboarding to the onboarding flow.
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final currentUser = ref.watch(currentUserProvider);
+  final notifier = _RouterNotifier(ref);
+  ref.onDispose(notifier.dispose);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
+    refreshListenable: notifier,
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+      final currentUser = ref.read(currentUserProvider);
+
       final isLoggedIn = authState.valueOrNull != null;
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/signup' ||
-          state.matchedLocation == '/forgot-password';
-      final isOnboardingRoute =
-          state.matchedLocation.startsWith('/onboarding');
+      final loc = state.matchedLocation;
+      final isGuestRoute = loc == '/welcome' ||
+          loc == '/login' ||
+          loc == '/signup' ||
+          loc == '/forgot-password';
+      final isOnboardingRoute = loc.startsWith('/onboarding');
+      final isSplash = loc == '/';
 
-      // Still loading auth state — stay on splash.
-      if (authState.isLoading) return '/';
+      // Still loading auth state for the first time — stay on splash.
+      // When refreshing (hasValue), use the existing value instead of
+      // bouncing to splash, which causes GlobalKey conflicts.
+      if (authState.isLoading && !authState.hasValue) {
+        return isSplash ? null : '/';
+      }
 
-      // Not logged in and not on an auth route — redirect to login.
-      if (!isLoggedIn && !isAuthRoute) return '/login';
+      // ── Not logged in ──────────────────────────────────────────────
+      if (!isLoggedIn) {
+        if (isGuestRoute) return null;
+        return '/welcome';
+      }
 
-      // Logged in but on an auth route — check onboarding first.
-      if (isLoggedIn && isAuthRoute) {
-        final user = currentUser.valueOrNull;
-        if (user != null && !user.onboardingComplete) {
-          return '/onboarding';
+      // ── Logged in ──────────────────────────────────────────────────
+
+      // Still loading user profile for the first time — stay on splash.
+      if (currentUser.isLoading && !currentUser.hasValue) {
+        return isSplash ? null : '/';
+      }
+
+      // Connection error — stay on splash (it shows the error UI).
+      if (currentUser.hasError) {
+        return isSplash ? null : '/';
+      }
+
+      final user = currentUser.valueOrNull;
+
+      // On a guest route while logged in — redirect forward.
+      if (isGuestRoute) {
+        if (user == null || !user.onboardingComplete) {
+          return '/onboarding/profile';
         }
         return '/home';
       }
 
-      // Logged in — check onboarding status.
-      if (isLoggedIn) {
-        final user = currentUser.valueOrNull;
-
-        // Still loading user profile — stay on splash.
-        if (currentUser.isLoading) return '/';
-
-        // User loaded and onboarding not complete — redirect to onboarding.
-        if (user != null && !user.onboardingComplete && !isOnboardingRoute) {
-          return '/onboarding';
-        }
-
-        // User loaded, onboarding complete, but on onboarding route — go home.
-        if (user != null && user.onboardingComplete && isOnboardingRoute) {
+      // On any onboarding route — allow free movement between steps.
+      // Only block if onboarding is already complete.
+      if (isOnboardingRoute) {
+        if (user != null && user.onboardingComplete) {
           return '/home';
         }
-
-        // On splash after everything loaded — go home.
-        if (state.matchedLocation == '/') return '/home';
+        return null;
       }
+
+      // Not on onboarding, not on guest route — must have a profile.
+      if (user == null) {
+        return '/onboarding/profile';
+      }
+
+      // Profile exists but onboarding not complete.
+      if (!user.onboardingComplete) {
+        return '/onboarding/profile';
+      }
+
+      // On splash after everything loaded — go home.
+      if (isSplash) return '/home';
 
       return null;
     },
@@ -110,6 +147,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Welcome (landing page for unauthenticated users).
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen(),
       ),
 
       // Auth routes (push on top of everything, no bottom nav).
@@ -130,11 +174,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Onboarding routes (push on top of everything, no bottom nav).
-      GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
-        path: '/onboarding',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/onboarding/profile',
@@ -320,6 +359,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
+      // Root-level recipe detail for navigation from search, notifications, etc.
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/recipe/:id',
+        builder: (context, state) {
+          final recipeId = state.pathParameters['id']!;
+          return RecipeDetailScreen(recipeId: recipeId);
+        },
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/notifications',
@@ -347,7 +395,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize the local SQLite cache before the app starts.
   await DatabaseService.instance.database;

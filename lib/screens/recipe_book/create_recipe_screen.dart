@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,55 +113,54 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    if (_photoUrls.length >= AppConstants.maxRecipePhotos) {
+    final remaining = AppConstants.maxRecipePhotos - _photoUrls.length;
+    if (remaining <= 0) {
       _showMessage('Maximum ${AppConstants.maxRecipePhotos} photos allowed.');
       return;
     }
 
     final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.gallery,
+    final images = await picker.pickMultiImage(
       maxWidth: 1920,
       maxHeight: 1920,
       imageQuality: 85,
+      limit: remaining,
     );
 
-    if (image == null || !mounted) return;
+    if (images.isEmpty || !mounted) return;
 
-    if (mounted) setState(() => _isUploadingPhoto = true);
+    setState(() => _isUploadingPhoto = true);
 
-    try {
-      final apiService = await ref.read(apiServiceProvider.future);
-      final bytes = await image.readAsBytes();
-      final fileName = image.name;
+    final apiService = await ref.read(apiServiceProvider.future);
 
-      // Upload via API route (not direct to Cloudinary).
-      final result = await apiService.post(
-        '/recipes/upload-photo',
-        data: {
-          'file': bytes.toList(),
-          'fileName': fileName,
-        },
-      );
-
+    for (final image in images) {
       if (!mounted) return;
 
-      if (result.isSuccess && result.data != null) {
-        final url = result.data!['url'] as String;
-        setState(() {
-          _photoUrls.add(url);
-          _isUploadingPhoto = false;
-        });
-      } else {
-        setState(() => _isUploadingPhoto = false);
-        _showMessage(result.error ?? 'Failed to upload photo.');
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isUploadingPhoto = false);
-        _showMessage('Failed to upload photo.');
+      try {
+        final bytes = await File(image.path).readAsBytes();
+        final ext = image.path.split('.').last.toLowerCase();
+        final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+        final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
+
+        final result = await apiService.post(
+          '/recipes/upload-photo',
+          data: {'image': dataUri},
+        );
+
+        if (!mounted) return;
+
+        if (result.isSuccess && result.data != null) {
+          final url = result.data!['secureUrl'] as String;
+          setState(() => _photoUrls.add(url));
+        } else {
+          _showMessage(result.error ?? 'Failed to upload photo.');
+        }
+      } catch (e) {
+        if (mounted) _showMessage('Failed to upload photo.');
       }
     }
+
+    if (mounted) setState(() => _isUploadingPhoto = false);
   }
 
   void _removePhoto(int index) {
@@ -320,7 +322,9 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
     final hasSignature =
         currentUser?.signature != null && currentUser!.signature!.isNotEmpty;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Create Recipe'),
         actions: [
@@ -691,90 +695,281 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
   Widget _buildPhotoSection() {
-    return SizedBox(
-      height: 100,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          ..._photoUrls.asMap().entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-              child: Stack(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 130,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              ..._photoUrls.asMap().entries.map((entry) {
+                final index = entry.key;
+                final isMain = index == 0;
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppTheme.spacingSm),
+                  child: GestureDetector(
+                    onLongPress: _photoUrls.length > 1
+                        ? () => _showReorderSheet()
+                        : null,
+                    child: SizedBox(
+                      width: 110,
+                      height: 130,
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: AppTheme.borderRadiusMedium,
+                            child: Image.network(
+                              entry.value,
+                              width: 110,
+                              height: 130,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                width: 110,
+                                height: 130,
+                                color: context
+                                    .colorScheme.surfaceContainerHighest,
+                                child:
+                                    const Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                          ),
+                          // "Main" badge on first photo
+                          if (isMain)
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Main',
+                                  style: TextStyle(
+                                    color: context.colorScheme.onPrimary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          // Remove button
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removePhoto(index),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              // Add photo button
+              if (_photoUrls.length < AppConstants.maxRecipePhotos)
+                GestureDetector(
+                  onTap: _isUploadingPhoto ? null : _pickPhoto,
+                  child: Container(
+                    width: 110,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: context.colorScheme.outlineVariant,
+                        width: 2,
+                      ),
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                    child: Center(
+                      child: _isUploadingPhoto
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 32,
+                              color: context.colorScheme.onSurfaceVariant,
+                            ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (_photoUrls.length > 1) ...[
+          const SizedBox(height: AppTheme.spacingXs),
+          Text(
+            'Long-press a photo to reorder',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showReorderSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: AppTheme.borderRadiusMedium,
-                    child: Image.network(
-                      entry.value,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 100,
-                        height: 100,
-                        color: context.colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacingMd,
+                      AppTheme.spacingSm,
+                      AppTheme.spacingMd,
+                      AppTheme.spacingSm,
+                    ),
+                    child: Text(
+                      'Reorder Photos',
+                      style: context.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => _removePhoto(entry.key),
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Colors.white,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                    ),
+                    child: Text(
+                      'The first photo is the main photo.',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  SizedBox(
+                    height: 200,
+                    child: ReorderableListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                      ),
+                      itemCount: _photoUrls.length,
+                      onReorder: (oldIndex, newIndex) {
+                        if (newIndex > oldIndex) newIndex--;
+                        setState(() {
+                          final url = _photoUrls.removeAt(oldIndex);
+                          _photoUrls.insert(newIndex, url);
+                        });
+                        setSheetState(() {});
+                      },
+                      proxyDecorator: (child, index, animation) {
+                        return Material(
+                          elevation: 8,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                          clipBehavior: Clip.antiAlias,
+                          child: child,
+                        );
+                      },
+                      itemBuilder: (ctx, index) {
+                        final isMain = index == 0;
+                        return Padding(
+                          key: ValueKey(_photoUrls[index]),
+                          padding: const EdgeInsets.only(
+                            right: AppTheme.spacingSm,
+                          ),
+                          child: SizedBox(
+                            width: 140,
+                            height: 200,
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                  child: Image.network(
+                                    _photoUrls[index],
+                                    width: 140,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                if (isMain)
+                                  Positioned(
+                                    bottom: 6,
+                                    left: 6,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: context.colorScheme.primary,
+                                        borderRadius:
+                                            BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Main',
+                                        style: TextStyle(
+                                          color:
+                                              context.colorScheme.onPrimary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Done'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
                 ],
               ),
             );
-          }),
-          if (_photoUrls.length < AppConstants.maxRecipePhotos)
-            GestureDetector(
-              onTap: _isUploadingPhoto ? null : _pickPhoto,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: context.colorScheme.outlineVariant,
-                    width: 2,
-                  ),
-                  borderRadius: AppTheme.borderRadiusMedium,
-                ),
-                child: Center(
-                  child: _isUploadingPhoto
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 32,
-                          color: context.colorScheme.onSurfaceVariant,
-                        ),
-                ),
-              ),
-            ),
-        ],
-      ),
+          },
+        );
+      },
     );
   }
 
@@ -784,73 +979,81 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
       final ingredient = entry.value;
 
       return Padding(
-        padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+        child: Column(
           children: [
-            Expanded(
-              flex: 3,
-              child: TextFormField(
-                controller: ingredient.nameController,
-                decoration: InputDecoration(
-                  hintText: 'Ingredient ${index + 1}',
-                  isDense: true,
+            // Row 1: Name + Quantity + Remove button
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: TextFormField(
+                    controller: ingredient.nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Ingredient ${index + 1}',
+                      isDense: true,
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
                 ),
-                textCapitalization: TextCapitalization.words,
-              ),
+                const SizedBox(width: AppTheme.spacingSm),
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    controller: ingredient.quantityController,
+                    decoration: const InputDecoration(
+                      hintText: 'Quantity',
+                      isDense: true,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+                if (_ingredients.length > 1)
+                  IconButton(
+                    onPressed: () => _removeIngredient(index),
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      size: 20,
+                      color: context.colorScheme.error,
+                    ),
+                    tooltip: 'Remove ingredient',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: AppTheme.spacingXs),
-            Expanded(
-              flex: 1,
-              child: TextFormField(
-                controller: ingredient.quantityController,
-                decoration: const InputDecoration(
-                  hintText: 'Qty',
-                  isDense: true,
+            const SizedBox(height: AppTheme.spacingXs),
+            // Row 2: Unit + Group
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: ingredient.unitController,
+                    decoration: const InputDecoration(
+                      hintText: 'Unit (e.g. cups, g)',
+                      isDense: true,
+                    ),
+                    textCapitalization: TextCapitalization.none,
+                  ),
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-              ),
+                const SizedBox(width: AppTheme.spacingSm),
+                Expanded(
+                  child: TextFormField(
+                    controller: ingredient.groupController,
+                    decoration: const InputDecoration(
+                      hintText: 'Group (optional)',
+                      isDense: true,
+                    ),
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: AppTheme.spacingXs),
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: ingredient.unitController,
-                decoration: const InputDecoration(
-                  hintText: 'Unit',
-                  isDense: true,
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacingXs),
-            Expanded(
-              flex: 2,
-              child: TextFormField(
-                controller: ingredient.groupController,
-                decoration: const InputDecoration(
-                  hintText: 'Group',
-                  isDense: true,
-                ),
-                textCapitalization: TextCapitalization.sentences,
-              ),
-            ),
-            if (_ingredients.length > 1)
-              IconButton(
-                onPressed: () => _removeIngredient(index),
-                icon: Icon(
-                  Icons.remove_circle_outline,
-                  size: 20,
-                  color: context.colorScheme.error,
-                ),
-                tooltip: 'Remove ingredient',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-              ),
           ],
         ),
       );

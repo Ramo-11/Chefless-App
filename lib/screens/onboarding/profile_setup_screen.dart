@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,25 +94,79 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     try {
       final apiService = await ref.read(apiServiceProvider.future);
-      final result = await apiService.put(
-        '/users/me',
-        data: {
-          'fullName': _nameController.text.trim(),
-        },
-      );
+      final fullName = _nameController.text.trim();
 
-      if (!mounted) return;
+      // Check if the user already exists in the API.
+      final existingUser = ref.read(currentUserProvider).valueOrNull;
 
-      if (result.isFailure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.error ?? 'Failed to save name.')),
+      if (existingUser == null) {
+        // First time — register the user in MongoDB.
+        final authService = ref.read(authServiceProvider);
+        final firebaseUser = authService.currentUser;
+
+        if (firebaseUser == null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not signed in. Please sign in first.')),
+          );
+          setState(() => _isSaving = false);
+          return;
+        }
+
+        final registerResult = await apiService.post(
+          '/auth/register',
+          data: {
+            'fullName': fullName,
+            'email': firebaseUser.email ?? '',
+          },
         );
-        setState(() => _isSaving = false);
-        return;
+
+        if (!mounted) return;
+
+        if (registerResult.isFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(registerResult.error ?? 'Failed to create account.'),
+            ),
+          );
+          setState(() => _isSaving = false);
+          return;
+        }
+      } else {
+        // User exists — just update the name.
+        final result = await apiService.patch(
+          '/users/me',
+          data: {'fullName': fullName},
+        );
+
+        if (!mounted) return;
+
+        if (result.isFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result.error ?? 'Failed to save name.')),
+          );
+          setState(() => _isSaving = false);
+          return;
+        }
       }
 
-      ref.invalidate(currentUserProvider);
-      context.go('/onboarding/dietary');
+      // Upload profile picture if one was picked.
+      if (_pickedImagePath != null) {
+        final bytes = await File(_pickedImagePath!).readAsBytes();
+        final ext = _pickedImagePath!.split('.').last.toLowerCase();
+        final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
+        final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
+
+        await apiService.post(
+          '/users/me/profile-picture',
+          data: {'image': dataUri},
+        );
+      }
+
+      // Don't invalidate currentUserProvider here — it triggers the router
+      // redirect which sends us back to /onboarding/profile while reloading.
+      // The provider will be refreshed at the end of onboarding.
+      if (mounted) context.go('/onboarding/dietary');
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

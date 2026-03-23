@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/recipe.dart';
 import '../models/user.dart';
+import '../utils/json_helpers.dart';
 import 'auth_provider.dart';
 
 /// Fetches a user profile by ID from the API.
@@ -17,12 +19,28 @@ final userProfileProvider =
     throw Exception(result.error ?? 'Failed to load user profile.');
   }
 
-  final userData = result.data!['user'] as Map<String, dynamic>;
-  final followStatus =
-      result.data!['followStatus'] as String? ?? 'none';
+  final data = result.data!;
+
+  final userData = data['user'];
+  if (userData == null) {
+    throw Exception('User not found.');
+  }
+
+  // followStatus may be a String ("none"/"pending"/"active") or a Map
+  // like {following: bool, status: String?} depending on the API version.
+  final rawFollow = data['followStatus'];
+  String followStatus;
+  if (rawFollow is String) {
+    followStatus = rawFollow;
+  } else if (rawFollow is Map) {
+    followStatus = (rawFollow['status'] as String?) ??
+        (rawFollow['following'] == true ? 'active' : 'none');
+  } else {
+    followStatus = 'none';
+  }
 
   return UserProfileResult(
-    user: CheflessUser.fromJson(userData),
+    user: CheflessUser.fromJson(userData as Map<String, dynamic>),
     followStatus: followStatus,
   );
 });
@@ -60,8 +78,8 @@ class FollowActionNotifier extends StateNotifier<AsyncValue<void>> {
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to follow user.');
       }
-      // Invalidate the profile so the UI re-fetches with the new status.
       _ref.invalidate(userProfileProvider(userId));
+      _ref.invalidate(followingProvider(1));
       _ref.invalidate(currentUserProvider);
       state = const AsyncData<void>(null);
     } catch (e, st) {
@@ -78,6 +96,7 @@ class FollowActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to unfollow user.');
       }
       _ref.invalidate(userProfileProvider(userId));
+      _ref.invalidate(followingProvider(1));
       _ref.invalidate(currentUserProvider);
       state = const AsyncData<void>(null);
     } catch (e, st) {
@@ -92,6 +111,7 @@ final followActionProvider =
 });
 
 /// Fetches the paginated list of followers for the current user.
+/// API returns Follow records with `followerId` populated as the user object.
 final followersProvider =
     FutureProvider.family<List<CheflessUser>, int>((ref, page) async {
   final apiService = await ref.watch(apiServiceProvider.future);
@@ -104,13 +124,22 @@ final followersProvider =
     throw Exception(result.error ?? 'Failed to load followers.');
   }
 
-  final followers = result.data!['followers'] as List<dynamic>;
-  return followers
-      .map((f) => CheflessUser.fromJson(f as Map<String, dynamic>))
+  final records = result.data!['data'] as List<dynamic>? ?? [];
+  return records
+      .map((r) {
+        final follow = r as Map<String, dynamic>;
+        final user = follow['followerId'];
+        if (user is Map<String, dynamic>) {
+          return CheflessUser.fromJson(user);
+        }
+        return null;
+      })
+      .whereType<CheflessUser>()
       .toList();
 });
 
 /// Fetches the paginated list of users the current user is following.
+/// API returns Follow records with `followingId` populated as the user object.
 final followingProvider =
     FutureProvider.family<List<CheflessUser>, int>((ref, page) async {
   final apiService = await ref.watch(apiServiceProvider.future);
@@ -123,9 +152,17 @@ final followingProvider =
     throw Exception(result.error ?? 'Failed to load following.');
   }
 
-  final following = result.data!['following'] as List<dynamic>;
-  return following
-      .map((f) => CheflessUser.fromJson(f as Map<String, dynamic>))
+  final records = result.data!['data'] as List<dynamic>? ?? [];
+  return records
+      .map((r) {
+        final follow = r as Map<String, dynamic>;
+        final user = follow['followingId'];
+        if (user is Map<String, dynamic>) {
+          return CheflessUser.fromJson(user);
+        }
+        return null;
+      })
+      .whereType<CheflessUser>()
       .toList();
 });
 
@@ -139,7 +176,7 @@ final pendingRequestsProvider =
     throw Exception(result.error ?? 'Failed to load follow requests.');
   }
 
-  final requests = result.data!['requests'] as List<dynamic>;
+  final requests = result.data!['requests'] as List<dynamic>? ?? [];
   return requests
       .map((r) => PendingFollowRequest.fromJson(r as Map<String, dynamic>))
       .toList();
@@ -157,8 +194,11 @@ class PendingFollowRequest {
 
   factory PendingFollowRequest.fromJson(Map<String, dynamic> json) {
     return PendingFollowRequest(
-      id: json['_id'] as String,
-      user: CheflessUser.fromJson(json['follower'] as Map<String, dynamic>),
+      id: asId(json['_id']),
+      user: CheflessUser.fromJson(
+        (json['follower'] ?? (throw Exception('Follow request missing follower data.')))
+            as Map<String, dynamic>,
+      ),
     );
   }
 }
@@ -207,4 +247,23 @@ class FollowRequestActionNotifier extends StateNotifier<AsyncValue<void>> {
 final followRequestActionProvider = StateNotifierProvider<
     FollowRequestActionNotifier, AsyncValue<void>>((ref) {
   return FollowRequestActionNotifier(ref);
+});
+
+/// Fetches another user's public recipes.
+final userRecipesProvider =
+    FutureProvider.family<List<Recipe>, String>((ref, userId) async {
+  final apiService = await ref.watch(apiServiceProvider.future);
+  final result = await apiService.get(
+    '/users/$userId/recipes',
+    queryParameters: {'page': 1, 'limit': 50},
+  );
+
+  if (result.isFailure || result.data == null) {
+    throw Exception(result.error ?? 'Failed to load recipes.');
+  }
+
+  final recipes = result.data!['data'] as List<dynamic>? ?? [];
+  return recipes
+      .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
+      .toList();
 });

@@ -17,6 +17,10 @@ final myKitchenProvider = FutureProvider<KitchenDetail?>((ref) async {
     throw Exception(result.error ?? 'Failed to load kitchen.');
   }
 
+  // API may return 200 with no kitchen data if user isn't in one.
+  final kitchenData = result.data!['kitchen'];
+  if (kitchenData == null) return null;
+
   return KitchenDetail.fromJson(result.data!);
 });
 
@@ -60,7 +64,7 @@ final kitchenRecipesProvider = FutureProvider.family<List<Recipe>,
     throw Exception(result.error ?? 'Failed to load kitchen recipes.');
   }
 
-  final recipes = result.data!['recipes'] as List<dynamic>;
+  final recipes = result.data!['recipes'] as List<dynamic>? ?? [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();

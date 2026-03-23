@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/theme/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/badge_utils.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/recipe_card.dart';
 import '../../widgets/report_sheet.dart';
 import '../../widgets/user_avatar.dart';
 
@@ -210,7 +210,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                 if (isPrivateAndNotFollowing)
                   _PrivacyWall()
                 else
-                  _RecipesPlaceholder(),
+                  _UserRecipesList(userId: userId),
               ],
             ),
           ),
@@ -425,41 +425,88 @@ class _PrivacyWall extends StatelessWidget {
   }
 }
 
-/// Placeholder for the recipes tab (will be implemented in Phase 5).
-class _RecipesPlaceholder extends StatelessWidget {
+class _UserRecipesList extends ConsumerWidget {
+  const _UserRecipesList({required this.userId});
+
+  final String userId;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recipesAsync = ref.watch(userRecipesProvider(userId));
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TabBar(
-          tabs: const [Tab(text: 'Recipes')],
-          labelColor: context.colorScheme.primary,
-          unselectedLabelColor: context.colorScheme.onSurfaceVariant,
-          indicatorColor: context.colorScheme.primary,
-          // A single-tab TabBar requires a controller—use DefaultTabController.
-        ),
-        SizedBox(
-          height: 200,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.restaurant_menu,
-                  size: 48,
-                  color: context.colorScheme.onSurfaceVariant
-                      .withValues(alpha: 0.4),
-                ),
-                const SizedBox(height: AppTheme.spacingSm),
-                Text(
-                  'Coming in Phase 5',
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingMd,
+            vertical: AppTheme.spacingSm,
+          ),
+          child: Text(
+            'Recipes',
+            style: context.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
+        ),
+        recipesAsync.when(
+          loading: () => const SizedBox(
+            height: 100,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            child: Text(
+              'Failed to load recipes.',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          data: (recipes) {
+            if (recipes.isEmpty) {
+              return SizedBox(
+                height: 120,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.restaurant_menu,
+                        size: 40,
+                        color: context.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(height: AppTheme.spacingSm),
+                      Text(
+                        'No recipes yet',
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingMd,
+              ),
+              itemCount: recipes.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppTheme.spacingSm),
+              itemBuilder: (context, index) {
+                return RecipeCard(
+                  recipe: recipes[index],
+                  useRootRoute: true,
+                );
+              },
+            );
+          },
         ),
       ],
     );

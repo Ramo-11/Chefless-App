@@ -1,18 +1,24 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/recipe.dart';
-import '../models/user.dart';
+import '../utils/json_helpers.dart';
 import 'auth_provider.dart';
+
+// ── State Providers ─────────────────────────────────────────────────────────
 
 /// The current search query text.
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-/// The current search filter type: all, recipes, or users.
+/// The current search filter type: all, recipes, users, or kitchens.
 final searchTypeProvider = StateProvider<String>((ref) => 'all');
 
-/// Holds search results (recipes + users) fetched from the API.
+// ── Search Results ──────────────────────────────────────────────────────────
+
+/// Holds search results fetched from the API.
 ///
 /// Automatically debounces by 300ms after the query changes.
 final searchResultsProvider =
@@ -21,7 +27,12 @@ final searchResultsProvider =
   final type = ref.watch(searchTypeProvider);
 
   if (query.trim().isEmpty) {
-    return const SearchResults(recipes: [], users: []);
+    return const SearchResults(
+      recipes: [],
+      users: [],
+      kitchens: [],
+      totals: SearchTotals(),
+    );
   }
 
   // Debounce: wait 300ms before firing the request.
@@ -30,10 +41,14 @@ final searchResultsProvider =
   ref.onDispose(timer.cancel);
   await completer.future;
 
-  // If query changed during the debounce window, this provider is already
-  // stale and will be disposed — safe to return empty.
+  // If query changed during the debounce window, bail out.
   if (ref.watch(searchQueryProvider).trim() != query.trim()) {
-    return const SearchResults(recipes: [], users: []);
+    return const SearchResults(
+      recipes: [],
+      users: [],
+      kitchens: [],
+      totals: SearchTotals(),
+    );
   }
 
   final apiService = await ref.watch(apiServiceProvider.future);
@@ -52,7 +67,8 @@ final searchResultsProvider =
   final data = result.data!;
 
   final recipes = (data['recipes'] as List<dynamic>?)
-          ?.map((r) => Recipe.fromJson(_normalizeRecipeJson(r as Map<String, dynamic>)))
+          ?.map((r) =>
+              Recipe.fromJson(_normalizeRecipeJson(r as Map<String, dynamic>)))
           .toList() ??
       const [];
 
@@ -61,31 +77,129 @@ final searchResultsProvider =
           .toList() ??
       const [];
 
-  return SearchResults(recipes: recipes, users: users);
+  final kitchens = (data['kitchens'] as List<dynamic>?)
+          ?.map((k) => _parseSearchKitchen(k as Map<String, dynamic>))
+          .toList() ??
+      const [];
+
+  final totalsJson = data['totals'] as Map<String, dynamic>?;
+  final totals = SearchTotals(
+    recipes: totalsJson?['recipes'] as int? ?? recipes.length,
+    users: totalsJson?['users'] as int? ?? users.length,
+    kitchens: totalsJson?['kitchens'] as int? ?? kitchens.length,
+  );
+
+  return SearchResults(
+    recipes: recipes,
+    users: users,
+    kitchens: kitchens,
+    totals: totals,
+  );
 });
 
-/// Normalizes the search API recipe JSON to match the [Recipe.fromJson] shape.
-///
-/// The search endpoint returns `author` as a nested object instead of
-/// flat `authorId` / `authorName` / `authorPhoto` fields.
-Map<String, dynamic> _normalizeRecipeJson(Map<String, dynamic> json) {
-  if (json.containsKey('author') && json['author'] is Map<String, dynamic>) {
-    final author = json['author'] as Map<String, dynamic>;
-    return {
-      ...json,
-      'authorId': author['_id'] as String,
-      'authorName': author['fullName'] as String?,
-      'authorPhoto': author['profilePicture'] as String?,
-    };
+// ── Recent Searches ─────────────────────────────────────────────────────────
+
+const _recentSearchesKey = 'chefless_recent_searches';
+const _maxRecentSearches = 10;
+
+/// Manages recent search queries persisted in SharedPreferences.
+final recentSearchesProvider =
+    AsyncNotifierProvider<RecentSearchesNotifier, List<String>>(
+  RecentSearchesNotifier.new,
+);
+
+class RecentSearchesNotifier extends AsyncNotifier<List<String>> {
+  @override
+  Future<List<String>> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_recentSearchesKey);
+    if (json == null) return [];
+    final list = (jsonDecode(json) as List<dynamic>).cast<String>();
+    return list;
   }
-  return json;
+
+  Future<void> add(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    final current = state.valueOrNull ?? [];
+    // Remove duplicate, add to front, cap at max.
+    final updated = [
+      trimmed,
+      ...current.where((s) => s.toLowerCase() != trimmed.toLowerCase()),
+    ].take(_maxRecentSearches).toList();
+
+    state = AsyncData(updated);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_recentSearchesKey, jsonEncode(updated));
+  }
+
+  Future<void> remove(String query) async {
+    final current = state.valueOrNull ?? [];
+    final updated =
+        current.where((s) => s.toLowerCase() != query.toLowerCase()).toList();
+    state = AsyncData(updated);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_recentSearchesKey, jsonEncode(updated));
+  }
+
+  Future<void> clearAll() async {
+    state = const AsyncData([]);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_recentSearchesKey);
+  }
 }
 
-/// Parses a user search result into a lightweight [SearchUser].
+// ── JSON Parsing ────────────────────────────────────────────────────────────
+
+/// Normalizes the search API recipe JSON to match [Recipe.fromJson] shape.
+///
+/// The search endpoint returns `author` as a nested object instead of
+/// flat `authorId` / `authorName` / `authorPhoto` fields. The aggregation
+/// pipeline may also return `_id` as an ObjectId and `createdAt` as a
+/// DateTime rather than strings, and omits fields that the full recipe
+/// endpoint would include.
+Map<String, dynamic> _normalizeRecipeJson(Map<String, dynamic> json) {
+  final normalized = Map<String, dynamic>.from(json);
+
+  // Flatten nested author object.
+  if (normalized['author'] is Map<String, dynamic>) {
+    final author = normalized['author'] as Map<String, dynamic>;
+    normalized['authorId'] = asId(author['_id']);
+    normalized['authorName'] = author['fullName'] as String?;
+    normalized['authorPhoto'] = author['profilePicture'] as String?;
+  }
+
+  // Ensure _id is a plain string (aggregation may return ObjectId or extended JSON map).
+  normalized['_id'] = asId(normalized['_id']);
+
+  // Ensure authorId is a plain string.
+  if (normalized['authorId'] != null) {
+    normalized['authorId'] = asId(normalized['authorId']);
+  }
+
+  // Ensure createdAt / updatedAt are strings.
+  if (normalized['createdAt'] != null && normalized['createdAt'] is! String) {
+    normalized['createdAt'] = normalized['createdAt'].toString();
+  }
+  normalized['createdAt'] ??= DateTime.now().toIso8601String();
+  normalized['updatedAt'] ??= normalized['createdAt'];
+
+  // Provide defaults for fields the search projection omits.
+  normalized['showSignature'] ??= false;
+  normalized['isPrivate'] ??= false;
+  normalized['isModifiedFork'] ??= false;
+  normalized['baseServings'] ??= 1;
+  normalized['ingredients'] ??= <dynamic>[];
+  normalized['steps'] ??= <dynamic>[];
+
+  return normalized;
+}
+
 SearchUser _parseSearchUser(Map<String, dynamic> json) {
   return SearchUser(
-    id: json['_id'] as String,
-    fullName: json['fullName'] as String,
+    id: asId(json['_id']),
+    fullName: json['fullName'] as String? ?? '',
     profilePicture: json['profilePicture'] as String?,
     bio: json['bio'] as String?,
     isPublic: json['isPublic'] as bool? ?? true,
@@ -95,8 +209,20 @@ SearchUser _parseSearchUser(Map<String, dynamic> json) {
   );
 }
 
-/// Lightweight user model for search results (avoids requiring all
-/// [CheflessUser] fields that the search API does not return).
+SearchKitchen _parseSearchKitchen(Map<String, dynamic> json) {
+  final lead = json['lead'] as Map<String, dynamic>?;
+  return SearchKitchen(
+    id: asId(json['_id']),
+    name: json['name'] as String? ?? '',
+    photo: json['photo'] as String?,
+    memberCount: json['memberCount'] as int? ?? 1,
+    leadName: lead?['fullName'] as String? ?? 'Unknown',
+    leadPhoto: lead?['profilePicture'] as String?,
+  );
+}
+
+// ── Data Models ─────────────────────────────────────────────────────────────
+
 class SearchUser {
   const SearchUser({
     required this.id,
@@ -119,15 +245,50 @@ class SearchUser {
   final String? spatulaBadge;
 }
 
-/// Combined search results for recipes and users.
+class SearchKitchen {
+  const SearchKitchen({
+    required this.id,
+    required this.name,
+    this.photo,
+    required this.memberCount,
+    required this.leadName,
+    this.leadPhoto,
+  });
+
+  final String id;
+  final String name;
+  final String? photo;
+  final int memberCount;
+  final String leadName;
+  final String? leadPhoto;
+}
+
+class SearchTotals {
+  const SearchTotals({
+    this.recipes = 0,
+    this.users = 0,
+    this.kitchens = 0,
+  });
+
+  final int recipes;
+  final int users;
+  final int kitchens;
+
+  int get total => recipes + users + kitchens;
+}
+
 class SearchResults {
   const SearchResults({
     required this.recipes,
     required this.users,
+    required this.kitchens,
+    required this.totals,
   });
 
   final List<Recipe> recipes;
   final List<SearchUser> users;
+  final List<SearchKitchen> kitchens;
+  final SearchTotals totals;
 
-  bool get isEmpty => recipes.isEmpty && users.isEmpty;
+  bool get isEmpty => recipes.isEmpty && users.isEmpty && kitchens.isEmpty;
 }

@@ -27,15 +27,15 @@ class AppTheme {
 
   // ── Brand Colors ───────────────────────────────────────────────────────────
 
-  static const Color primaryColor = Color(0xFF0D9488); // Teal 600
-  static const Color secondaryColor = Color(0xFFF59E0B); // Warm amber
-  static const Color tertiaryColor = Color(0xFFEF4444); // Warm red accent
-  static const Color neutralColor = Color(0xFF6B7280); // Gray 500
+  static const Color primaryColor = Color(0xFFEF233C); // Vibrant red
+  static const Color secondaryColor = Color(0xFF2B2D42); // Dark navy
+  static const Color tertiaryColor = Color(0xFFD80032); // Deep red accent
+  static const Color neutralColor = Color(0xFF8D99AE); // Slate gray
 
   // ── Color Seeds ────────────────────────────────────────────────────────────
 
-  static const Color _lightSurfaceContainer = Color(0xFFF8FAF9);
-  static const Color _darkSurfaceContainer = Color(0xFF1A1C1B);
+  static const Color _lightSurfaceContainer = Color(0xFFEDF2F4);
+  static const Color _darkSurfaceContainer = Color(0xFF1E2030);
 
   // ── Light Theme ────────────────────────────────────────────────────────────
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,46 +7,183 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/onboarding_illustration.dart';
 
 /// Tour card data for each swipeable page.
 class _TourCard {
   const _TourCard({
-    required this.icon,
+    required this.centerIcon,
+    required this.color,
     required this.title,
     required this.description,
-    required this.color,
+    required this.satellites,
+    this.backdropColors,
   });
 
-  final IconData icon;
+  final IconData centerIcon;
+  final Color color;
   final String title;
   final String description;
-  final Color color;
+  final List<Satellite> satellites;
+  final List<Color>? backdropColors;
 }
 
 const List<_TourCard> _tourCards = [
   _TourCard(
-    icon: Icons.menu_book_rounded,
+    centerIcon: Icons.menu_book_rounded,
+    color: AppTheme.primaryColor,
     title: 'Recipe Book',
     description: 'Organize all your recipes in one place.',
-    color: AppTheme.primaryColor,
+    backdropColors: [AppTheme.primaryColor, AppTheme.neutralColor],
+    satellites: [
+      Satellite(
+        icon: Icons.bookmark_rounded,
+        color: AppTheme.primaryColor,
+        angle: -pi / 3,
+        distance: 82,
+        bobPhase: 0,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.favorite_rounded,
+        color: Color(0xFFE91E63),
+        angle: pi / 4,
+        distance: 78,
+        bobPhase: 0.35,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 7,
+      ),
+      Satellite(
+        icon: Icons.photo_camera_rounded,
+        color: AppTheme.neutralColor,
+        angle: 3 * pi / 4,
+        distance: 76,
+        bobPhase: 0.7,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 5,
+      ),
+    ],
   ),
   _TourCard(
-    icon: Icons.people_rounded,
+    centerIcon: Icons.people_rounded,
+    color: AppTheme.secondaryColor,
     title: 'Kitchen',
     description: 'Share meals with family and roommates.',
-    color: AppTheme.secondaryColor,
+    backdropColors: [AppTheme.secondaryColor, AppTheme.primaryColor],
+    satellites: [
+      Satellite(
+        icon: Icons.restaurant_rounded,
+        color: AppTheme.primaryColor,
+        angle: -pi / 4,
+        distance: 80,
+        bobPhase: 0.1,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.home_rounded,
+        color: Color(0xFF8D6E63),
+        angle: 2 * pi / 3,
+        distance: 76,
+        bobPhase: 0.45,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 5,
+      ),
+      Satellite(
+        icon: Icons.favorite_rounded,
+        color: Color(0xFFE91E63),
+        angle: pi + pi / 4,
+        distance: 74,
+        bobPhase: 0.8,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 7,
+      ),
+    ],
   ),
   _TourCard(
-    icon: Icons.calendar_month_rounded,
+    centerIcon: Icons.calendar_month_rounded,
+    color: AppTheme.tertiaryColor,
     title: 'Schedule',
     description: 'Plan your week\'s meals together.',
-    color: AppTheme.tertiaryColor,
+    backdropColors: [AppTheme.tertiaryColor, AppTheme.secondaryColor],
+    satellites: [
+      Satellite(
+        icon: Icons.dinner_dining_rounded,
+        color: AppTheme.primaryColor,
+        angle: -pi / 3,
+        distance: 78,
+        bobPhase: 0,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 5,
+      ),
+      Satellite(
+        icon: Icons.schedule_rounded,
+        color: AppTheme.neutralColor,
+        angle: pi / 3,
+        distance: 80,
+        bobPhase: 0.4,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.check_circle_rounded,
+        color: AppTheme.neutralColor,
+        angle: pi,
+        distance: 74,
+        bobPhase: 0.75,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 7,
+      ),
+    ],
   ),
   _TourCard(
-    icon: Icons.explore_rounded,
+    centerIcon: Icons.explore_rounded,
+    color: AppTheme.neutralColor,
     title: 'Explore',
     description: 'Discover recipes from the community.',
-    color: AppTheme.neutralColor,
+    backdropColors: [AppTheme.neutralColor, AppTheme.primaryColor],
+    satellites: [
+      Satellite(
+        icon: Icons.search_rounded,
+        color: AppTheme.primaryColor,
+        angle: -pi / 4,
+        distance: 80,
+        bobPhase: 0.15,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.trending_up_rounded,
+        color: AppTheme.secondaryColor,
+        angle: 2 * pi / 3,
+        distance: 76,
+        bobPhase: 0.5,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 5,
+      ),
+      Satellite(
+        icon: Icons.bookmark_add_rounded,
+        color: AppTheme.tertiaryColor,
+        angle: pi + pi / 5,
+        distance: 74,
+        bobPhase: 0.8,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 7,
+      ),
+    ],
   ),
 ];
 
@@ -73,7 +212,7 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
 
     try {
       final apiService = await ref.read(apiServiceProvider.future);
-      final result = await apiService.put(
+      final result = await apiService.patch(
         '/users/me',
         data: {'onboardingComplete': true},
       );
@@ -91,7 +230,8 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
       }
 
       ref.invalidate(currentUserProvider);
-      context.go('/home');
+      await ref.read(currentUserProvider.future);
+      if (mounted) context.go('/home');
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,18 +361,14 @@ class _TourPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: card.color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              card.icon,
-              size: 56,
-              color: card.color,
-            ),
+          OnboardingIllustration(
+            size: 240,
+            centerIcon: card.centerIcon,
+            centerColor: card.color,
+            centerIconSize: 48,
+            centerCircleSize: 96,
+            backdropColors: card.backdropColors,
+            satellites: card.satellites,
           ),
           const SizedBox(height: AppTheme.spacingXl),
           Text(

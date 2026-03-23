@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../utils/json_helpers.dart';
+
 /// A single ingredient with a quantity, unit, and optional grouping.
 class Ingredient extends Equatable {
   const Ingredient({
@@ -108,9 +110,9 @@ class ForkSource extends Equatable {
 
   factory ForkSource.fromJson(Map<String, dynamic> json) {
     return ForkSource(
-      recipeId: json['recipeId'] as String,
-      authorId: json['authorId'] as String,
-      authorName: json['authorName'] as String,
+      recipeId: asId(json['recipeId']),
+      authorId: asId(json['authorId']),
+      authorName: json['authorName'] as String? ?? '',
     );
   }
 
@@ -196,9 +198,9 @@ class Recipe extends Equatable {
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
-      id: json['_id'] as String,
-      authorId: json['authorId'] as String,
-      title: json['title'] as String,
+      id: asId(json['_id']),
+      authorId: asId(json['authorId']),
+      title: json['title'] as String? ?? '',
       description: json['description'] as String?,
       story: json['story'] as String?,
       photos:
@@ -236,8 +238,8 @@ class Recipe extends Equatable {
       authorName: json['authorName'] as String?,
       authorPhoto: json['authorPhoto'] as String?,
       isLiked: json['isLiked'] as bool?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: asDateTime(json['createdAt'], fallback: DateTime.now()),
+      updatedAt: asDateTime(json['updatedAt'], fallback: DateTime.now()),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:dio/dio.dart';
 
 import '../utils/constants.dart';
@@ -41,6 +43,9 @@ class ApiService {
       _authToken = authToken;
     }
     _dio.interceptors.add(_authInterceptor());
+    if (AppConstants.debugMode) {
+      _dio.interceptors.add(_debugInterceptor());
+    }
   }
 
   final Dio _dio;
@@ -135,6 +140,36 @@ class ApiService {
     );
   }
 
+  Interceptor _debugInterceptor() {
+    return InterceptorsWrapper(
+      onRequest: (options, handler) {
+        developer.log(
+          '→ ${options.method} ${options.uri}',
+          name: 'API',
+        );
+        handler.next(options);
+      },
+      onResponse: (response, handler) {
+        developer.log(
+          '← ${response.statusCode} ${response.requestOptions.method} '
+          '${response.requestOptions.uri}',
+          name: 'API',
+        );
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        developer.log(
+          '✗ ${error.response?.statusCode ?? 'ERR'} '
+          '${error.requestOptions.method} ${error.requestOptions.uri}\n'
+          '  ${error.message}',
+          name: 'API',
+          error: error,
+        );
+        handler.next(error);
+      },
+    );
+  }
+
   Future<ApiResult<Map<String, dynamic>>> _request(
     Future<Response<Map<String, dynamic>>> Function() requestFn,
   ) async {
@@ -154,30 +189,41 @@ class ApiService {
   }
 
   String _extractErrorMessage(DioException e) {
+    final debug = AppConstants.debugMode;
+    final endpoint = '${e.requestOptions.method} ${e.requestOptions.path}';
+
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return 'Connection timed out. Please try again.';
+        return debug
+            ? 'Timeout on $endpoint'
+            : 'Connection timed out. Please try again.';
       case DioExceptionType.connectionError:
-        return 'Unable to connect to the server. Check your internet connection.';
+        return debug
+            ? 'Connection failed: $endpoint → ${e.message}'
+            : 'Unable to connect to the server. Check your internet connection.';
       case DioExceptionType.badResponse:
+        final status = e.response?.statusCode;
         final data = e.response?.data;
         if (data is Map<String, dynamic>) {
-          if (data.containsKey('message')) {
-            return data['message'] as String;
-          }
-          if (data.containsKey('error')) {
-            return data['error'] as String;
+          final serverMsg =
+              data['message'] as String? ?? data['error'] as String?;
+          if (serverMsg != null) {
+            return debug ? '[$status] $endpoint: $serverMsg' : serverMsg;
           }
         }
-        return 'Server error (${e.response?.statusCode ?? 'unknown'}).';
+        return debug
+            ? '[$status] $endpoint — no JSON body'
+            : 'Server error ($status).';
       case DioExceptionType.cancel:
         return 'Request was cancelled.';
       case DioExceptionType.badCertificate:
         return 'Security certificate error.';
       case DioExceptionType.unknown:
-        return 'An unexpected error occurred.';
+        return debug
+            ? 'Unknown error on $endpoint: ${e.message}'
+            : 'An unexpected error occurred.';
     }
   }
 }

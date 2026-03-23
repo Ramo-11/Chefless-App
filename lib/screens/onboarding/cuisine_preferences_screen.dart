@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/onboarding_illustration.dart';
 
 /// Available cuisine preference options.
 const List<String> _cuisineOptions = [
@@ -41,7 +44,7 @@ class _CuisinePreferencesScreenState
 
     try {
       final apiService = await ref.read(apiServiceProvider.future);
-      final result = await apiService.put(
+      final result = await apiService.patch(
         '/users/me',
         data: {'cuisinePreferences': _selected.toList()},
       );
@@ -58,8 +61,7 @@ class _CuisinePreferencesScreenState
         return;
       }
 
-      ref.invalidate(currentUserProvider);
-      context.go('/onboarding/premium');
+      if (mounted) context.go('/onboarding/premium');
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -102,6 +104,53 @@ class _CuisinePreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Illustration
+              const Center(
+                child: OnboardingIllustration(
+                  size: 200,
+                  centerIcon: Icons.public_rounded,
+                  centerColor: AppTheme.primaryColor,
+                  centerIconSize: 42,
+                  centerCircleSize: 80,
+                  backdropColors: [
+                    AppTheme.primaryColor,
+                    AppTheme.secondaryColor,
+                  ],
+                  satellites: [
+                    Satellite(
+                      icon: Icons.ramen_dining_rounded,
+                      color: AppTheme.tertiaryColor,
+                      angle: -pi / 4,
+                      distance: 74,
+                      bobPhase: 0,
+                      containerSize: 36,
+                      iconSize: 18,
+                      bobAmplitude: 6,
+                    ),
+                    Satellite(
+                      icon: Icons.local_pizza_rounded,
+                      color: AppTheme.secondaryColor,
+                      angle: pi / 2 + pi / 6,
+                      distance: 72,
+                      bobPhase: 0.3,
+                      containerSize: 36,
+                      iconSize: 18,
+                      bobAmplitude: 5,
+                    ),
+                    Satellite(
+                      icon: Icons.rice_bowl_rounded,
+                      color: Color(0xFF8D6E63),
+                      angle: pi + pi / 5,
+                      distance: 70,
+                      bobPhase: 0.6,
+                      containerSize: 34,
+                      iconSize: 18,
+                      bobAmplitude: 7,
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: AppTheme.spacingSm),
 
               Text(
@@ -120,7 +169,7 @@ class _CuisinePreferencesScreenState
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacingLg),
 
               // Chips
               Expanded(

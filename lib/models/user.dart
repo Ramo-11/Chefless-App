@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../utils/json_helpers.dart';
+
 /// Represents a Chefless user profile as returned by the API.
 class CheflessUser extends Equatable {
   const CheflessUser({
@@ -52,10 +54,10 @@ class CheflessUser extends Equatable {
 
   factory CheflessUser.fromJson(Map<String, dynamic> json) {
     return CheflessUser(
-      id: json['_id'] as String,
-      firebaseUid: json['firebaseUid'] as String,
-      email: json['email'] as String,
-      fullName: json['fullName'] as String,
+      id: asId(json['_id']),
+      firebaseUid: json['firebaseUid'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? '',
       phone: json['phone'] as String?,
       profilePicture: json['profilePicture'] as String?,
       signature: json['signature'] as String?,
@@ -64,11 +66,11 @@ class CheflessUser extends Equatable {
       followersCount: json['followersCount'] as int? ?? 0,
       followingCount: json['followingCount'] as int? ?? 0,
       recipesCount: json['recipesCount'] as int? ?? 0,
-      kitchenId: json['kitchenId'] as String?,
+      kitchenId: asIdOrNull(json['kitchenId']),
       isPremium: json['isPremium'] as bool? ?? false,
       premiumPlan: json['premiumPlan'] as String?,
       premiumExpiresAt: json['premiumExpiresAt'] != null
-          ? DateTime.parse(json['premiumExpiresAt'] as String)
+          ? asDateTime(json['premiumExpiresAt'])
           : null,
       dietaryPreferences:
           (json['dietaryPreferences'] as List<dynamic>?)?.cast<String>() ??
@@ -77,9 +79,9 @@ class CheflessUser extends Equatable {
           (json['cuisinePreferences'] as List<dynamic>?)?.cast<String>() ??
               const [],
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
-      lastActiveAt: DateTime.parse(json['lastActiveAt'] as String),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      lastActiveAt: asDateTime(json['lastActiveAt'], fallback: DateTime.now()),
+      createdAt: asDateTime(json['createdAt'], fallback: DateTime.now()),
+      updatedAt: asDateTime(json['updatedAt'], fallback: DateTime.now()),
     );
   }
 

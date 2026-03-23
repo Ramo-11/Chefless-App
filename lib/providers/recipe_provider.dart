@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/recipe.dart';
 import '../models/user.dart';
 import 'auth_provider.dart';
+import 'feed_provider.dart';
 
 /// Fetches the current user's own recipes from the API.
 final myRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
@@ -13,7 +14,7 @@ final myRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
     throw Exception(result.error ?? 'Failed to load recipes.');
   }
 
-  final recipes = result.data!['recipes'] as List<dynamic>;
+  final recipes = result.data!['data'] as List<dynamic>? ?? [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();
@@ -28,7 +29,7 @@ final likedRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
     throw Exception(result.error ?? 'Failed to load liked recipes.');
   }
 
-  final recipes = result.data!['recipes'] as List<dynamic>;
+  final recipes = result.data!['data'] as List<dynamic>? ?? [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();
@@ -43,7 +44,7 @@ final forkedRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
     throw Exception(result.error ?? 'Failed to load forked recipes.');
   }
 
-  final recipes = result.data!['recipes'] as List<dynamic>;
+  final recipes = result.data!['data'] as List<dynamic>? ?? [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();
@@ -59,8 +60,11 @@ final recipeDetailProvider =
     throw Exception(result.error ?? 'Failed to load recipe.');
   }
 
-  final recipeData = result.data!['recipe'] as Map<String, dynamic>;
-  return Recipe.fromJson(recipeData);
+  final recipeData = result.data!['recipe'];
+  if (recipeData == null) {
+    throw Exception('Recipe not found.');
+  }
+  return Recipe.fromJson(recipeData as Map<String, dynamic>);
 });
 
 /// Handles recipe creation.
@@ -79,8 +83,12 @@ class CreateRecipeNotifier extends StateNotifier<AsyncValue<Recipe?>> {
         throw Exception(result.error ?? 'Failed to create recipe.');
       }
 
+      final recipeData = result.data!['recipe'];
+      if (recipeData == null) {
+        throw Exception('Failed to create recipe: no data returned.');
+      }
       final recipe =
-          Recipe.fromJson(result.data!['recipe'] as Map<String, dynamic>);
+          Recipe.fromJson(recipeData as Map<String, dynamic>);
       _ref.invalidate(myRecipesProvider);
       _ref.invalidate(currentUserProvider);
       state = AsyncData<Recipe?>(recipe);
@@ -103,6 +111,18 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   final Ref _ref;
 
+  void _invalidateFeeds() {
+    // Invalidate the underlying page cache so fresh data is fetched.
+    for (final type in FeedType.values) {
+      _ref.invalidate(feedPageProvider(FeedPage(type: type)));
+    }
+    // Then invalidate the notifiers so they re-run build().
+    _ref.invalidate(forYouFeedProvider);
+    _ref.invalidate(trendingFeedProvider);
+    _ref.invalidate(friendsFeedProvider);
+    _ref.invalidate(seasonalFeedProvider);
+  }
+
   Future<void> like(String recipeId) async {
     state = const AsyncLoading<void>();
     try {
@@ -113,6 +133,7 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(recipeDetailProvider(recipeId));
       _ref.invalidate(likedRecipesProvider);
+      _invalidateFeeds();
       state = const AsyncData<void>(null);
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -129,6 +150,7 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(recipeDetailProvider(recipeId));
       _ref.invalidate(likedRecipesProvider);
+      _invalidateFeeds();
       state = const AsyncData<void>(null);
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -148,8 +170,12 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
       _ref.invalidate(recipeDetailProvider(recipeId));
       _ref.invalidate(currentUserProvider);
       state = const AsyncData<void>(null);
+      final forkedData = result.data!['recipe'];
+      if (forkedData == null) {
+        throw Exception('Failed to fork recipe: no data returned.');
+      }
       return Recipe.fromJson(
-          result.data!['recipe'] as Map<String, dynamic>);
+          forkedData as Map<String, dynamic>);
     } catch (e, st) {
       state = AsyncError<void>(e, st);
       return null;
@@ -178,12 +204,16 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result =
-          await apiService.put('/recipes/$recipeId', data: data);
+          await apiService.patch('/recipes/$recipeId', data: data);
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to update recipe.');
       }
+      final updatedData = result.data!['recipe'];
+      if (updatedData == null) {
+        throw Exception('Failed to update recipe: no data returned.');
+      }
       final recipe =
-          Recipe.fromJson(result.data!['recipe'] as Map<String, dynamic>);
+          Recipe.fromJson(updatedData as Map<String, dynamic>);
       _ref.invalidate(myRecipesProvider);
       _ref.invalidate(recipeDetailProvider(recipeId));
       state = const AsyncData<void>(null);
@@ -236,7 +266,7 @@ final userSearchProvider =
     throw Exception(result.error ?? 'Failed to search users.');
   }
 
-  final users = result.data!['users'] as List<dynamic>;
+  final users = result.data!['users'] as List<dynamic>? ?? [];
   return users
       .map((u) => CheflessUser.fromJson(u as Map<String, dynamic>))
       .toList();

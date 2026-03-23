@@ -270,13 +270,7 @@ class _ShoppingListDetailScreenState
           ],
         );
       },
-    ).then((_) {
-      nameController.dispose();
-      quantityController.dispose();
-      unitController.dispose();
-      categoryController.dispose();
-      notesController.dispose();
-    });
+    );
   }
 
   void _showEditItemDialog(ShoppingItem item) {
@@ -477,13 +471,7 @@ class _ShoppingListDetailScreenState
           },
         );
       },
-    ).then((_) {
-      nameController.dispose();
-      quantityController.dispose();
-      unitController.dispose();
-      categoryController.dispose();
-      notesController.dispose();
-    });
+    );
   }
 
   Future<String?> _pickItemImage(

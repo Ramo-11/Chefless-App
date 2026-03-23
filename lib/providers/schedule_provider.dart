@@ -32,8 +32,8 @@ final weekScheduleProvider = FutureProvider.family<List<ScheduleEntry>,
   final result = await apiService.get(
     '/schedule',
     queryParameters: {
-      'start': params.weekStart.toIso8601String(),
-      'end': params.weekEnd.toIso8601String(),
+      'start': params.weekStart.toIso8601String().split('T').first,
+      'end': params.weekEnd.toIso8601String().split('T').first,
     },
   );
 
@@ -41,7 +41,7 @@ final weekScheduleProvider = FutureProvider.family<List<ScheduleEntry>,
     throw Exception(result.error ?? 'Failed to load schedule.');
   }
 
-  final entries = result.data!['entries'] as List<dynamic>;
+  final entries = result.data!['entries'] as List<dynamic>? ?? [];
   return entries
       .map((e) => ScheduleEntry.fromJson(e as Map<String, dynamic>))
       .toList();
@@ -58,7 +58,7 @@ final suggestionsProvider =
     throw Exception(result.error ?? 'Failed to load suggestions.');
   }
 
-  final entries = result.data!['entries'] as List<dynamic>;
+  final entries = result.data!['entries'] as List<dynamic>? ?? [];
   return entries
       .map((e) => ScheduleEntry.fromJson(e as Map<String, dynamic>))
       .toList();

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../utils/cloudinary_url.dart';
 
 /// A swipeable photo carousel with dot indicators.
 ///
@@ -44,6 +45,24 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
     super.dispose();
   }
 
+  void _openFullScreen(BuildContext context, int initialIndex) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.black,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FullScreenPhotoViewer(
+            photos: widget.photos,
+            initialIndex: initialIndex,
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -76,11 +95,11 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
               if (mounted) setState(() => _currentPage = index);
             },
             itemBuilder: (context, index) {
-              return InteractiveViewer(
-                minScale: 1,
-                maxScale: 3,
+              return GestureDetector(
+                onTap: () => _openFullScreen(context, index),
                 child: CachedNetworkImage(
-                  imageUrl: widget.photos[index],
+                  imageUrl: cloudinaryUrl(widget.photos[index],
+                      width: 800, height: 700),
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: widget.height,
@@ -129,6 +148,109 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FullScreenPhotoViewer extends StatefulWidget {
+  const _FullScreenPhotoViewer({
+    required this.photos,
+    required this.initialIndex,
+  });
+
+  final List<String> photos;
+  final int initialIndex;
+
+  @override
+  State<_FullScreenPhotoViewer> createState() => _FullScreenPhotoViewerState();
+}
+
+class _FullScreenPhotoViewerState extends State<_FullScreenPhotoViewer> {
+  late final PageController _controller;
+  late int _currentPage;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPage = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Swipeable full-screen photos with pinch-to-zoom
+          PageView.builder(
+            controller: _controller,
+            itemCount: widget.photos.length,
+            onPageChanged: (index) {
+              if (mounted) setState(() => _currentPage = index);
+            },
+            itemBuilder: (context, index) {
+              return InteractiveViewer(
+                minScale: 1,
+                maxScale: 5,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: widget.photos[index],
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    placeholder: (_, _) => const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                    errorWidget: (_, _, _) => const Center(
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Close button
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 8,
+            right: 8,
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black45,
+              ),
+            ),
+          ),
+
+          // Page indicator
+          if (widget.photos.length > 1)
+            Positioned(
+              bottom: MediaQuery.paddingOf(context).bottom + 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  '${_currentPage + 1} / ${widget.photos.length}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
                   ),
                 ),
               ),

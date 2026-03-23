@@ -19,6 +19,11 @@ class ShoppingListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => context.push('/search'),
+          tooltip: 'Search',
+        ),
         title: const Text('Shopping Lists'),
         actions: [
           IconButton(
@@ -29,6 +34,7 @@ class ShoppingListScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'shoppingListFab',
         onPressed: () => _showCreateDialog(context, ref),
         tooltip: 'Create shopping list',
         child: const Icon(Icons.add),
@@ -109,7 +115,7 @@ class ShoppingListScreen extends ConsumerWidget {
           ],
         );
       },
-    ).then((_) => controller.dispose());
+    );
   }
 
   void _submitCreate(

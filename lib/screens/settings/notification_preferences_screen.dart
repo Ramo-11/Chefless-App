@@ -1,11 +1,14 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
 
-/// SharedPreferences key prefix for notification preferences.
+/// SharedPreferences key prefix for notification preferences (local cache).
 const _prefKeyPrefix = 'notif_pref_';
 
 /// All notification preference keys with their display labels and section.
@@ -33,8 +36,8 @@ const _preferences = <({String key, String label, String section})>[
   (key: 'kitchen_removed', label: 'Removals', section: 'Kitchen'),
 ];
 
-/// Riverpod provider that loads and manages notification preferences from
-/// [SharedPreferences].
+/// Riverpod provider that loads notification preferences from the server,
+/// falling back to local cache if the server request fails.
 final _notifPrefsProvider =
     AsyncNotifierProvider<_NotifPrefsNotifier, Map<String, bool>>(
   _NotifPrefsNotifier.new,
@@ -43,6 +46,37 @@ final _notifPrefsProvider =
 class _NotifPrefsNotifier extends AsyncNotifier<Map<String, bool>> {
   @override
   Future<Map<String, bool>> build() async {
+    // Try loading from server first
+    try {
+      final apiService = await ref.read(apiServiceProvider.future);
+      final result = await apiService.get('/notifications/preferences');
+
+      if (result.isSuccess && result.data != null) {
+        final serverPrefs =
+            result.data!['preferences'] as Map<String, dynamic>?;
+        if (serverPrefs != null) {
+          final prefs = <String, bool>{};
+          for (final pref in _preferences) {
+            prefs[pref.key] = serverPrefs[pref.key] as bool? ?? true;
+          }
+          // Cache locally
+          _cacheLocally(prefs);
+          return prefs;
+        }
+      }
+    } catch (e) {
+      developer.log(
+        'Failed to load notification preferences from server, '
+        'falling back to local cache: $e',
+        name: 'NotifPrefs',
+      );
+    }
+
+    // Fall back to local cache
+    return _loadFromLocal();
+  }
+
+  Future<Map<String, bool>> _loadFromLocal() async {
     final prefs = await SharedPreferences.getInstance();
     final result = <String, bool>{};
     for (final pref in _preferences) {
@@ -51,24 +85,63 @@ class _NotifPrefsNotifier extends AsyncNotifier<Map<String, bool>> {
     return result;
   }
 
+  Future<void> _cacheLocally(Map<String, bool> prefs) async {
+    final sharedPrefs = await SharedPreferences.getInstance();
+    for (final entry in prefs.entries) {
+      await sharedPrefs.setBool('$_prefKeyPrefix${entry.key}', entry.value);
+    }
+  }
+
   Future<void> toggle(String key) async {
     final current = state.valueOrNull;
     if (current == null) return;
 
     final newValue = !(current[key] ?? true);
-    final updated = {...current, key: newValue};
+    final updated = Map<String, bool>.from(current)..[key] = newValue;
     state = AsyncData(updated);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('$_prefKeyPrefix$key', newValue);
+    // Save to local cache immediately
+    final sharedPrefs = await SharedPreferences.getInstance();
+    await sharedPrefs.setBool('$_prefKeyPrefix$key', newValue);
+
+    // Sync to server
+    try {
+      final apiService = await ref.read(apiServiceProvider.future);
+      final result = await apiService.patch(
+        '/notifications/preferences',
+        data: {key: newValue},
+      );
+
+      if (result.isFailure) {
+        developer.log(
+          'Failed to sync preference "$key" to server: ${result.error}',
+          name: 'NotifPrefs',
+        );
+        // Revert optimistic update on failure
+        final reverted = Map<String, bool>.from(updated)
+          ..[key] = !newValue;
+        state = AsyncData(reverted);
+        await sharedPrefs.setBool('$_prefKeyPrefix$key', !newValue);
+      }
+    } catch (e) {
+      developer.log(
+        'Error syncing preference "$key" to server: $e',
+        name: 'NotifPrefs',
+      );
+      // Revert optimistic update on error
+      final reverted = Map<String, bool>.from(
+        state.valueOrNull ?? current,
+      )..[key] = !newValue;
+      state = AsyncData(reverted);
+      await sharedPrefs.setBool('$_prefKeyPrefix$key', !newValue);
+    }
   }
 }
 
 /// Screen that lets the user toggle notification preferences.
 ///
-/// Preferences are grouped by category (Social, Recipes, Kitchen) and
-/// stored locally via [SharedPreferences]. The API will handle server-side
-/// preference enforcement in a future phase.
+/// Preferences are loaded from the server and synced back on every toggle.
+/// Local [SharedPreferences] serve as a fallback cache.
 class NotificationPreferencesScreen extends ConsumerWidget {
   const NotificationPreferencesScreen({super.key});
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/onboarding_illustration.dart';
 
 /// Available dietary preference options.
 const List<String> _dietaryOptions = [
@@ -41,7 +44,7 @@ class _DietaryPreferencesScreenState
       final preferences =
           _selected.contains('None') ? <String>[] : _selected.toList();
 
-      final result = await apiService.put(
+      final result = await apiService.patch(
         '/users/me',
         data: {'dietaryPreferences': preferences},
       );
@@ -58,8 +61,7 @@ class _DietaryPreferencesScreenState
         return;
       }
 
-      ref.invalidate(currentUserProvider);
-      context.go('/onboarding/cuisine');
+      if (mounted) context.go('/onboarding/cuisine');
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -109,6 +111,53 @@ class _DietaryPreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Illustration
+              const Center(
+                child: OnboardingIllustration(
+                  size: 200,
+                  centerIcon: Icons.set_meal_rounded,
+                  centerColor: AppTheme.primaryColor,
+                  centerIconSize: 40,
+                  centerCircleSize: 80,
+                  backdropColors: [
+                    AppTheme.primaryColor,
+                    Color(0xFF43A047),
+                  ],
+                  satellites: [
+                    Satellite(
+                      icon: Icons.eco_rounded,
+                      color: Color(0xFF43A047),
+                      angle: -pi / 3,
+                      distance: 72,
+                      bobPhase: 0,
+                      containerSize: 36,
+                      iconSize: 18,
+                      bobAmplitude: 6,
+                    ),
+                    Satellite(
+                      icon: Icons.grain_rounded,
+                      color: AppTheme.secondaryColor,
+                      angle: pi / 4,
+                      distance: 75,
+                      bobPhase: 0.35,
+                      containerSize: 34,
+                      iconSize: 18,
+                      bobAmplitude: 5,
+                    ),
+                    Satellite(
+                      icon: Icons.water_drop_rounded,
+                      color: Color(0xFF42A5F5),
+                      angle: 3 * pi / 4,
+                      distance: 70,
+                      bobPhase: 0.7,
+                      containerSize: 34,
+                      iconSize: 18,
+                      bobAmplitude: 7,
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: AppTheme.spacingSm),
 
               Text(
@@ -127,7 +176,7 @@ class _DietaryPreferencesScreenState
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacingLg),
 
               // Chips
               Expanded(

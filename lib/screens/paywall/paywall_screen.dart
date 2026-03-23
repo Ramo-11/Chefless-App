@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/subscription_provider.dart';
+import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
 
 /// Full-screen paywall showing free vs. premium feature comparison and
@@ -70,6 +71,49 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!RevenueCatConstants.isConfigured) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Go Premium'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Close',
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.workspace_premium_rounded,
+                  size: 64,
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Text(
+                  'Subscriptions coming soon',
+                  style: context.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                Text(
+                  'Premium features are not available yet. Stay tuned!',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final offeringsAsync = ref.watch(offeringsProvider);
 
     return Scaffold(

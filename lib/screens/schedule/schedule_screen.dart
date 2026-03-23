@@ -67,6 +67,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => context.push('/search'),
+          tooltip: 'Search',
+        ),
         title: const Text('Schedule'),
         actions: [
           // Suggestions button — only visible for leads/approvers.

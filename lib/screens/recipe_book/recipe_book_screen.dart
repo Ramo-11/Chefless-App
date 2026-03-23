@@ -104,6 +104,11 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => context.push('/search'),
+          tooltip: 'Search',
+        ),
         title: const Text('Recipe Book'),
         actions: [
           PopupMenuButton<RecipeSortOption>(
@@ -200,6 +205,7 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'recipeBookFab',
         onPressed: _onAddRecipe,
         tooltip: 'Add Recipe',
         child: const Icon(Icons.add),

@@ -89,6 +89,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/welcome'),
+          tooltip: 'Back',
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -102,10 +110,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ── Header ──────────────────────────────────────────
-                    Icon(
-                      Icons.restaurant_menu,
-                      size: 56,
-                      color: context.colorScheme.primary,
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 100,
+                      height: 100,
                     ),
                     const SizedBox(height: AppTheme.spacingSm),
                     Text(

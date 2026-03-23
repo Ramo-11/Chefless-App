@@ -24,11 +24,25 @@ class ProfileScreen extends ConsumerWidget {
 
     return currentUser.when(
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/search'),
+            tooltip: 'Search',
+          ),
+          title: const Text('Profile'),
+        ),
         body: const ProfileShimmer(),
       ),
       error: (error, _) => Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/search'),
+            tooltip: 'Search',
+          ),
+          title: const Text('Profile'),
+        ),
         body: ErrorState(
           message: error.toString(),
           onRetry: () => ref.invalidate(currentUserProvider),
@@ -45,6 +59,11 @@ class ProfileScreen extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => context.push('/search'),
+              tooltip: 'Search',
+            ),
             title: const Text('Profile'),
             actions: [
               IconButton(

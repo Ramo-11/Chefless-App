@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/onboarding_illustration.dart';
 
 /// Onboarding step: non-aggressive premium pitch with feature comparison.
 class PremiumPitchScreen extends StatelessWidget {
@@ -26,24 +29,54 @@ class PremiumPitchScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Icon
-              Container(
-                width: 80,
-                height: 80,
-                margin: const EdgeInsets.only(top: AppTheme.spacingSm),
-                decoration: BoxDecoration(
-                  color: AppTheme.secondaryColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.workspace_premium,
-                  size: 44,
-                  color: AppTheme.secondaryColor,
+              // Illustration
+              const Center(
+                child: OnboardingIllustration(
+                  size: 190,
+                  centerIcon: Icons.workspace_premium_rounded,
+                  centerColor: AppTheme.secondaryColor,
+                  centerIconSize: 42,
+                  centerCircleSize: 78,
+                  backdropColors: [
+                    AppTheme.secondaryColor,
+                    AppTheme.primaryColor,
+                  ],
+                  satellites: [
+                    Satellite(
+                      icon: Icons.star_rounded,
+                      color: AppTheme.secondaryColor,
+                      angle: -pi / 3,
+                      distance: 68,
+                      bobPhase: 0,
+                      containerSize: 34,
+                      iconSize: 18,
+                      bobAmplitude: 5,
+                    ),
+                    Satellite(
+                      icon: Icons.diamond_outlined,
+                      color: AppTheme.primaryColor,
+                      angle: pi / 4,
+                      distance: 66,
+                      bobPhase: 0.35,
+                      containerSize: 32,
+                      iconSize: 16,
+                      bobAmplitude: 6,
+                    ),
+                    Satellite(
+                      icon: Icons.bolt_rounded,
+                      color: Color(0xFFEF6C00),
+                      angle: 3 * pi / 4,
+                      distance: 64,
+                      bobPhase: 0.7,
+                      containerSize: 32,
+                      iconSize: 16,
+                      bobAmplitude: 5,
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacingSm),
 
               Text(
                 'Get more out of Chefless',
