@@ -235,6 +235,31 @@ class KitchenActionNotifier extends StateNotifier<AsyncValue<void>> {
       return false;
     }
   }
+
+  /// Replaces the kitchen's custom meal slot list (lead only).
+  ///
+  /// Pass the full desired list; the API handles deduplication and
+  /// normalisation. Invalidates [myKitchenProvider] on success so the
+  /// schedule screen re-renders with the updated slots.
+  Future<bool> setCustomMealSlots(List<String> slots) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.put(
+        '/kitchens/slots',
+        data: {'customMealSlots': slots},
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to update meal slots.');
+      }
+      _ref.invalidate(myKitchenProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
 }
 
 final kitchenActionProvider =

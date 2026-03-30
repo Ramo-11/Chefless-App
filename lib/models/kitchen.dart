@@ -13,6 +13,7 @@ class Kitchen extends Equatable {
     required this.membersWithScheduleEdit,
     required this.membersWithApprovalPower,
     required this.memberCount,
+    required this.customMealSlots,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -25,6 +26,8 @@ class Kitchen extends Equatable {
   final List<String> membersWithScheduleEdit;
   final List<String> membersWithApprovalPower;
   final int memberCount;
+  /// Custom meal slot names added by the kitchen lead (e.g. "Pre-Workout").
+  final List<String> customMealSlots;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -44,6 +47,9 @@ class Kitchen extends Equatable {
                   ?.cast<String>() ??
               const [],
       memberCount: json['memberCount'] as int? ?? 1,
+      customMealSlots:
+          (json['customMealSlots'] as List<dynamic>?)?.cast<String>() ??
+              const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -59,6 +65,7 @@ class Kitchen extends Equatable {
       'membersWithScheduleEdit': membersWithScheduleEdit,
       'membersWithApprovalPower': membersWithApprovalPower,
       'memberCount': memberCount,
+      'customMealSlots': customMealSlots,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -73,6 +80,7 @@ class Kitchen extends Equatable {
     List<String>? membersWithScheduleEdit,
     List<String>? membersWithApprovalPower,
     int? memberCount,
+    List<String>? customMealSlots,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -87,6 +95,7 @@ class Kitchen extends Equatable {
       membersWithApprovalPower:
           membersWithApprovalPower ?? this.membersWithApprovalPower,
       memberCount: memberCount ?? this.memberCount,
+      customMealSlots: customMealSlots ?? this.customMealSlots,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -102,6 +111,7 @@ class Kitchen extends Equatable {
         membersWithScheduleEdit,
         membersWithApprovalPower,
         memberCount,
+        customMealSlots,
         createdAt,
         updatedAt,
       ];

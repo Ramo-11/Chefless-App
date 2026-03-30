@@ -252,6 +252,14 @@ final recipeActionProvider =
 });
 
 /// Searches users for the share recipe sheet.
+/// Holds imported recipe pre-fill data after a successful URL import.
+///
+/// `ImportRecipeSheet` sets this before navigating to `CreateRecipeScreen`.
+/// `CreateRecipeScreen` reads + clears it in `initState` via a post-frame
+/// callback. Using `null` to signal "no pending import".
+final importedRecipeDataProvider =
+    StateProvider<Map<String, dynamic>?>((ref) => null);
+
 final userSearchProvider =
     FutureProvider.family<List<CheflessUser>, String>((ref, query) async {
   if (query.trim().isEmpty) return const [];

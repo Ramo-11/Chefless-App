@@ -25,6 +25,13 @@ String? asIdOrNull(dynamic value) {
   return result.isEmpty ? null : result;
 }
 
+/// Returns a non-null string from a dynamic value.
+/// Falls back to an empty string for null or non-string types.
+String safeString(dynamic value) {
+  if (value is String) return value;
+  return value?.toString() ?? '';
+}
+
 /// Parses a DateTime from a value that may be:
 /// - An ISO 8601 `String`
 /// - A `Map` with `$date` key (MongoDB extended JSON)

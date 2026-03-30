@@ -11,6 +11,7 @@ import '../../widgets/error_state.dart';
 import '../../widgets/recipe_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../paywall/paywall_bottom_sheet.dart';
+import 'import_recipe_sheet.dart';
 
 /// Sort options for recipe lists.
 enum RecipeSortOption {
@@ -111,6 +112,11 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
         ),
         title: const Text('Recipe Book'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Import recipe from URL',
+            onPressed: () => ImportRecipeSheet.show(context),
+          ),
           PopupMenuButton<RecipeSortOption>(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort recipes',

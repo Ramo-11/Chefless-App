@@ -190,6 +190,12 @@ class _KitchenContent extends ConsumerWidget {
         ),
         const SizedBox(height: AppTheme.spacingLg),
 
+        // Custom meal slots (lead only)
+        if (isLead) ...[
+          _MealSlotsSection(kitchen: kitchen),
+          const SizedBox(height: AppTheme.spacingLg),
+        ],
+
         // Lead actions
         if (isLead) ...[
           _LeadActionsSection(kitchen: kitchen, ref: ref),
@@ -660,6 +666,222 @@ class _LeadActionsSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Custom Meal Slots ────────────────────────────────────────────────────────
+
+/// Lets the kitchen lead view, add, and remove custom meal slot categories
+/// (e.g. "Pre-Workout", "Late Night") that appear in the weekly schedule
+/// alongside the built-in defaults.
+class _MealSlotsSection extends ConsumerStatefulWidget {
+  const _MealSlotsSection({required this.kitchen});
+
+  final Kitchen kitchen;
+
+  @override
+  ConsumerState<_MealSlotsSection> createState() => _MealSlotsSectionState();
+}
+
+class _MealSlotsSectionState extends ConsumerState<_MealSlotsSection> {
+  bool _isSaving = false;
+
+  Future<void> _addSlot() async {
+    final controller = TextEditingController();
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Meal Slot'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          maxLength: 50,
+          decoration: const InputDecoration(
+            hintText: 'e.g. Pre-Workout, Late Night…',
+            counterText: '',
+          ),
+          onSubmitted: (v) {
+            final trimmed = v.trim();
+            if (trimmed.isNotEmpty) Navigator.of(ctx).pop(trimmed);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final trimmed = controller.text.trim();
+              if (trimmed.isNotEmpty) Navigator.of(ctx).pop(trimmed);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName == null || newName.isEmpty || !mounted) return;
+
+    // Prevent duplicates (case-insensitive).
+    final current = widget.kitchen.customMealSlots;
+    if (current.any((s) => s.toLowerCase() == newName.toLowerCase())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"$newName" already exists.')),
+      );
+      return;
+    }
+
+    await _save([...current, newName]);
+  }
+
+  Future<void> _removeSlot(String slot) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Slot'),
+        content: Text(
+          'Remove "$slot" from the schedule?\n\n'
+          'Meals already assigned to this slot will remain on the schedule '
+          'but the slot row will no longer appear when empty.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              'Remove',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final updated = widget.kitchen.customMealSlots
+        .where((s) => s.toLowerCase() != slot.toLowerCase())
+        .toList();
+    await _save(updated);
+  }
+
+  Future<void> _save(List<String> slots) async {
+    setState(() => _isSaving = true);
+    final success = await ref
+        .read(kitchenActionProvider.notifier)
+        .setCustomMealSlots(slots);
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update meal slots.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final slots = widget.kitchen.customMealSlots;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: AppTheme.spacingXs),
+          child: Text(
+            'Meal Slot Categories',
+            style: context.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingXs),
+        Padding(
+          padding: const EdgeInsets.only(
+            left: AppTheme.spacingXs,
+            bottom: AppTheme.spacingSm,
+          ),
+          child: Text(
+            'Add custom meal categories beyond Breakfast, Lunch, Dinner, and Snack. '
+            'They appear as rows in the weekly schedule.',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Card(
+          child: Column(
+            children: [
+              if (slots.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacingMd,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 18),
+                      SizedBox(width: AppTheme.spacingSm),
+                      Expanded(
+                        child: Text('No custom slots yet.'),
+                      ),
+                    ],
+                  ),
+                ),
+              ...slots.map(
+                (slot) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.label_outline, size: 20),
+                      title: Text(slot),
+                      trailing: IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: context.colorScheme.error,
+                        ),
+                        tooltip: 'Remove slot',
+                        onPressed:
+                            _isSaving ? null : () => _removeSlot(slot),
+                      ),
+                    ),
+                    if (slot != slots.last) const Divider(height: 1),
+                  ],
+                ),
+              ),
+              if (slots.isNotEmpty) const Divider(height: 1),
+              ListTile(
+                leading: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        Icons.add_circle_outline,
+                        color: context.colorScheme.primary,
+                      ),
+                title: Text(
+                  'Add custom slot',
+                  style: TextStyle(
+                    color: context.colorScheme.primary,
+                  ),
+                ),
+                onTap: _isSaving ? null : _addSlot,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

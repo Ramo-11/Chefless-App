@@ -193,6 +193,10 @@ class _WeekView extends ConsumerWidget {
     final scheduleAsync = ref.watch(
       weekScheduleProvider(WeekScheduleParams(weekStart: weekStart)),
     );
+    // Custom slots come from the kitchen model — already loaded by the parent.
+    final kitchenAsync = ref.watch(myKitchenProvider);
+    final customSlots =
+        kitchenAsync.valueOrNull?.kitchen.customMealSlots ?? const [];
 
     return scheduleAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -218,6 +222,7 @@ class _WeekView extends ConsumerWidget {
             return _DayColumn(
               date: day,
               entries: dayEntries,
+              customSlots: customSlots,
             );
           },
         );
@@ -232,15 +237,27 @@ class _DayColumn extends StatelessWidget {
   const _DayColumn({
     required this.date,
     required this.entries,
+    required this.customSlots,
   });
 
   final DateTime date;
   final List<ScheduleEntry> entries;
+  /// Custom slot names from the kitchen (e.g. ["Pre-Workout", "Late Night"]).
+  final List<String> customSlots;
 
   @override
   Widget build(BuildContext context) {
     final isToday = _isSameDay(date, DateTime.now());
     final dayLabel = DateFormat('EEE, MMM d').format(date);
+
+    // Collect any extra slots that have entries but aren't in the known lists.
+    final knownSlotNames = {
+      ..._defaultMealSlots.map((s) => s.toLowerCase()),
+      ...customSlots.map((s) => s.toLowerCase()),
+    };
+    final orphanEntries = entries.where(
+      (e) => !knownSlotNames.contains(e.mealSlot.toLowerCase()),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,23 +284,33 @@ class _DayColumn extends StatelessWidget {
           ),
         ),
 
-        // Meal slots
+        // Default meal slots (always shown, even when empty).
         ...List.generate(_defaultMealSlots.length, (slotIndex) {
           final slot = _defaultMealSlots[slotIndex];
-          final entry = _entryForSlot(slot);
           return _MealSlotRow(
             date: date,
             slot: slot,
-            entry: entry,
+            entry: _entryForSlot(slot),
           );
         }),
 
-        // Any custom slots that aren't in default list
-        ..._customSlotEntries().map((entry) {
+        // Custom meal slots defined by the kitchen lead (always shown, even when empty).
+        ...customSlots.map((slot) {
+          return _MealSlotRow(
+            date: date,
+            slot: slot,
+            entry: _entryForSlot(slot),
+            isCustom: true,
+          );
+        }),
+
+        // Orphan entries: slots that existed before a custom slot was deleted.
+        ...orphanEntries.map((entry) {
           return _MealSlotRow(
             date: date,
             slot: entry.mealSlot,
             entry: entry,
+            isCustom: true,
           );
         }),
       ],
@@ -294,11 +321,6 @@ class _DayColumn extends StatelessWidget {
     final matches =
         entries.where((e) => e.mealSlot.toLowerCase() == slot.toLowerCase());
     return matches.isNotEmpty ? matches.first : null;
-  }
-
-  Iterable<ScheduleEntry> _customSlotEntries() {
-    return entries.where((e) =>
-        !_defaultMealSlots.contains(e.mealSlot.toLowerCase()));
   }
 
   static bool _isSameDay(DateTime a, DateTime b) {
@@ -313,14 +335,19 @@ class _MealSlotRow extends ConsumerWidget {
     required this.date,
     required this.slot,
     this.entry,
+    this.isCustom = false,
   });
 
   final DateTime date;
   final String slot;
   final ScheduleEntry? entry;
+  /// Whether this slot was created by the kitchen lead (vs a built-in default).
+  final bool isCustom;
 
   String get _slotDisplayName =>
-      '${slot[0].toUpperCase()}${slot.substring(1)}';
+      slot.isNotEmpty
+          ? '${slot[0].toUpperCase()}${slot.substring(1)}'
+          : slot;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -348,13 +375,29 @@ class _MealSlotRow extends ConsumerWidget {
           children: [
             // Slot label
             SizedBox(
-              width: 80,
-              child: Text(
-                _slotDisplayName,
-                style: context.textTheme.bodySmall?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
+              width: 88,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _slotDisplayName,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (isCustom)
+                    Text(
+                      'custom',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: context.colorScheme.tertiary,
+                        fontSize: 9,
+                      ),
+                    ),
+                ],
               ),
             ),
 

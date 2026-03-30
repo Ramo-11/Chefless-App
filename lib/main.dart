@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'services/database_service.dart';
+import 'services/deep_link_service.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
@@ -67,9 +68,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
   ref.onDispose(notifier.dispose);
 
-  return GoRouter(
+  // Use the deep-link initial route if one was captured before runApp.
+  // The redirect logic still runs, so auth/onboarding gates are respected.
+  final startLocation = _initialDeepLinkRoute ?? '/';
+  _initialDeepLinkRoute = null; // consume so it is only used once
+
+  final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: startLocation,
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
@@ -391,7 +397,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Wire up deep links (URL scheme + FCM background taps) to this router.
+  DeepLinkService.instance.initialize(router);
+  ref.onDispose(DeepLinkService.instance.dispose);
+
+  return router;
 });
+
+/// Holds the initial deep-link route captured before [runApp].
+/// The router uses this as the starting location when it is non-null, then
+/// clears it so subsequent navigations are not affected.
+String? _initialDeepLinkRoute;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -401,6 +418,10 @@ Future<void> main() async {
 
   // Initialize the local SQLite cache before the app starts.
   await DatabaseService.instance.database;
+
+  // Capture any deep-link route from a cold-start URL or notification tap
+  // before the router is created so it can be used as the initial location.
+  _initialDeepLinkRoute = await DeepLinkService.instance.getInitialRoute();
 
   runApp(const ProviderScope(child: CheflessApp()));
 }

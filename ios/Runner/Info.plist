@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.746061975285-u36681elcsvciodpnvq5fbot3tc2incg</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>app.chefless.chefless</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>chefless</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>

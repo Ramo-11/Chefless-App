@@ -12,6 +12,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
+import '../../utils/json_helpers.dart';
 
 /// System-defined recipe labels.
 const _systemLabels = [
@@ -91,6 +92,89 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
   bool _showSignature = false;
   bool _isSaving = false;
   bool _isUploadingPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if there is pending import data from ImportRecipeSheet.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final importData = ref.read(importedRecipeDataProvider);
+      if (importData != null) {
+        _preFillFromImport(importData);
+        // Clear the provider so re-entering the screen doesn't re-apply.
+        ref.read(importedRecipeDataProvider.notifier).state = null;
+      }
+    });
+  }
+
+  /// Pre-fills the form with data returned by the recipe import API.
+  void _preFillFromImport(Map<String, dynamic> data) {
+    setState(() {
+      _titleController.text = safeString(data['title']);
+      _descriptionController.text = safeString(data['description']);
+
+      if (data['prepTime'] != null) {
+        _prepTimeController.text = '${data['prepTime']}';
+      }
+      if (data['cookTime'] != null) {
+        _cookTimeController.text = '${data['cookTime']}';
+      }
+      if (data['servings'] != null) {
+        final s = '${data['servings']}';
+        _servingsController.text = s;
+        _baseServingsController.text = s;
+      }
+
+      // Ingredients
+      final rawIngredients =
+          (data['ingredients'] as List<dynamic>?)
+              ?.cast<Map<String, dynamic>>() ??
+          const [];
+      if (rawIngredients.isNotEmpty) {
+        for (final e in _ingredients) {
+          e.dispose();
+        }
+        _ingredients.clear();
+        for (final ing in rawIngredients) {
+          final entry = _IngredientEntry();
+          entry.nameController.text = safeString(ing['name']);
+          final qty = ing['quantity'];
+          entry.quantityController.text =
+              qty != null ? '$qty' : '1';
+          entry.unitController.text = safeString(ing['unit']);
+          _ingredients.add(entry);
+        }
+      }
+
+      // Steps
+      final rawSteps =
+          (data['steps'] as List<dynamic>?)
+              ?.cast<Map<String, dynamic>>() ??
+          const [];
+      if (rawSteps.isNotEmpty) {
+        for (final e in _steps) {
+          e.dispose();
+        }
+        _steps.clear();
+        for (final step in rawSteps) {
+          final entry = _StepEntry();
+          entry.instructionController.text = safeString(step['instruction']);
+          _steps.add(entry);
+        }
+      }
+
+      // Tags
+      final dietaryTags =
+          (data['dietaryTags'] as List<dynamic>?)?.cast<String>() ??
+          const [];
+      _selectedDietaryTags.addAll(dietaryTags);
+
+      final cuisineTags =
+          (data['cuisineTags'] as List<dynamic>?)?.cast<String>() ??
+          const [];
+      _selectedCuisineTags.addAll(cuisineTags);
+    });
+  }
 
   @override
   void dispose() {
