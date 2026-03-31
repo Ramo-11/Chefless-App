@@ -38,13 +38,11 @@ class AppConstants {
 class RevenueCatConstants {
   RevenueCatConstants._();
 
-  // Replace with actual RevenueCat API key before release.
-  static const String apiKey = 'REVENUECAT_API_KEY_PLACEHOLDER';
+  static const String apiKey = 'appl_fbxHjPWVTlaiiZrEvpEifpbPEze';
 
-  static const String premiumEntitlementId = 'premium';
+  static const String premiumEntitlementId = 'Chefless Pro';
 
-  /// Returns true if RevenueCat has been configured with a real API key.
-  static bool get isConfigured => apiKey != 'REVENUECAT_API_KEY_PLACEHOLDER';
+  static bool get isConfigured => apiKey.isNotEmpty;
 }
 
 /// SharedPreferences key constants.
