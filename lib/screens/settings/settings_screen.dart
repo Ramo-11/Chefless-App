@@ -27,11 +27,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.person_outline),
             title: const Text('Account Settings'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Coming soon.')),
-              );
-            },
+            onTap: () => context.push('/settings/account'),
           ),
           const Divider(),
 

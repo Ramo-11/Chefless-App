@@ -302,6 +302,38 @@ class AuthService {
     await user.reauthenticateWithCredential(credential);
   }
 
+  // ── Change Password ──────────────────────────────────────────────────────
+
+  /// Changes the current user's password. Requires re-authentication with
+  /// the [currentPassword] first. Only works for email/password users.
+  Future<AuthResult> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return const AuthResult.failed('No user signed in.');
+    }
+    if (user.email == null) {
+      return const AuthResult.failed('No email associated with this account.');
+    }
+
+    try {
+      // Re-authenticate first (Firebase requires recent login for password change).
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      // Now update the password.
+      await user.updatePassword(newPassword);
+      return const AuthResult.ok();
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failed(_friendlyMessage(e.code));
+    }
+  }
+
   // ── Password Reset ───────────────────────────────────────────────────────
 
   Future<AuthResult> resetPassword({required String email}) async {

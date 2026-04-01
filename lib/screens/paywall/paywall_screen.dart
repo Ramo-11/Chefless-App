@@ -7,6 +7,10 @@ import '../../providers/subscription_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
 
+// Warm accent color for the paywall — premium gold/amber tone.
+const _accentColor = Color(0xFFD4920B);
+const _accentLight = Color(0xFFF5C842);
+
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
@@ -315,13 +319,13 @@ class _Feature extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            color: _accentColor.withValues(alpha: 0.1),
             borderRadius: AppTheme.borderRadiusSmall,
           ),
           child: Icon(
             icon,
             size: 20,
-            color: AppTheme.primaryColor,
+            color: _accentColor,
           ),
         ),
         const SizedBox(width: AppTheme.spacingMd),
@@ -374,12 +378,12 @@ class _PlanCard extends StatelessWidget {
           borderRadius: AppTheme.borderRadiusMedium,
           border: Border.all(
             color: isSelected
-                ? AppTheme.primaryColor
+                ? _accentColor
                 : context.colorScheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           color: isSelected
-              ? AppTheme.primaryColor.withValues(alpha: isDark ? 0.08 : 0.04)
+              ? _accentColor.withValues(alpha: isDark ? 0.08 : 0.04)
               : Colors.transparent,
         ),
         child: Row(
@@ -392,7 +396,7 @@ class _PlanCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppTheme.primaryColor
+                      ? _accentColor
                       : context.colorScheme.outline,
                   width: 2,
                 ),
@@ -404,7 +408,7 @@ class _PlanCard extends StatelessWidget {
                         height: 12,
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppTheme.primaryColor,
+                          color: _accentColor,
                         ),
                       ),
                     )
@@ -433,13 +437,15 @@ class _PlanCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
+                            gradient: const LinearGradient(
+                              colors: [_accentColor, _accentLight],
+                            ),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             badge!,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: Color(0xFF3E2800),
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),

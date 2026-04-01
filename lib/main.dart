@@ -38,6 +38,7 @@ import 'screens/schedule/schedule_screen.dart';
 import 'screens/schedule/suggestions_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
+import 'screens/settings/account_settings_screen.dart';
 import 'screens/settings/notification_preferences_screen.dart';
 import 'screens/paywall/paywall_screen.dart';
 import 'screens/settings/settings_screen.dart';
@@ -383,6 +384,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/settings/account',
+        builder: (context, state) => const AccountSettingsScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
