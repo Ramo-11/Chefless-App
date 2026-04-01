@@ -66,7 +66,9 @@ class DeepLinkService {
   Future<String?> getInitialRoute() async {
     // 1. FCM: app was terminated, user tapped a notification.
     try {
-      final message = await FirebaseMessaging.instance.getInitialMessage();
+      final message = await FirebaseMessaging.instance
+          .getInitialMessage()
+          .timeout(const Duration(seconds: 2));
       if (message != null) {
         final route = _routeFromFcmMessage(message);
         if (route != null) {
@@ -86,7 +88,9 @@ class DeepLinkService {
 
     // 2. Custom URL scheme: app opened via chefless:// link.
     try {
-      final uri = await _appLinks.getInitialLink();
+      final uri = await _appLinks
+          .getInitialLink()
+          .timeout(const Duration(seconds: 3));
       if (uri != null) {
         final route = _routeFromUri(uri);
         if (route != null) {

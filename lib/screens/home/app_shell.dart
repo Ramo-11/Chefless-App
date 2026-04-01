@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/offline_provider.dart';
+import '../../providers/subscription_provider.dart';
 import '../../widgets/offline_banner.dart';
 
 /// Main app shell with a 5-tab bottom navigation bar.
@@ -25,6 +26,9 @@ class AppShell extends ConsumerWidget {
 
     // Initialize FCM token registration and push listener.
     ref.watch(fcmInitProvider);
+
+    // Initialize RevenueCat subscription service.
+    ref.watch(subscriptionInitProvider);
 
     return Scaffold(
       body: Column(

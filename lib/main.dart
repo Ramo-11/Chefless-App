@@ -412,6 +412,7 @@ String? _initialDeepLinkRoute;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -419,9 +420,16 @@ Future<void> main() async {
   // Initialize the local SQLite cache before the app starts.
   await DatabaseService.instance.database;
 
-  // Capture any deep-link route from a cold-start URL or notification tap
-  // before the router is created so it can be used as the initial location.
-  _initialDeepLinkRoute = await DeepLinkService.instance.getInitialRoute();
+  // Capture any deep-link route from a cold-start URL or notification tap.
+  // Use a timeout to prevent blocking app startup if APNs hasn't registered
+  // yet (getInitialMessage can hang indefinitely without APNs).
+  try {
+    _initialDeepLinkRoute = await DeepLinkService.instance
+        .getInitialRoute()
+        .timeout(const Duration(seconds: 2));
+  } catch (_) {
+    _initialDeepLinkRoute = null;
+  }
 
   runApp(const ProviderScope(child: CheflessApp()));
 }

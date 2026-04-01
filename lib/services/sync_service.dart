@@ -153,8 +153,8 @@ class SyncService {
       final result = await apiService.get(
         '/schedule',
         queryParameters: {
-          'start': start.toIso8601String(),
-          'end': end.toIso8601String(),
+          'start': start.toIso8601String().split('T').first,
+          'end': end.toIso8601String().split('T').first,
         },
       );
 

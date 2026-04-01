@@ -5,13 +5,13 @@ class AppConstants {
   static const String appName = 'Chefless';
 
   /// Set to false before releasing to production. See DEPLOY_CHECKLIST.md.
-  static const bool debugMode = true;
+  static const bool debugMode = false;
 
   /// Set to true to use the local API server instead of Render.
   /// Update [_localIp] to your Mac's current local IP address.
   /// Find it with: `ifconfig | grep "inet " | grep -v 127.0.0.1`
-  static const bool useLocalApi = true;
-  static const String _defaultLocalIp = '192.168.86.49';
+  static const bool useLocalApi = false;
+  static const String _defaultLocalIp = '192.168.200.32';
   static const int _localPort = 3000;
 
   static const String _prodApiUrl = 'https://chefless-web.onrender.com/api';

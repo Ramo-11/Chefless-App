@@ -48,3 +48,8 @@ app.*.map.json
 # Markdown docs (except README)
 *.md
 !README.md
+
+# Private keys — never commit these
+*.p8
+*.pem
+SubscriptionKey_S82CVM5ZPN.p8

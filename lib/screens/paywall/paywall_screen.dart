@@ -7,8 +7,6 @@ import '../../providers/subscription_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
 
-/// Full-screen paywall showing free vs. premium feature comparison and
-/// purchase options.
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
@@ -74,7 +72,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     if (!RevenueCatConstants.isConfigured) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Go Premium'),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
@@ -117,14 +114,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final offeringsAsync = ref.watch(offeringsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Go Premium'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Close',
-        ),
-      ),
       body: SafeArea(
         child: offeringsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -159,80 +148,125 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             final monthly = currentOffering?.monthly;
             final annual = currentOffering?.annual;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.spacingMd),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Hero section
-                  const _HeroSection(),
-                  const SizedBox(height: AppTheme.spacingLg),
+            return Column(
+              children: [
+                // Close button
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
+                ),
 
-                  // Feature comparison
-                  const _FeatureComparisonTable(),
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  // Purchase buttons
-                  if (annual != null)
-                    _PurchaseButton(
-                      label: 'Annual',
-                      price: annual.storeProduct.priceString,
-                      subtitle: 'Save 50%',
-                      isPrimary: true,
-                      isLoading: _isLoading,
-                      onTap: () => _purchase(annual),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingLg,
                     ),
-                  if (annual != null)
-                    const SizedBox(height: AppTheme.spacingSm),
-                  if (monthly != null)
-                    _PurchaseButton(
-                      label: 'Monthly',
-                      price: monthly.storeProduct.priceString,
-                      subtitle: '',
-                      isPrimary: annual == null,
-                      isLoading: _isLoading,
-                      onTap: () => _purchase(monthly),
-                    ),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: AppTheme.spacingSm),
 
-                  // Fallback if no packages are available
-                  if (monthly == null && annual == null)
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
-                      child: Text(
-                        'Subscription options are not available right now. '
-                        'Please try again later.',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: context.colorScheme.onSurfaceVariant,
+                        // App logo
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 80,
+                          height: 80,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                        const SizedBox(height: AppTheme.spacingLg),
 
-                  const SizedBox(height: AppTheme.spacingMd),
+                        // Title
+                        Text(
+                          'Upgrade to\nChefless Pro',
+                          style: context.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Text(
+                          'Take your cooking to the next level',
+                          style: context.textTheme.bodyLarge?.copyWith(
+                            color: context.colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
 
-                  // Restore purchases
-                  Center(
-                    child: TextButton(
-                      onPressed: _isRestoring ? null : _restore,
-                      child: _isRestoring
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              'Restore Purchases',
-                              style: context.textTheme.bodyMedium?.copyWith(
-                                color: context.colorScheme.primary,
-                              ),
+                        const SizedBox(height: AppTheme.spacingXl),
+
+                        // Feature list
+                        const _FeatureList(),
+
+                        const SizedBox(height: AppTheme.spacingXl),
+
+                        // Plan selection
+                        if (annual != null)
+                          _PlanCard(
+                            title: 'Annual',
+                            price: annual.storeProduct.priceString,
+                            period: '/year',
+                            badge: 'Best Value',
+                            subtitle: 'Save 50% compared to monthly',
+                            isSelected: true,
+                            isLoading: _isLoading,
+                            onTap: () => _purchase(annual),
+                          ),
+                        if (annual != null && monthly != null)
+                          const SizedBox(height: AppTheme.spacingSm),
+                        if (monthly != null)
+                          _PlanCard(
+                            title: 'Monthly',
+                            price: monthly.storeProduct.priceString,
+                            period: '/month',
+                            isSelected: annual == null,
+                            isLoading: _isLoading,
+                            onTap: () => _purchase(monthly),
+                          ),
+
+                        if (monthly == null && annual == null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppTheme.spacingLg,
                             ),
+                            child: Text(
+                              'Subscription options are not available right now. '
+                              'Please try again later.',
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                color: context.colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+
+                        const SizedBox(height: AppTheme.spacingMd),
+
+                        // Restore
+                        TextButton(
+                          onPressed: _isRestoring ? null : _restore,
+                          child: _isRestoring
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Restore Purchases',
+                                  style: context.textTheme.bodySmall?.copyWith(
+                                    color: context.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacingSm),
-                ],
-              ),
+                ),
+              ],
             );
           },
         ),
@@ -241,151 +275,61 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 }
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection();
+// ── Feature List ──────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: AppTheme.secondaryColor.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.workspace_premium,
-            size: 44,
-            color: AppTheme.secondaryColor,
-          ),
-        ),
-        const SizedBox(height: AppTheme.spacingMd),
-        Text(
-          'Unlock the Full Chefless Experience',
-          style: context.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppTheme.spacingSm),
-        Text(
-          'Unlimited recipes, extended scheduling, larger kitchens, '
-          'and AI-powered meal planning.',
-          style: context.textTheme.bodyMedium?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-}
-
-class _FeatureComparisonTable extends StatelessWidget {
-  const _FeatureComparisonTable();
+class _FeatureList extends StatelessWidget {
+  const _FeatureList();
 
   static const _features = [
-    _FeatureRow(label: 'Recipes', free: '10', premium: 'Unlimited'),
-    _FeatureRow(label: 'Schedule Range', free: '2 weeks', premium: 'Full year'),
-    _FeatureRow(label: 'Kitchen Members', free: '4', premium: 'Unlimited'),
-    _FeatureRow(label: 'AI Helper', free: '--', premium: 'Yes'),
-    _FeatureRow(label: 'Chef Hat Badge', free: '--', premium: 'Yes'),
+    _Feature(icon: Icons.all_inclusive, text: 'Unlimited recipe storage'),
+    _Feature(icon: Icons.calendar_month_rounded, text: 'Schedule meals for the full year'),
+    _Feature(icon: Icons.group_rounded, text: 'Unlimited kitchen members'),
+    _Feature(icon: Icons.auto_awesome_rounded, text: 'AI-powered recipe helper'),
+    _Feature(icon: Icons.verified_rounded, text: 'Chef hat badge on your profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        child: Column(
-          children: [
-            // Header row
-            Row(
-              children: [
-                const Expanded(
-                  flex: 3,
-                  child: SizedBox.shrink(),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Free',
-                    textAlign: TextAlign.center,
-                    style: context.textTheme.labelLarge?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'Premium',
-                    textAlign: TextAlign.center,
-                    style: context.textTheme.labelLarge?.copyWith(
-                      color: AppTheme.secondaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: AppTheme.spacingMd),
-            ..._features.map((feature) => Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
-                  child: feature,
-                )),
-          ],
-        ),
-      ),
+    return Column(
+      children: _features
+          .map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: f,
+              ))
+          .toList(),
     );
   }
 }
 
-class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({
-    required this.label,
-    required this.free,
-    required this.premium,
-  });
+class _Feature extends StatelessWidget {
+  const _Feature({required this.icon, required this.text});
 
-  final String label;
-  final String free;
-  final String premium;
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: AppTheme.borderRadiusSmall,
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingMd),
         Expanded(
-          flex: 3,
           child: Text(
-            label,
-            style: context.textTheme.bodyMedium?.copyWith(
+            text,
+            style: context.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            free,
-            textAlign: TextAlign.center,
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            premium,
-            textAlign: TextAlign.center,
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.secondaryColor,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -394,83 +338,156 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-class _PurchaseButton extends StatelessWidget {
-  const _PurchaseButton({
-    required this.label,
+// ── Plan Card ─────────────────────────────────────────────────────────────────
+
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({
+    required this.title,
     required this.price,
-    required this.subtitle,
-    required this.isPrimary,
+    required this.period,
+    this.badge,
+    this.subtitle,
+    required this.isSelected,
     required this.isLoading,
     required this.onTap,
   });
 
-  final String label;
+  final String title;
   final String price;
-  final String subtitle;
-  final bool isPrimary;
+  final String period;
+  final String? badge;
+  final String? subtitle;
+  final bool isSelected;
   final bool isLoading;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (isPrimary) {
-      return FilledButton(
-        onPressed: isLoading ? null : onTap,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.secondaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: isLoading ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        decoration: BoxDecoration(
+          borderRadius: AppTheme.borderRadiusMedium,
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryColor
+                : context.colorScheme.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
+          color: isSelected
+              ? AppTheme.primaryColor.withValues(alpha: isDark ? 0.08 : 0.04)
+              : Colors.transparent,
         ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+        child: Row(
+          children: [
+            // Radio indicator
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : context.colorScheme.outline,
+                  width: 2,
                 ),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: AppTheme.spacingMd),
+
+            // Plan info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$label  $price',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: context.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: AppTheme.spacingSm),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            badge!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (subtitle.isNotEmpty)
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                      subtitle!,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colorScheme.onSurfaceVariant,
                       ),
                     ),
+                  ],
                 ],
               ),
-      );
-    }
-
-    return OutlinedButton(
-      onPressed: isLoading ? null : onTap,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-      ),
-      child: isLoading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Text(
-              '$label  $price',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
             ),
+
+            // Price
+            isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        price,
+                        style: context.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        period,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }
