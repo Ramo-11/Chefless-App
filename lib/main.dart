@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,7 @@ import 'screens/schedule/schedule_screen.dart';
 import 'screens/schedule/suggestions_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
+import 'widgets/notification_banner.dart';
 import 'screens/settings/account_settings_screen.dart';
 import 'screens/settings/notification_preferences_screen.dart';
 import 'screens/paywall/paywall_screen.dart';
@@ -45,14 +47,37 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/shopping/shopping_list_detail_screen.dart';
 import 'screens/shopping/shopping_list_screen.dart';
 import 'screens/splash_screen.dart';
+import 'utils/navigator_keys.dart';
 
 // Navigator keys for each tab branch.
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
 final _scheduleNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'schedule');
 final _recipesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'recipes');
 final _shoppingNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shopping');
 final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
+
+/// Dismisses the keyboard automatically on every route transition (push, pop,
+/// replace). Prevents the keyboard from getting stuck when navigating while
+/// an input field is focused — a common iOS issue with route disposal timing.
+class _KeyboardDismissObserver extends NavigatorObserver {
+  void _dismiss() => FocusManager.instance.primaryFocus?.unfocus();
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _dismiss();
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _dismiss();
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _dismiss();
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _dismiss();
+}
 
 /// Notifies GoRouter to re-evaluate redirects when auth or user state changes,
 /// without re-creating the entire router (which would cause GlobalKey conflicts).
@@ -75,9 +100,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   _initialDeepLinkRoute = null; // consume so it is only used once
 
   final router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: startLocation,
     refreshListenable: notifier,
+    observers: [_KeyboardDismissObserver()],
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
       final currentUser = ref.read(currentUserProvider);
@@ -158,51 +184,51 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Welcome (landing page for unauthenticated users).
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
       ),
 
       // Auth routes (push on top of everything, no bottom nav).
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
       // Onboarding routes (push on top of everything, no bottom nav).
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/onboarding/profile',
         builder: (context, state) => const ProfileSetupScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/onboarding/dietary',
         builder: (context, state) => const DietaryPreferencesScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/onboarding/cuisine',
         builder: (context, state) => const CuisinePreferencesScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/onboarding/premium',
         builder: (context, state) => const PremiumPitchScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/onboarding/tour',
         builder: (context, state) => const QuickTourScreen(),
       ),
@@ -329,7 +355,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Non-tabbed routes that push on top of the shell.
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/user/:id',
         builder: (context, state) {
           final userId = state.pathParameters['id']!;
@@ -337,38 +363,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/kitchen',
         builder: (context, state) => const KitchenDetailScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/kitchen/create',
         builder: (context, state) => const CreateKitchenScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/kitchen/join',
         builder: (context, state) => const JoinKitchenScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/kitchen/recipes',
         builder: (context, state) => const KitchenRecipesScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/kitchen/permissions',
         builder: (context, state) => const ManagePermissionsScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
       // Root-level recipe detail for navigation from search, notifications, etc.
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/recipe/:id',
         builder: (context, state) {
           final recipeId = state.pathParameters['id']!;
@@ -376,28 +402,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/settings/account',
         builder: (context, state) => const AccountSettingsScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/settings/notifications',
         builder: (context, state) =>
             const NotificationPreferencesScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootNavigatorKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/paywall',
         builder: (context, state) => const PaywallScreen(),
       ),
@@ -416,8 +442,26 @@ final routerProvider = Provider<GoRouter>((ref) {
 /// clears it so subsequent navigations are not affected.
 String? _initialDeepLinkRoute;
 
+/// Top-level FCM background message handler.
+///
+/// Required by firebase_messaging for background and terminated-state message
+/// processing. Must be a top-level function (not a class method) and annotated
+/// with @pragma('vm:entry-point') so the Dart AOT compiler keeps it alive in
+/// the background isolate.
+///
+/// On iOS with a notification payload, APNs shows the system banner
+/// automatically — this handler ensures any accompanying data is processed.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Register the background handler BEFORE Firebase.initializeApp so that
+  // the Dart VM registers it as a valid entry point for the background isolate.
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -452,8 +496,19 @@ class CheflessApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       routerConfig: router,
+      builder: (context, child) {
+        // Global tap-to-dismiss: tapping anywhere outside a text field
+        // dismisses the keyboard. Acts as a safety net so the keyboard
+        // can never get permanently stuck.
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: NotificationBannerOverlay(
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
     );
   }
 }

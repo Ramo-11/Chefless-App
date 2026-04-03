@@ -1,14 +1,69 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_notification.dart';
+import '../services/fcm_service.dart';
 import 'auth_provider.dart';
 
-/// Fetches a paginated list of notifications for the current user.
+// ── Real-time refresh trigger ────────────────────────────────────────────────
+
+/// Emits each time a push notification arrives while the app is in the
+/// foreground. Providers that watch this automatically re-fetch when a new
+/// notification lands.
+final foregroundNotificationStream = StreamProvider<RemoteMessage>((ref) {
+  return FcmService.foregroundMessages;
+});
+
+// ── Unread badge count ───────────────────────────────────────────────────────
+
+/// Total unread notification count for the bell badge in [AppTopBar].
 ///
-/// The [int] parameter is the page number (1-based).
-final notificationsProvider = FutureProvider.family<List<AppNotification>, int>(
-  (ref, page) async {
-    final apiService = await ref.watch(apiServiceProvider.future);
+/// Re-fetches automatically when:
+/// - A foreground push arrives (via [foregroundNotificationStream]).
+/// - The provider is explicitly invalidated (e.g. after markAsRead).
+final unreadCountProvider = FutureProvider<int>((ref) async {
+  // Re-evaluate whenever a foreground notification arrives.
+  ref.watch(foregroundNotificationStream);
+
+  final apiService = await ref.watch(apiServiceProvider.future);
+  final result = await apiService.get('/notifications/unread-count');
+
+  if (result.isFailure || result.data == null) return 0;
+  return result.data!['count'] as int? ?? 0;
+});
+
+// ── Notification list with pagination ────────────────────────────────────────
+
+/// Manages the unread notification list with pagination and real-time updates.
+///
+/// Only unread notifications are shown. When a notification is marked as read
+/// (individually or via "mark all"), it is immediately removed from the list.
+/// This keeps the list as a true "unread" inbox — it empties as you read.
+final notificationListProvider =
+    AsyncNotifierProvider<NotificationListNotifier, List<AppNotification>>(
+  NotificationListNotifier.new,
+);
+
+class NotificationListNotifier extends AsyncNotifier<List<AppNotification>> {
+  int _currentPage = 1;
+  bool _hasMore = true;
+
+  /// Whether more pages are available for infinite scroll.
+  bool get hasMore => _hasMore;
+
+  @override
+  Future<List<AppNotification>> build() async {
+    // Watch the foreground stream — re-runs build() (fetches page 1) whenever
+    // a new push arrives, keeping the list fresh.
+    ref.watch(foregroundNotificationStream);
+
+    _currentPage = 1;
+    _hasMore = true;
+    return _fetchPage(1);
+  }
+
+  Future<List<AppNotification>> _fetchPage(int page) async {
+    final apiService = await ref.read(apiServiceProvider.future);
     final result = await apiService.get(
       '/notifications',
       queryParameters: {'page': page, 'limit': 20},
@@ -18,76 +73,72 @@ final notificationsProvider = FutureProvider.family<List<AppNotification>, int>(
       throw Exception(result.error ?? 'Failed to load notifications.');
     }
 
-    final notifications = result.data!['data'] as List<dynamic>? ?? [];
-    return notifications
+    final rawItems = (result.data!['data'] as List<dynamic>? ?? [])
         .map((n) => AppNotification.fromJson(n as Map<String, dynamic>))
         .toList();
-  },
-);
 
-/// The total unread notification count for the current user.
-///
-/// Used by the bell badge in [AppTopBar].
-final unreadCountProvider = FutureProvider<int>((ref) async {
-  final apiService = await ref.watch(apiServiceProvider.future);
-  final result = await apiService.get('/notifications/unread-count');
+    // Pagination uses the raw count so we don't miss unread items on later pages.
+    if (rawItems.length < 20) _hasMore = false;
 
-  if (result.isFailure || result.data == null) {
-    return 0;
+    // Only surface unread notifications — the list is an "inbox" view.
+    return rawItems.where((n) => !n.isRead).toList();
   }
 
-  return result.data!['count'] as int? ?? 0;
-});
+  /// Loads the next page and appends to the current list.
+  ///
+  /// Guards against running while [build] is refreshing — if the state is
+  /// loading (e.g. a foreground push triggered a rebuild), we skip to avoid
+  /// appending stale pages to a list that is about to be replaced.
+  Future<void> loadMore() async {
+    if (!_hasMore || state is AsyncLoading) return;
 
-/// Manages notification actions: marking individual or all notifications
-/// as read.
-class NotificationActionNotifier extends StateNotifier<AsyncValue<void>> {
-  NotificationActionNotifier(this._ref) : super(const AsyncData<void>(null));
+    final current = state.valueOrNull ?? [];
+    final nextPage = _currentPage + 1;
 
-  final Ref _ref;
-
-  /// Marks a single notification as read via POST /notifications/read.
-  Future<void> markAsRead(String notificationId) async {
-    state = const AsyncLoading<void>();
     try {
-      final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.post(
-        '/notifications/read',
-        data: {
-          'ids': [notificationId],
-        },
-      );
-      if (result.isFailure) {
-        throw Exception(result.error ?? 'Failed to mark as read.');
-      }
-      _ref.invalidate(unreadCountProvider);
-      state = const AsyncData<void>(null);
-    } catch (e, st) {
-      state = AsyncError<void>(e, st);
+      final newItems = await _fetchPage(nextPage);
+      _currentPage = nextPage;
+      state = AsyncData([...current, ...newItems]);
+    } catch (_) {
+      // Don't replace the whole list with an error — the user can retry
+      // by scrolling again.
     }
   }
 
-  /// Marks all notifications as read via POST /notifications/read-all.
-  Future<void> markAllAsRead() async {
-    state = const AsyncLoading<void>();
-    try {
-      final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.post('/notifications/read-all');
-      if (result.isFailure) {
-        throw Exception(result.error ?? 'Failed to mark all as read.');
-      }
-      _ref.invalidate(unreadCountProvider);
-      // Invalidate all cached notification pages so they reflect the read
-      // state on next fetch.
-      _ref.invalidate(notificationsProvider);
-      state = const AsyncData<void>(null);
-    } catch (e, st) {
-      state = AsyncError<void>(e, st);
-    }
+  /// Marks a single notification as read and removes it from the list.
+  ///
+  /// The item disappears immediately (optimistic). The server is updated
+  /// fire-and-forget in the background.
+  void markAsRead(String id) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    // Remove from list — it has been read.
+    state = AsyncData(current.where((n) => n.id != id).toList());
+
+    // Fire-and-forget server sync.
+    ref.read(apiServiceProvider.future).then((api) {
+      api.post('/notifications/read', data: {'ids': [id]});
+    });
+    ref.invalidate(unreadCountProvider);
+  }
+
+  /// Marks all notifications as read and clears the list immediately.
+  ///
+  /// The list empties on the spot (optimistic). The server is updated
+  /// fire-and-forget; if the call fails the server will remain consistent
+  /// with the unread state but the local view stays cleared.
+  void markAllAsRead() {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    // Clear the list — all notifications have been read.
+    state = const AsyncData([]);
+
+    // Fire-and-forget server sync.
+    ref.read(apiServiceProvider.future).then((api) {
+      api.post('/notifications/read-all');
+    });
+    ref.invalidate(unreadCountProvider);
   }
 }
-
-final notificationActionProvider =
-    StateNotifierProvider<NotificationActionNotifier, AsyncValue<void>>((ref) {
-  return NotificationActionNotifier(ref);
-});
