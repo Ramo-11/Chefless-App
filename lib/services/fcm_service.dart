@@ -13,6 +13,11 @@ class FcmService {
   final ApiService apiService;
   String? _currentToken;
 
+  /// Stream of foreground push messages, exposed as a static getter so
+  /// Riverpod providers can subscribe without needing an FcmService instance.
+  static Stream<RemoteMessage> get foregroundMessages =>
+      FirebaseMessaging.onMessage;
+
   /// Initializes FCM: requests permission, retrieves the token, registers it
   /// with the API, and sets up listeners for token refresh and foreground
   /// messages.
