@@ -63,17 +63,25 @@ class _NoKitchenView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.kitchen_outlined,
-              size: 64,
-              color: context.colorScheme.onSurfaceVariant
-                  .withValues(alpha: 0.4),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacing24),
+              decoration: BoxDecoration(
+                color: AppTheme.gray50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.kitchen_outlined,
+                size: 48,
+                color: AppTheme.gray400,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               'No Kitchen Yet',
               style: context.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),
@@ -82,20 +90,27 @@ class _NoKitchenView extends StatelessWidget {
               'planning meals together.',
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: AppTheme.spacingXl),
-            ElevatedButton.icon(
-              onPressed: () => context.push('/kitchen/create'),
-              icon: const Icon(Icons.add),
-              label: const Text('Create Kitchen'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/kitchen/create'),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Create Kitchen'),
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/kitchen/join'),
-              icon: const Icon(Icons.group_add),
-              label: const Text('Join Kitchen'),
+            const SizedBox(height: AppTheme.spacing12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/kitchen/join'),
+                icon: const Icon(Icons.group_add, size: 20),
+                label: const Text('Join Kitchen'),
+              ),
             ),
           ],
         ),
@@ -121,18 +136,27 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 32,
+                color: AppTheme.error,
+              ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: context.textTheme.bodyMedium,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray600,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             OutlinedButton(
               onPressed: onRetry,
               child: const Text('Retry'),
@@ -171,12 +195,45 @@ class _KitchenContent extends ConsumerWidget {
         const SizedBox(height: AppTheme.spacingLg),
 
         // Kitchen recipes link
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            border: Border.all(color: AppTheme.gray200),
+          ),
           child: ListTile(
-            leading: const Icon(Icons.menu_book),
-            title: const Text('Kitchen Recipes'),
-            subtitle: const Text('Browse recipes from all members'),
-            trailing: const Icon(Icons.chevron_right),
+            shape: RoundedRectangleBorder(
+              borderRadius: AppTheme.borderRadiusMedium,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingSm),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                borderRadius: AppTheme.borderRadiusSmall,
+              ),
+              child: Icon(
+                Icons.menu_book,
+                size: 20,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            title: Text(
+              'Kitchen Recipes',
+              style: context.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppTheme.gray900,
+              ),
+            ),
+            subtitle: Text(
+              'Browse recipes from all members',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: AppTheme.gray500,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right,
+              color: AppTheme.gray400,
+            ),
             onTap: () => context.push('/kitchen/recipes'),
           ),
         ),
@@ -220,33 +277,55 @@ class _KitchenHeader extends StatelessWidget {
     return Column(
       children: [
         // Kitchen photo
-        CircleAvatar(
-          radius: 48,
-          backgroundColor: context.colorScheme.primaryContainer,
-          backgroundImage: kitchen.photo != null
-              ? CachedNetworkImageProvider(kitchen.photo!)
-              : null,
-          child: kitchen.photo == null
-              ? Icon(
-                  Icons.kitchen,
-                  size: 40,
-                  color: context.colorScheme.onPrimaryContainer,
-                )
-              : null,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppTheme.gray200,
+              width: 2,
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 48,
+            backgroundColor: AppTheme.primaryLight,
+            backgroundImage: kitchen.photo != null
+                ? CachedNetworkImageProvider(kitchen.photo!)
+                : null,
+            child: kitchen.photo == null
+                ? Icon(
+                    Icons.kitchen,
+                    size: 36,
+                    color: AppTheme.primaryColor,
+                  )
+                : null,
+          ),
         ),
         const SizedBox(height: AppTheme.spacingMd),
         Text(
           kitchen.name,
           style: context.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.gray900,
+            letterSpacing: -0.3,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppTheme.spacingXs),
-        Text(
-          '${kitchen.memberCount} member${kitchen.memberCount == 1 ? '' : 's'}',
-          style: context.textTheme.bodyMedium?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
+        const SizedBox(height: AppTheme.spacing4),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing12,
+            vertical: AppTheme.spacing4,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            borderRadius: AppTheme.borderRadiusFull,
+          ),
+          child: Text(
+            '${kitchen.memberCount} member${kitchen.memberCount == 1 ? '' : 's'}',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: AppTheme.gray500,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -261,32 +340,48 @@ class _InviteCodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        child: Column(
-          children: [
-            Text(
-              'Invite Code',
-              style: context.textTheme.labelLarge?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing20),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryLight,
+        borderRadius: AppTheme.borderRadiusMedium,
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Invite Code',
+            style: context.textTheme.labelMedium?.copyWith(
+              color: AppTheme.gray500,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  inviteCode,
-                  style: context.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                    color: context.colorScheme.primary,
-                  ),
+          ),
+          const SizedBox(height: AppTheme.spacing12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                inviteCode,
+                style: context.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                  color: AppTheme.primaryColor,
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
-                IconButton(
-                  icon: const Icon(Icons.copy),
+              ),
+              const SizedBox(width: AppTheme.spacing12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.copy_rounded,
+                    size: 20,
+                    color: AppTheme.primaryColor,
+                  ),
                   tooltip: 'Copy invite code',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: inviteCode));
@@ -297,18 +392,18 @@ class _InviteCodeCard extends StatelessWidget {
                     );
                   },
                 ),
-              ],
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            Text(
-              'Share this code with family or friends to invite them.',
-              style: context.textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
               ),
-              textAlign: TextAlign.center,
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacing12),
+          Text(
+            'Share this code with family or friends to invite them.',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: AppTheme.gray500,
             ),
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -336,38 +431,68 @@ class _MembersSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: AppTheme.spacingXs),
+          padding: const EdgeInsets.only(left: AppTheme.spacing4),
           child: Text(
             'Members',
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+              letterSpacing: -0.2,
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing12),
         if (isLead && atCapacity)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-            child: Card(
-              color: AppTheme.secondaryColor.withValues(alpha: 0.1),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.group,
-                  color: AppTheme.secondaryColor,
+            padding: const EdgeInsets.only(bottom: AppTheme.spacing12),
+            child: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              decoration: BoxDecoration(
+                color: AppTheme.warningLight,
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(
+                  color: AppTheme.warning.withValues(alpha: 0.2),
                 ),
-                title: const Text('Kitchen at capacity'),
-                subtitle: const Text(
-                  'Upgrade to Premium for unlimited members.',
-                ),
-                trailing: TextButton(
-                  onPressed: () {
-                    PaywallBottomSheet.show(
-                      context,
-                      reason: PaywallReason.kitchenCapacityReached,
-                    );
-                  },
-                  child: const Text('Upgrade'),
-                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.group,
+                    size: 20,
+                    color: AppTheme.warning,
+                  ),
+                  const SizedBox(width: AppTheme.spacing12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Kitchen at capacity',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.gray900,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacing2),
+                        Text(
+                          'Upgrade to Premium for unlimited members.',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.gray600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      PaywallBottomSheet.show(
+                        context,
+                        reason: PaywallReason.kitchenCapacityReached,
+                      );
+                    },
+                    child: const Text('Upgrade'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -412,7 +537,7 @@ class _MembersSection extends ConsumerWidget {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: AppTheme.error,
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -495,39 +620,65 @@ class _MemberTile extends StatelessWidget {
     if (isLead) {
       badges.add(_RoleBadge(
         label: 'Lead',
-        color: context.colorScheme.primary,
+        color: AppTheme.primaryColor,
       ));
     }
     if (canEditSchedule) {
       badges.add(_RoleBadge(
         label: 'Editor',
-        color: context.colorScheme.secondary,
+        color: AppTheme.info,
       ));
     }
     if (canApprove) {
-      badges.add(const _RoleBadge(
+      badges.add(_RoleBadge(
         label: 'Approver',
-        color: AppTheme.secondaryColor,
+        color: AppTheme.gray700,
       ));
     }
 
-    return Card(
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.borderRadiusMedium,
+        border: Border.all(color: AppTheme.gray200),
+      ),
       child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: AppTheme.borderRadiusMedium,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMd,
+          vertical: AppTheme.spacing4,
+        ),
         leading: UserAvatar(
           fullName: member.fullName,
           profilePictureUrl: member.profilePicture,
           size: 40,
         ),
-        title: Text(member.fullName),
+        title: Text(
+          member.fullName,
+          style: context.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: AppTheme.gray900,
+          ),
+        ),
         subtitle: badges.isNotEmpty
-            ? Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: badges,
+            ? Padding(
+                padding: const EdgeInsets.only(top: AppTheme.spacing4),
+                child: Wrap(
+                  spacing: AppTheme.spacing4,
+                  runSpacing: AppTheme.spacing4,
+                  children: badges,
+                ),
               )
             : null,
         trailing: showRemoveButton
             ? PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_horiz,
+                  color: AppTheme.gray400,
+                ),
                 itemBuilder: (ctx) => [
                   if (onTransfer != null)
                     const PopupMenuItem(
@@ -565,10 +716,13 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingSm,
+        vertical: AppTheme.spacing2,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: AppTheme.borderRadiusSmall,
+        color: color.withValues(alpha: 0.1),
+        borderRadius: AppTheme.borderRadiusFull,
       ),
       child: Text(
         label,
@@ -596,30 +750,87 @@ class _LeadActionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: AppTheme.spacingXs),
+          padding: const EdgeInsets.only(left: AppTheme.spacing4),
           child: Text(
             'Kitchen Management',
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+              letterSpacing: -0.2,
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
-        Card(
+        const SizedBox(height: AppTheme.spacing12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            border: Border.all(color: AppTheme.gray200),
+          ),
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.admin_panel_settings),
-                title: const Text('Manage Permissions'),
-                trailing: const Icon(Icons.chevron_right),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppTheme.radiusMedium),
+                  ),
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  child: Icon(
+                    Icons.admin_panel_settings,
+                    size: 20,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                title: Text(
+                  'Manage Permissions',
+                  style: context.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.gray900,
+                  ),
+                ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: AppTheme.gray400,
+                ),
                 onTap: () => context.push('/kitchen/permissions'),
               ),
-              const Divider(),
+              Divider(height: 1, color: AppTheme.gray100),
               ListTile(
-                leading: const Icon(Icons.refresh),
-                title: const Text('Regenerate Invite Code'),
-                subtitle: const Text(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(AppTheme.radiusMedium),
+                  ),
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gray50,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  child: Icon(
+                    Icons.refresh,
+                    size: 20,
+                    color: AppTheme.gray600,
+                  ),
+                ),
+                title: Text(
+                  'Regenerate Invite Code',
+                  style: context.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.gray900,
+                  ),
+                ),
+                subtitle: Text(
                   'The current code will stop working.',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.gray500,
+                  ),
                 ),
                 onTap: () => _confirmRegenerate(context),
               ),
@@ -756,7 +967,7 @@ class _MealSlotsSectionState extends ConsumerState<_MealSlotsSection> {
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'Remove',
-              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              style: TextStyle(color: AppTheme.error),
             ),
           ),
         ],
@@ -794,43 +1005,59 @@ class _MealSlotsSectionState extends ConsumerState<_MealSlotsSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: AppTheme.spacingXs),
+          padding: const EdgeInsets.only(left: AppTheme.spacing4),
           child: Text(
             'Meal Slot Categories',
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+              letterSpacing: -0.2,
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXs),
+        const SizedBox(height: AppTheme.spacing4),
         Padding(
           padding: const EdgeInsets.only(
-            left: AppTheme.spacingXs,
-            bottom: AppTheme.spacingSm,
+            left: AppTheme.spacing4,
+            bottom: AppTheme.spacing12,
           ),
           child: Text(
             'Add custom meal categories beyond Breakfast, Lunch, Dinner, and Snack. '
             'They appear as rows in the weekly schedule.',
             style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
             ),
           ),
         ),
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            border: Border.all(color: AppTheme.gray200),
+          ),
           child: Column(
             children: [
               if (slots.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
                     horizontal: AppTheme.spacingMd,
                     vertical: AppTheme.spacingMd,
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18),
-                      SizedBox(width: AppTheme.spacingSm),
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: AppTheme.gray400,
+                      ),
+                      const SizedBox(width: AppTheme.spacingSm),
                       Expanded(
-                        child: Text('No custom slots yet.'),
+                        child: Text(
+                          'No custom slots yet.',
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.gray500,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -841,24 +1068,35 @@ class _MealSlotsSectionState extends ConsumerState<_MealSlotsSection> {
                   children: [
                     ListTile(
                       dense: true,
-                      leading: const Icon(Icons.label_outline, size: 20),
-                      title: Text(slot),
+                      leading: Icon(
+                        Icons.label_outline,
+                        size: 20,
+                        color: AppTheme.gray500,
+                      ),
+                      title: Text(
+                        slot,
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.gray900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       trailing: IconButton(
                         icon: Icon(
                           Icons.delete_outline,
                           size: 20,
-                          color: context.colorScheme.error,
+                          color: AppTheme.error,
                         ),
                         tooltip: 'Remove slot',
                         onPressed:
                             _isSaving ? null : () => _removeSlot(slot),
                       ),
                     ),
-                    if (slot != slots.last) const Divider(height: 1),
+                    if (slot != slots.last)
+                      Divider(height: 1, color: AppTheme.gray100),
                   ],
                 ),
               ),
-              if (slots.isNotEmpty) const Divider(height: 1),
+              if (slots.isNotEmpty) Divider(height: 1, color: AppTheme.gray100),
               ListTile(
                 leading: _isSaving
                     ? const SizedBox(
@@ -868,12 +1106,13 @@ class _MealSlotsSectionState extends ConsumerState<_MealSlotsSection> {
                       )
                     : Icon(
                         Icons.add_circle_outline,
-                        color: context.colorScheme.primary,
+                        color: AppTheme.primaryColor,
                       ),
                 title: Text(
                   'Add custom slot',
-                  style: TextStyle(
-                    color: context.colorScheme.primary,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 onTap: _isSaving ? null : _addSlot,
@@ -897,43 +1136,68 @@ class _DangerSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: AppTheme.spacingXs),
+          padding: const EdgeInsets.only(left: AppTheme.spacing4),
           child: Text(
             'Danger Zone',
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: context.colorScheme.error,
+              color: AppTheme.error,
+              letterSpacing: -0.2,
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
-        Card(
+        const SizedBox(height: AppTheme.spacing12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            border: Border.all(
+              color: AppTheme.error.withValues(alpha: 0.2),
+            ),
+          ),
           child: Column(
             children: [
               if (!isLead)
                 ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppTheme.borderRadiusMedium,
+                  ),
                   leading: Icon(
                     Icons.exit_to_app,
-                    color: context.colorScheme.error,
+                    color: AppTheme.error,
+                    size: 22,
                   ),
                   title: Text(
                     'Leave Kitchen',
-                    style: TextStyle(color: context.colorScheme.error),
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.error,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   onTap: () => _confirmLeave(context, ref),
                 ),
               if (isLead)
                 ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppTheme.borderRadiusMedium,
+                  ),
                   leading: Icon(
                     Icons.delete_forever,
-                    color: context.colorScheme.error,
+                    color: AppTheme.error,
+                    size: 22,
                   ),
                   title: Text(
                     'Delete Kitchen',
-                    style: TextStyle(color: context.colorScheme.error),
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.error,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'This will remove all members and cannot be undone.',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.gray500,
+                    ),
                   ),
                   onTap: () => _confirmDelete(context, ref),
                 ),
@@ -959,7 +1223,7 @@ class _DangerSection extends ConsumerWidget {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: AppTheme.error,
             ),
             onPressed: () async {
               Navigator.pop(ctx);
@@ -1000,7 +1264,7 @@ class _DangerSection extends ConsumerWidget {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: AppTheme.error,
             ),
             onPressed: () async {
               Navigator.pop(ctx);

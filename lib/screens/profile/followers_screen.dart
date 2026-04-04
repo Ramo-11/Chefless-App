@@ -89,29 +89,39 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
             const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: context.colorScheme.error,
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: AppTheme.error,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
                   'Failed to load followers',
-                  style: context.textTheme.titleMedium,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
                 Text(
                   error.toString(),
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 ElevatedButton(
                   onPressed: () =>
                       ref.invalidate(followersProvider(1)),
@@ -133,17 +143,24 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 48,
-                    color: context.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.4),
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.spacing20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_outline,
+                      size: 36,
+                      color: AppTheme.gray400,
+                    ),
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   Text(
                     'No followers yet',
                     style: context.textTheme.bodyLarge?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -159,7 +176,11 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                 vertical: AppTheme.spacingSm,
               ),
               itemCount: _followers.length + (_hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(),
+              separatorBuilder: (_, _) => Divider(
+                height: 1,
+                indent: AppTheme.spacing16 + 44 + AppTheme.spacing16,
+                color: AppTheme.gray100,
+              ),
               itemBuilder: (context, index) {
                 if (index >= _followers.length) {
                   return const Padding(
@@ -170,6 +191,10 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
 
                 final follower = _followers[index];
                 return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacing4,
+                  ),
                   leading: UserAvatar(
                     fullName: follower.fullName,
                     profilePictureUrl: follower.profilePicture,
@@ -177,7 +202,10 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                   ),
                   title: Text(
                     follower.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.gray900,
+                    ),
                   ),
                   onTap: () => context.push('/user/${follower.id}'),
                 );

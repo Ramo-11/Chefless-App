@@ -37,11 +37,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   void _prefillName() {
+    // First try the MongoDB user (returning users resuming onboarding).
     final user = ref.read(currentUserProvider).valueOrNull;
-    if (user != null && mounted) {
-      setState(() {
-        _nameController.text = user.fullName;
-      });
+    if (user != null && user.fullName.isNotEmpty && mounted) {
+      setState(() => _nameController.text = user.fullName);
+      return;
+    }
+
+    // Fallback to Firebase displayName (new Google/Apple/email users).
+    final firebaseUser = ref.read(authServiceProvider).currentUser;
+    if (firebaseUser != null &&
+        firebaseUser.displayName != null &&
+        firebaseUser.displayName!.isNotEmpty &&
+        mounted) {
+      setState(() => _nameController.text = firebaseUser.displayName!);
     }
   }
 
@@ -150,17 +159,27 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         }
       }
 
-      // Upload profile picture if one was picked.
+      // Upload profile picture if one was picked (non-blocking — warn on failure).
       if (_pickedImagePath != null) {
         final bytes = await File(_pickedImagePath!).readAsBytes();
         final ext = _pickedImagePath!.split('.').last.toLowerCase();
         final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
         final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
 
-        await apiService.post(
+        final imageResult = await apiService.post(
           '/users/me/profile-picture',
           data: {'image': dataUri},
         );
+
+        if (imageResult.isFailure && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Photo upload failed — you can add it later from your profile.',
+              ),
+            ),
+          );
+        }
       }
 
       // Don't invalidate currentUserProvider here — it triggers the router
@@ -176,8 +195,59 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     }
   }
 
-  void _skip() {
-    context.go('/onboarding/dietary');
+  Future<void> _skip() async {
+    // Must register the user in MongoDB even when skipping, otherwise
+    // PATCH /users/me calls later in onboarding will 404.
+    final existingUser = ref.read(currentUserProvider).valueOrNull;
+    if (existingUser != null) {
+      // Already registered — safe to skip.
+      context.go('/onboarding/dietary');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final authService = ref.read(authServiceProvider);
+      final firebaseUser = authService.currentUser;
+      if (firebaseUser == null) {
+        if (mounted) context.go('/login');
+        return;
+      }
+
+      final fullName = firebaseUser.displayName?.isNotEmpty == true
+          ? firebaseUser.displayName!
+          : (firebaseUser.email?.split('@').first ?? 'Chefless User');
+
+      final apiService = await ref.read(apiServiceProvider.future);
+      final result = await apiService.post(
+        '/auth/register',
+        data: {
+          'fullName': fullName,
+          'email': firebaseUser.email ?? '',
+        },
+      );
+
+      if (!mounted) return;
+
+      if (result.isFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Failed to create account.'),
+          ),
+        );
+        setState(() => _isSaving = false);
+        return;
+      }
+
+      context.go('/onboarding/dietary');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An unexpected error occurred.')),
+      );
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -186,7 +256,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         _nameController.text.isEmpty ? 'You' : _nameController.text;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text('Your Profile'),
         actions: [
           TextButton(
@@ -199,28 +271,34 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing32,
+              vertical: AppTheme.spacing24,
+            ),
             children: [
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing16),
 
               // Heading
               Text(
                 'Let\'s set up your profile',
                 style: context.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppTheme.gray900,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing8),
               Text(
                 'Tell us your name and add a photo so others can recognize you.',
                 style: context.textTheme.bodyMedium?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray500,
+                  height: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacing40),
 
               // Avatar picker
               Center(
@@ -237,19 +315,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         right: 0,
                         bottom: 0,
                         child: Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(AppTheme.spacing8),
                           decoration: BoxDecoration(
-                            color: context.colorScheme.primary,
+                            color: AppTheme.primaryColor,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: context.colorScheme.surface,
-                              width: 2,
+                              color: Colors.white,
+                              width: 3,
                             ),
+                            boxShadow: AppTheme.shadowSm,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.camera_alt,
                             size: 18,
-                            color: context.colorScheme.onPrimary,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -258,7 +337,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacing40),
 
               // Name field
               TextFormField(
@@ -280,21 +359,29 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 },
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacing40),
 
               // Continue button
-              FilledButton(
-                onPressed: _isSaving ? null : _saveAndContinue,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Continue'),
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: _isSaving ? null : _saveAndContinue,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Continue'),
+                ),
               ),
             ],
           ),

@@ -20,97 +20,103 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: AppTheme.spacing48),
         children: [
-          // Account Settings
-          const _SectionHeader(title: 'Account'),
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: const Text('Account Settings'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/account'),
+          // ── Account Section ──────────────────────────────────
+          const _SectionHeader(title: 'ACCOUNT'),
+          _SettingsGroup(
+            children: [
+              _SettingsTile(
+                icon: Icons.person_outline,
+                title: 'Account Settings',
+                onTap: () => context.push('/settings/account'),
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.notifications_outlined,
+                title: 'Notification Preferences',
+                onTap: () => context.push('/settings/notifications'),
+              ),
+            ],
           ),
-          const Divider(),
 
-          // Notifications
-          ListTile(
-            leading: const Icon(Icons.notifications_outlined),
-            title: const Text('Notification Preferences'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/notifications'),
+          // ── Subscription Section ────────────────────────────
+          const _SectionHeader(title: 'SUBSCRIPTION'),
+          _SettingsGroup(
+            children: [
+              _SettingsTile(
+                icon: Icons.workspace_premium_outlined,
+                iconColor: AppTheme.primaryColor,
+                title: 'Subscription Management',
+                onTap: RevenueCatConstants.isConfigured
+                    ? () => context.push('/paywall')
+                    : () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Subscriptions are not available yet.'),
+                          ),
+                        ),
+              ),
+            ],
           ),
-          const Divider(),
 
-          // Subscription
-          const _SectionHeader(title: 'Subscription'),
-          ListTile(
-            leading: const Icon(Icons.workspace_premium_outlined),
-            title: const Text('Subscription Management'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: RevenueCatConstants.isConfigured
-                ? () => context.push('/paywall')
-                : () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content:
-                            Text('Subscriptions are not available yet.'),
-                      ),
-                    ),
-          ),
-          const Divider(),
-
-          // Kitchen
-          const _SectionHeader(title: 'Kitchen'),
+          // ── Kitchen Section ─────────────────────────────────
+          const _SectionHeader(title: 'KITCHEN'),
           _KitchenSettingsSection(),
-          const Divider(),
 
-          // About
-          const _SectionHeader(title: 'About'),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('About Chefless'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showAboutDialog(context),
+          // ── About Section ───────────────────────────────────
+          const _SectionHeader(title: 'ABOUT'),
+          _SettingsGroup(
+            children: [
+              _SettingsTile(
+                icon: Icons.info_outline,
+                title: 'About Chefless',
+                onTap: () => _showAboutDialog(context),
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.description_outlined,
+                title: 'Terms of Service',
+                trailingIcon: Icons.open_in_new,
+                trailingIconSize: 16,
+                onTap: () =>
+                    _openUrl('https://chefless-web.onrender.com/terms'),
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.privacy_tip_outlined,
+                title: 'Privacy Policy',
+                trailingIcon: Icons.open_in_new,
+                trailingIconSize: 16,
+                onTap: () =>
+                    _openUrl('https://chefless-web.onrender.com/privacy'),
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.description_outlined),
-            title: const Text('Terms of Service'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => _openUrl('https://chefless-web.onrender.com/terms'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined),
-            title: const Text('Privacy Policy'),
-            trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () =>
-                _openUrl('https://chefless-web.onrender.com/privacy'),
-          ),
-          const Divider(),
 
-          // Danger zone
-          const _SectionHeader(title: 'Danger Zone'),
-          ListTile(
-            leading: Icon(
-              Icons.delete_forever_outlined,
-              color: context.colorScheme.error,
-            ),
-            title: Text(
-              'Delete Account',
-              style: TextStyle(color: context.colorScheme.error),
-            ),
-            onTap: () => _confirmDeleteAccount(context, ref),
+          // ── Danger Zone ─────────────────────────────────────
+          const _SectionHeader(title: 'DANGER ZONE'),
+          _SettingsGroup(
+            children: [
+              _SettingsTile(
+                icon: Icons.delete_forever_outlined,
+                iconColor: AppTheme.error,
+                title: 'Delete Account',
+                titleColor: AppTheme.error,
+                showChevron: false,
+                onTap: () => _confirmDeleteAccount(context, ref),
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.logout,
+                iconColor: AppTheme.error,
+                title: 'Sign Out',
+                titleColor: AppTheme.error,
+                showChevron: false,
+                onTap: () => _confirmSignOut(context, ref),
+              ),
+            ],
           ),
-          const Divider(),
-          ListTile(
-            leading: Icon(
-              Icons.logout,
-              color: context.colorScheme.error,
-            ),
-            title: Text(
-              'Sign Out',
-              style: TextStyle(color: context.colorScheme.error),
-            ),
-            onTap: () => _confirmSignOut(context, ref),
-          ),
-          const SizedBox(height: AppTheme.spacingXl),
         ],
       ),
     );
@@ -133,8 +139,7 @@ class SettingsScreen extends ConsumerWidget {
               // Clear FCM token before signing out so the server
               // stops sending push notifications to this device.
               try {
-                final apiService =
-                    await ref.read(apiServiceProvider.future);
+                final apiService = await ref.read(apiServiceProvider.future);
                 await FcmService(apiService: apiService).clearToken();
               } catch (_) {
                 // Best effort — don't block sign-out if this fails.
@@ -301,6 +306,8 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+// ── Kitchen Settings Section ─────────────────────────────────────────────────
+
 class _KitchenSettingsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -310,18 +317,17 @@ class _KitchenSettingsSection extends ConsumerWidget {
       data: (detail) {
         if (detail == null) {
           // Not in a kitchen — show create/join options.
-          return Column(
+          return _SettingsGroup(
             children: [
-              ListTile(
-                leading: const Icon(Icons.add),
-                title: const Text('Create Kitchen'),
-                trailing: const Icon(Icons.chevron_right),
+              _SettingsTile(
+                icon: Icons.add,
+                title: 'Create Kitchen',
                 onTap: () => context.push('/kitchen/create'),
               ),
-              ListTile(
-                leading: const Icon(Icons.group_add),
-                title: const Text('Join Kitchen'),
-                trailing: const Icon(Icons.chevron_right),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.group_add_outlined,
+                title: 'Join Kitchen',
                 onTap: () => context.push('/kitchen/join'),
               ),
             ],
@@ -329,33 +335,61 @@ class _KitchenSettingsSection extends ConsumerWidget {
         }
 
         // Already in a kitchen — show kitchen name and link.
-        return ListTile(
-          leading: const Icon(Icons.kitchen_outlined),
-          title: Text(detail.kitchen.name),
-          subtitle: Text(
-            '${detail.kitchen.memberCount} member${detail.kitchen.memberCount == 1 ? '' : 's'}',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/kitchen'),
+        return _SettingsGroup(
+          children: [
+            _SettingsTile(
+              icon: Icons.kitchen_outlined,
+              title: detail.kitchen.name,
+              subtitle:
+                  '${detail.kitchen.memberCount} member${detail.kitchen.memberCount == 1 ? '' : 's'}',
+              onTap: () => context.push('/kitchen'),
+            ),
+          ],
         );
       },
-      loading: () => const ListTile(
-        leading: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-        title: Text('Loading kitchen...'),
+      loading: () => _SettingsGroup(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing16,
+              vertical: AppTheme.spacing16,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.gray400,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacing12),
+                Text(
+                  'Loading kitchen...',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.gray500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
-      error: (_, _) => ListTile(
-        leading: const Icon(Icons.kitchen_outlined),
-        title: const Text('Kitchen'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/kitchen'),
+      error: (_, _) => _SettingsGroup(
+        children: [
+          _SettingsTile(
+            icon: Icons.kitchen_outlined,
+            title: 'Kitchen',
+            onTap: () => context.push('/kitchen'),
+          ),
+        ],
       ),
     );
   }
 }
+
+// ── Section Header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
@@ -366,17 +400,151 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        left: AppTheme.spacingMd,
-        right: AppTheme.spacingMd,
-        top: AppTheme.spacingLg,
-        bottom: AppTheme.spacingSm,
+        left: AppTheme.spacing20,
+        right: AppTheme.spacing20,
+        top: AppTheme.spacing32,
+        bottom: AppTheme.spacing8,
       ),
       child: Text(
         title,
-        style: context.textTheme.labelLarge?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: AppTheme.gray400,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
         ),
+      ),
+    );
+  }
+}
+
+// ── Settings Group (iOS-style rounded card) ──────────────────────────────────
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppTheme.borderRadiusMedium,
+          border: Border.all(color: AppTheme.gray200),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings Tile ────────────────────────────────────────────────────────────
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.iconColor,
+    this.titleColor,
+    this.trailingIcon,
+    this.trailingIconSize,
+    this.showChevron = true,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Color? iconColor;
+  final Color? titleColor;
+  final IconData? trailingIcon;
+  final double? trailingIconSize;
+  final bool showChevron;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? AppTheme.gray600).withValues(alpha: 0.08),
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: iconColor ?? AppTheme.gray600,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacing12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: titleColor ?? AppTheme.gray900,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.gray500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (showChevron)
+                Icon(
+                  trailingIcon ?? Icons.chevron_right_rounded,
+                  size: trailingIconSize ?? 20,
+                  color: AppTheme.gray300,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tile Divider ─────────────────────────────────────────────────────────────
+
+class _TileDivider extends StatelessWidget {
+  const _TileDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: AppTheme.spacing16 + 32 + AppTheme.spacing12),
+      child: Container(
+        height: 1,
+        color: AppTheme.gray100,
       ),
     );
   }

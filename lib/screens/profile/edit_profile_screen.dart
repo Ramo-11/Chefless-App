@@ -307,15 +307,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             right: 0,
                             bottom: 0,
                             child: Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.all(AppTheme.spacing6),
                               decoration: BoxDecoration(
-                                color: context.colorScheme.primary,
+                                color: AppTheme.primaryColor,
                                 shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
-                              child: Icon(
+                              child: const Icon(
                                 Icons.camera_alt,
                                 size: 16,
-                                color: context.colorScheme.onPrimary,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -331,18 +335,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                       decoration: BoxDecoration(
-                        color: context.colorScheme.errorContainer,
-                        borderRadius: AppTheme.borderRadiusSmall,
-                      ),
-                      child: Text(
-                        _error!,
-                        style: TextStyle(
-                          color: context.colorScheme.onErrorContainer,
+                        color: AppTheme.errorLight,
+                        borderRadius: AppTheme.borderRadiusMedium,
+                        border: Border.all(
+                          color: AppTheme.error.withValues(alpha: 0.2),
                         ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: AppTheme.error,
+                          ),
+                          const SizedBox(width: AppTheme.spacingSm),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.error,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppTheme.spacingMd),
                   ],
+
+                  // Section label
+                  _SectionLabel(label: 'Personal Information'),
+                  const SizedBox(height: AppTheme.spacing12),
 
                   // Full name
                   TextFormField(
@@ -396,33 +419,52 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: AppTheme.spacingLg),
 
                   // Privacy toggle
-                  SwitchListTile(
-                    title: const Text('Public Account'),
-                    subtitle: Text(
-                      _isPublic
-                          ? 'Anyone can see your profile and shared recipes.'
-                          : 'Only approved followers can see your profile and shared recipes.',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                  _SectionLabel(label: 'Privacy'),
+                  const SizedBox(height: AppTheme.spacing12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      borderRadius: AppTheme.borderRadiusMedium,
+                      border: Border.all(color: AppTheme.gray200),
+                    ),
+                    child: SwitchListTile(
+                      title: Text(
+                        'Public Account',
+                        style: context.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.gray900,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: AppTheme.spacing4),
+                        child: Text(
+                          _isPublic
+                              ? 'Anyone can see your profile and shared recipes.'
+                              : 'Only approved followers can see your profile and shared recipes.',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.gray500,
+                          ),
+                        ),
+                      ),
+                      value: _isPublic,
+                      onChanged: (value) {
+                        if (mounted) setState(() => _isPublic = value);
+                      },
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                        vertical: AppTheme.spacing4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppTheme.borderRadiusMedium,
                       ),
                     ),
-                    value: _isPublic,
-                    onChanged: (value) {
-                      if (mounted) setState(() => _isPublic = value);
-                    },
-                    contentPadding: EdgeInsets.zero,
                   ),
 
                   const SizedBox(height: AppTheme.spacingLg),
 
                   // Dietary preferences
-                  Text(
-                    'Dietary Preferences',
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingSm),
+                  _SectionLabel(label: 'Dietary Preferences'),
+                  const SizedBox(height: AppTheme.spacing12),
                   Wrap(
                     spacing: AppTheme.spacingSm,
                     runSpacing: AppTheme.spacingSm,
@@ -448,13 +490,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: AppTheme.spacingLg),
 
                   // Cuisine preferences
-                  Text(
-                    'Cuisine Preferences',
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacingSm),
+                  _SectionLabel(label: 'Cuisine Preferences'),
+                  const SizedBox(height: AppTheme.spacing12),
                   Wrap(
                     spacing: AppTheme.spacingSm,
                     runSpacing: AppTheme.spacingSm,
@@ -481,6 +518,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: context.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: AppTheme.gray700,
+        letterSpacing: -0.1,
+      ),
     );
   }
 }

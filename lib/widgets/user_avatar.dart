@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
 import '../utils/badge_utils.dart';
 
 /// A reusable circular avatar widget that shows a profile picture via
@@ -39,8 +40,6 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     final isLocalFile = profilePictureUrl != null &&
         profilePictureUrl!.isNotEmpty &&
         !profilePictureUrl!.startsWith('http');
@@ -48,7 +47,7 @@ class UserAvatar extends StatelessWidget {
     final avatar = profilePictureUrl != null && profilePictureUrl!.isNotEmpty
         ? CircleAvatar(
             radius: size / 2,
-            backgroundColor: colorScheme.surfaceContainerHighest,
+            backgroundColor: AppTheme.gray100,
             backgroundImage: isLocalFile
                 ? FileImage(File(profilePictureUrl!))
                 : CachedNetworkImageProvider(profilePictureUrl!)
@@ -56,13 +55,14 @@ class UserAvatar extends StatelessWidget {
           )
         : CircleAvatar(
             radius: size / 2,
-            backgroundColor: colorScheme.primaryContainer,
+            backgroundColor: AppTheme.primaryLight,
             child: Text(
               _initials,
               style: TextStyle(
                 fontSize: size * 0.36,
                 fontWeight: FontWeight.w600,
-                color: colorScheme.onPrimaryContainer,
+                color: AppTheme.primaryDark,
+                letterSpacing: -0.3,
               ),
             ),
           );
@@ -88,7 +88,7 @@ class UserAvatar extends StatelessWidget {
                 color: badgeColor(badge!),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: colorScheme.surface,
+                  color: Colors.white,
                   width: 2,
                 ),
               ),

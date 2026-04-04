@@ -73,18 +73,75 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        title: _SearchField(
-          controller: _controller,
-          focusNode: _focusNode,
-          query: query,
-          onChanged: (value) {
-            ref.read(searchQueryProvider.notifier).state = value;
-          },
-          onClear: () {
-            _controller.clear();
-            ref.read(searchQueryProvider.notifier).state = '';
-          },
-          onSubmitted: _submitSearch,
+        title: Padding(
+          padding: const EdgeInsets.only(right: AppTheme.spacing16),
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.gray50,
+              borderRadius: AppTheme.borderRadiusFull,
+              border: Border.all(color: AppTheme.gray200),
+            ),
+            child: Row(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: AppTheme.spacing12),
+                  child: Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: AppTheme.gray400,
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    decoration: const InputDecoration(
+                      hintText: 'Search recipes, people, kitchens...',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing8,
+                        vertical: 10,
+                      ),
+                      isDense: true,
+                    ),
+                    style: context.textTheme.bodyMedium,
+                    textInputAction: TextInputAction.search,
+                    onChanged: (value) {
+                      ref.read(searchQueryProvider.notifier).state = value;
+                    },
+                    onSubmitted: _submitSearch,
+                  ),
+                ),
+                if (query.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      _controller.clear();
+                      ref.read(searchQueryProvider.notifier).state = '';
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: AppTheme.spacing8),
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: AppTheme.gray300,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
       body: AnimatedSwitcher(
@@ -102,54 +159,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 onTapCategory: _searchFromSuggestion,
               ),
       ),
-    );
-  }
-}
-
-// ── Search Field ────────────────────────────────────────────────────────────
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.controller,
-    required this.focusNode,
-    required this.query,
-    required this.onChanged,
-    required this.onClear,
-    required this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String query;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-  final ValueChanged<String> onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      decoration: InputDecoration(
-        hintText: 'Search recipes, people, kitchens...',
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        filled: false,
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: AppTheme.spacingSm,
-        ),
-        suffixIcon: query.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.clear, size: 20),
-                onPressed: onClear,
-                tooltip: 'Clear',
-              )
-            : null,
-      ),
-      textInputAction: TextInputAction.search,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
     );
   }
 }
@@ -172,13 +181,13 @@ class _EmptyState extends ConsumerWidget {
     final recentSearches = recentAsync.valueOrNull ?? [];
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing16),
       children: [
         // Recent searches
         if (recentSearches.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
+              horizontal: AppTheme.spacing20,
             ),
             child: Row(
               children: [
@@ -186,29 +195,26 @@ class _EmptyState extends ConsumerWidget {
                   'Recent',
                   style: context.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
                   ),
                 ),
                 const Spacer(),
-                TextButton(
-                  onPressed: () {
+                GestureDetector(
+                  onTap: () {
                     ref.read(recentSearchesProvider.notifier).clearAll();
                   },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 32),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
                   child: Text(
                     'Clear all',
                     style: context.textTheme.bodySmall?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray400,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppTheme.spacingXs),
+          const SizedBox(height: AppTheme.spacing8),
           ...recentSearches.map(
             (query) => _RecentSearchTile(
               query: query,
@@ -218,35 +224,59 @@ class _EmptyState extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: AppTheme.spacingLg),
+          const SizedBox(height: AppTheme.spacing24),
         ],
 
         // Explore categories
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
+            horizontal: AppTheme.spacing20,
           ),
           child: Text(
             'Explore',
             style: context.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing12),
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
+            horizontal: AppTheme.spacing16,
           ),
           child: Wrap(
-            spacing: AppTheme.spacingSm,
-            runSpacing: AppTheme.spacingSm,
+            spacing: AppTheme.spacing8,
+            runSpacing: AppTheme.spacing8,
             children: _suggestedCategories.map((entry) {
               final (label, icon) = entry;
-              return ActionChip(
-                avatar: Icon(icon, size: 18),
-                label: Text(label),
-                onPressed: () => onTapCategory(label),
+              return GestureDetector(
+                onTap: () => onTapCategory(label),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing12,
+                    vertical: AppTheme.spacing8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: AppTheme.borderRadiusFull,
+                    border: Border.all(color: AppTheme.gray200),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 16, color: AppTheme.gray500),
+                      const SizedBox(width: AppTheme.spacing6),
+                      Text(
+                        label,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.gray700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }).toList(),
           ),
@@ -269,34 +299,42 @@ class _RecentSearchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-      ),
-      leading: Icon(
-        Icons.history,
-        size: 20,
-        color: context.colorScheme.onSurfaceVariant,
-      ),
-      title: Text(
-        query,
-        style: context.textTheme.bodyMedium,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        icon: Icon(
-          Icons.close,
-          size: 18,
-          color: context.colorScheme.onSurfaceVariant,
-        ),
-        onPressed: onRemove,
-        tooltip: 'Remove',
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-      ),
+    return InkWell(
       onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing20,
+          vertical: AppTheme.spacing8,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.history_rounded,
+              size: 18,
+              color: AppTheme.gray400,
+            ),
+            const SizedBox(width: AppTheme.spacing12),
+            Expanded(
+              child: Text(
+                query,
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.gray700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            GestureDetector(
+              onTap: onRemove,
+              child: const Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: AppTheme.gray300,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -340,7 +378,7 @@ class _ResultsBody extends ConsumerWidget {
             totals: results.totals,
           ),
         ),
-        const Divider(height: 1),
+        Container(height: 1, color: AppTheme.gray100),
 
         // Results
         Expanded(
@@ -406,8 +444,8 @@ class _TypeFilterRow extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingSm,
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing8,
       ),
       child: Row(
         children: types.map((entry) {
@@ -417,12 +455,32 @@ class _TypeFilterRow extends StatelessWidget {
               count != null && count > 0 ? '$label ($count)' : label;
 
           return Padding(
-            padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-            child: FilterChip(
-              label: Text(displayLabel),
-              selected: isSelected,
-              onSelected: (_) => onSelected(value),
-              showCheckmark: false,
+            padding: const EdgeInsets.only(right: AppTheme.spacing8),
+            child: GestureDetector(
+              onTap: () => onSelected(value),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing16,
+                  vertical: AppTheme.spacing8,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primaryColor : Colors.white,
+                  borderRadius: AppTheme.borderRadiusFull,
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.gray200,
+                  ),
+                ),
+                child: Text(
+                  displayLabel,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? Colors.white : AppTheme.gray700,
+                  ),
+                ),
+              ),
             ),
           );
         }).toList(),
@@ -446,8 +504,8 @@ class _AllResultsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(
-        top: AppTheme.spacingSm,
-        bottom: AppTheme.spacingXl,
+        top: AppTheme.spacing8,
+        bottom: AppTheme.spacing48,
       ),
       children: [
         // Recipes section
@@ -514,8 +572,8 @@ class _TypedResultsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(
-        top: AppTheme.spacingSm,
-        bottom: AppTheme.spacingXl,
+        top: AppTheme.spacing8,
+        bottom: AppTheme.spacing48,
       ),
       children: switch (type) {
         'recipes' => results.recipes
@@ -557,8 +615,8 @@ class _ResultSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingSm,
+            horizontal: AppTheme.spacing20,
+            vertical: AppTheme.spacing8,
           ),
           child: Row(
             children: [
@@ -566,39 +624,46 @@ class _ResultSection extends StatelessWidget {
                 title,
                 style: context.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: AppTheme.gray900,
                 ),
               ),
-              const SizedBox(width: AppTheme.spacingSm),
-              Text(
-                '($count)',
-                style: context.textTheme.bodySmall?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+              const SizedBox(width: AppTheme.spacing6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing6,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.gray100,
+                  borderRadius: AppTheme.borderRadiusFull,
+                ),
+                child: Text(
+                  '$count',
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: AppTheme.gray500,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const Spacer(),
               if (showSeeAll)
-                TextButton(
-                  onPressed: onSeeAll,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 32),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                GestureDetector(
+                  onTap: onSeeAll,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'See all',
                         style: context.textTheme.bodySmall?.copyWith(
-                          color: context.colorScheme.primary,
+                          color: AppTheme.primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 2),
-                      Icon(
-                        Icons.arrow_forward_ios,
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
                         size: 12,
-                        color: context.colorScheme.primary,
+                        color: AppTheme.primaryColor,
                       ),
                     ],
                   ),
@@ -607,7 +672,7 @@ class _ResultSection extends StatelessWidget {
           ),
         ),
         child,
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing8),
       ],
     );
   }
@@ -630,24 +695,30 @@ class _CompactRecipeCard extends StatelessWidget {
       onTap: () => context.push('/recipe/${recipe.id}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingSm,
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing8,
         ),
         child: Row(
           children: [
             // Thumbnail
-            ClipRRect(
-              borderRadius: AppTheme.borderRadiusSmall,
-              child: SizedBox(
-                width: 72,
-                height: 72,
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(
+                  color: AppTheme.gray200.withValues(alpha: 0.6),
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1),
                 child: hasPhoto
                     ? CachedNetworkImage(
                         imageUrl: recipe.photos.first,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color:
-                              context.colorScheme.surfaceContainerHighest,
+                          color: AppTheme.gray100,
                         ),
                         errorWidget: (context, url, error) =>
                             _RecipePlaceholder(context: context),
@@ -655,7 +726,7 @@ class _CompactRecipeCard extends StatelessWidget {
                     : _RecipePlaceholder(context: context),
               ),
             ),
-            const SizedBox(width: AppTheme.spacingSm + 4),
+            const SizedBox(width: AppTheme.spacing12),
 
             // Details
             Expanded(
@@ -667,6 +738,7 @@ class _CompactRecipeCard extends StatelessWidget {
                     recipe.title,
                     style: context.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -678,40 +750,41 @@ class _CompactRecipeCard extends StatelessWidget {
                     Text(
                       'by ${recipe.authorName}',
                       style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppTheme.spacing6),
 
                   // Metadata row: time, difficulty, likes
                   Row(
                     children: [
                       if (timeText != null) ...[
                         Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: context.colorScheme.onSurfaceVariant,
+                          Icons.schedule_rounded,
+                          size: 13,
+                          color: AppTheme.gray400,
                         ),
                         const SizedBox(width: 3),
                         Text(
                           timeText,
                           style: context.textTheme.labelSmall?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                            color: AppTheme.gray500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: AppTheme.spacingSm),
+                        const SizedBox(width: AppTheme.spacing8),
                       ],
                       if (difficultyText != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
-                            vertical: 1,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
                             color: _difficultyColor(difficultyText)
-                                .withValues(alpha: 0.1),
+                                .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -725,19 +798,20 @@ class _CompactRecipeCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: AppTheme.spacingSm),
+                        const SizedBox(width: AppTheme.spacing8),
                       ],
                       if (recipe.likesCount > 0) ...[
                         const Icon(
-                          Icons.favorite,
-                          size: 14,
-                          color: AppTheme.primaryColor,
+                          Icons.favorite_rounded,
+                          size: 13,
+                          color: AppTheme.likeColor,
                         ),
                         const SizedBox(width: 3),
                         Text(
                           '${recipe.likesCount}',
                           style: context.textTheme.labelSmall?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                            color: AppTheme.gray500,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -748,11 +822,10 @@ class _CompactRecipeCard extends StatelessWidget {
             ),
 
             // Chevron
-            Icon(
-              Icons.chevron_right,
+            const Icon(
+              Icons.chevron_right_rounded,
               size: 20,
-              color: context.colorScheme.onSurfaceVariant
-                  .withValues(alpha: 0.5),
+              color: AppTheme.gray300,
             ),
           ],
         ),
@@ -770,10 +843,10 @@ class _CompactRecipeCard extends StatelessWidget {
 
   static Color _difficultyColor(String difficulty) {
     return switch (difficulty.toLowerCase()) {
-      'easy' => const Color(0xFF43A047),
-      'medium' => const Color(0xFFF59E0B),
-      'hard' => const Color(0xFFEF233C),
-      _ => const Color(0xFF8D99AE),
+      'easy' => AppTheme.success,
+      'medium' => AppTheme.warning,
+      'hard' => AppTheme.error,
+      _ => AppTheme.gray400,
     };
   }
 }
@@ -786,11 +859,11 @@ class _RecipePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext _) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Icon(
-        Icons.restaurant_menu,
-        size: 28,
-        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+      color: AppTheme.gray100,
+      child: const Icon(
+        Icons.restaurant_menu_rounded,
+        size: 24,
+        color: AppTheme.gray300,
       ),
     );
   }
@@ -809,67 +882,77 @@ class _UserTile extends StatelessWidget {
         ? user.bio!
         : '${user.recipesCount} recipe${user.recipesCount == 1 ? '' : 's'}';
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingXs,
-      ),
-      leading: UserAvatar(
-        fullName: user.fullName,
-        profilePictureUrl: user.profilePicture,
-        size: 48,
-      ),
-      title: Row(
-        children: [
-          Flexible(
-            child: Text(
-              user.fullName,
-              style: context.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (!user.isPublic) ...[
-            const SizedBox(width: 4),
-            Icon(
-              Icons.lock_outline,
-              size: 14,
-              color: context.colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          if (user.followersCount > 0) ...[
-            const SizedBox(height: 2),
-            Text(
-              '${_formatCount(user.followersCount)} follower${user.followersCount == 1 ? '' : 's'}',
-              style: context.textTheme.labelSmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant
-                    .withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ],
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        size: 20,
-        color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-      ),
+    return InkWell(
       onTap: () => context.push('/user/${user.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing8,
+        ),
+        child: Row(
+          children: [
+            UserAvatar(
+              fullName: user.fullName,
+              profilePictureUrl: user.profilePicture,
+              size: 48,
+            ),
+            const SizedBox(width: AppTheme.spacing12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          user.fullName,
+                          style: context.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.gray900,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!user.isPublic) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 14,
+                          color: AppTheme.gray400,
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.gray500,
+                    ),
+                  ),
+                  if (user.followersCount > 0) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_formatCount(user.followersCount)} follower${user.followersCount == 1 ? '' : 's'}',
+                      style: context.textTheme.labelSmall?.copyWith(
+                        color: AppTheme.gray400,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: AppTheme.gray300,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -883,58 +966,79 @@ class _KitchenTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingMd,
-        vertical: AppTheme.spacingXs,
-      ),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: context.colorScheme.primaryContainer,
-          borderRadius: AppTheme.borderRadiusSmall,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: kitchen.photo != null
-            ? CachedNetworkImage(
-                imageUrl: kitchen.photo!,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Icon(
-                  Icons.kitchen,
-                  color: context.colorScheme.onPrimaryContainer,
-                ),
-              )
-            : Icon(
-                Icons.kitchen,
-                color: context.colorScheme.onPrimaryContainer,
-              ),
-      ),
-      title: Text(
-        kitchen.name,
-        style: context.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        '${kitchen.memberCount} member${kitchen.memberCount == 1 ? '' : 's'} · Led by ${kitchen.leadName}',
-        style: context.textTheme.bodySmall?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        size: 20,
-        color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-      ),
+    return InkWell(
       onTap: () {
         // Navigate to kitchen detail (currently only supports own kitchen)
         context.push('/kitchen');
       },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing8,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: kitchen.photo != null
+                  ? CachedNetworkImage(
+                      imageUrl: kitchen.photo!,
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => const Icon(
+                        Icons.kitchen_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 22,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.kitchen_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
+            ),
+            const SizedBox(width: AppTheme.spacing12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    kitchen.name,
+                    style: context.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${kitchen.memberCount} member${kitchen.memberCount == 1 ? '' : 's'} · Led by ${kitchen.leadName}',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.gray500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: AppTheme.gray300,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -950,29 +1054,37 @@ class _NoResultsState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing48),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 56,
-              color:
-                  context.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.gray100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 32,
+                color: AppTheme.gray300,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
             Text(
               'No results for "$query"',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing6),
             Text(
               'Try a different spelling or fewer words.',
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -996,36 +1108,45 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing48),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 28,
+                color: AppTheme.error,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
             Text(
               'Something went wrong',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing6),
             Text(
               error.toString().replaceFirst('Exception: ', ''),
               style: context.textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Retry'),
             ),
           ],

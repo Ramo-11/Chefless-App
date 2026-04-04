@@ -32,6 +32,8 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   int? _adjustedServings;
+  bool? _localIsLiked;
+  int? _localLikesCount;
 
   @override
   Widget build(BuildContext context) {
@@ -46,29 +48,41 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         appBar: AppBar(),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.all(AppTheme.spacing40),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: context.colorScheme.error,
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    size: 28,
+                    color: AppTheme.error,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 Text(
                   'Failed to load recipe',
-                  style: context.textTheme.titleMedium,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.3,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing8),
                 Text(
                   error.toString(),
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing24),
                 ElevatedButton(
                   onPressed: () =>
                       ref.invalidate(recipeDetailProvider(widget.recipeId)),
@@ -82,7 +96,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       data: (recipe) {
         final servings = _adjustedServings ?? recipe.servings ?? recipe.baseServings;
         final isOwner = currentUser?.id == recipe.authorId;
-        final isLiked = recipe.isLiked ?? false;
+        final isLiked = _localIsLiked ?? (recipe.isLiked ?? false);
+        final likesCount = _localLikesCount ?? recipe.likesCount;
         final isScaled = _adjustedServings != null &&
             _adjustedServings != recipe.baseServings;
 
@@ -98,62 +113,86 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             slivers: [
               // App bar with photo carousel
               SliverAppBar(
-                expandedHeight: 300,
+                expandedHeight: 320,
                 pinned: true,
+                leading: Center(
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
+                      onPressed: () => context.pop(),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
                 actions: [
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    tooltip: 'More options',
-                    onSelected: (value) => _onMenuAction(value, recipe),
-                    itemBuilder: (context) => [
-                      if (isOwner) ...[
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined, size: 20),
-                              SizedBox(width: AppTheme.spacingSm),
-                              Text('Edit'),
-                            ],
+                  Container(
+                    width: 38,
+                    height: 38,
+                    margin: const EdgeInsets.only(right: AppTheme.spacing8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 20),
+                      tooltip: 'More options',
+                      onSelected: (value) => _onMenuAction(value, recipe),
+                      itemBuilder: (context) => [
+                        if (isOwner) ...[
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 20),
+                                SizedBox(width: AppTheme.spacing8),
+                                Text('Edit'),
+                              ],
+                            ),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete_outline,
-                                size: 20,
-                                color: context.colorScheme.error,
-                              ),
-                              const SizedBox(width: AppTheme.spacingSm),
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                    color: context.colorScheme.error),
-                              ),
-                            ],
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                  color: AppTheme.error,
+                                ),
+                                const SizedBox(width: AppTheme.spacing8),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(
+                                      color: AppTheme.error),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
+                        if (!isOwner)
+                          const PopupMenuItem(
+                            value: 'report',
+                            child: Row(
+                              children: [
+                                Icon(Icons.flag_outlined, size: 20),
+                                SizedBox(width: AppTheme.spacing8),
+                                Text('Report'),
+                              ],
+                            ),
+                          ),
                       ],
-                      if (!isOwner)
-                        const PopupMenuItem(
-                          value: 'report',
-                          child: Row(
-                            children: [
-                              Icon(Icons.flag_outlined, size: 20),
-                              SizedBox(width: AppTheme.spacingSm),
-                              Text('Report'),
-                            ],
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: PhotoCarousel(
                     photos: recipe.photos,
-                    height: 350,
+                    height: 370,
                     overlayWidget: signatureOverlay,
                   ),
                 ),
@@ -161,7 +200,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing20,
+                    vertical: AppTheme.spacing20,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -169,13 +211,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       Text(
                         recipe.title,
                         style: context.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: AppTheme.gray900,
                         ),
                       ),
 
                       // Author card
                       if (recipe.authorName != null && !isOwner) ...[
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing16),
                         GestureDetector(
                           onTap: () =>
                               context.push('/user/${recipe.authorId}'),
@@ -186,7 +230,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                 profilePictureUrl: recipe.authorPhoto,
                                 size: 40,
                               ),
-                              const SizedBox(width: AppTheme.spacingSm),
+                              const SizedBox(width: AppTheme.spacing12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment:
@@ -197,49 +241,49 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                       style: context.textTheme.titleSmall
                                           ?.copyWith(
                                         fontWeight: FontWeight.w600,
+                                        color: AppTheme.gray900,
                                       ),
                                     ),
                                     Text(
                                       'View profile',
                                       style: context.textTheme.bodySmall
                                           ?.copyWith(
-                                        color: context
-                                            .colorScheme.onSurfaceVariant,
+                                        color: AppTheme.gray500,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                               Icon(
-                                Icons.chevron_right,
-                                color:
-                                    context.colorScheme.onSurfaceVariant,
+                                Icons.chevron_right_rounded,
+                                color: AppTheme.gray400,
+                                size: 20,
                               ),
                             ],
                           ),
                         ),
                       ],
                       if (recipe.authorName != null && isOwner) ...[
-                        const SizedBox(height: AppTheme.spacingXs),
+                        const SizedBox(height: AppTheme.spacing6),
                         Text(
                           'By you',
                           style: context.textTheme.bodyMedium?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                            color: AppTheme.gray500,
                           ),
                         ),
                       ],
 
                       // Fork source
                       if (recipe.forkedFrom != null) ...[
-                        const SizedBox(height: AppTheme.spacingXs),
+                        const SizedBox(height: AppTheme.spacing6),
                         GestureDetector(
                           onTap: () => context.push(
-                              '/recipes/${recipe.forkedFrom!.recipeId}'),
+                              '/recipe/${recipe.forkedFrom!.recipeId}'),
                           child: Text(
-                            'Forked from @${recipe.forkedFrom!.authorName}',
+                            'Remixed from @${recipe.forkedFrom!.authorName}',
                             style: context.textTheme.bodySmall?.copyWith(
-                              color: context.colorScheme.onSurfaceVariant,
-                              fontStyle: FontStyle.italic,
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -247,21 +291,21 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
                       // Modified fork badge
                       if (recipe.isModifiedFork) ...[
-                        const SizedBox(height: AppTheme.spacingSm),
+                        const SizedBox(height: AppTheme.spacing8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: AppTheme.spacing12,
+                            vertical: AppTheme.spacing4,
                           ),
                           decoration: BoxDecoration(
-                            color: context.colorScheme.tertiaryContainer,
-                            borderRadius: AppTheme.borderRadiusSmall,
+                            color: AppTheme.primaryLight,
+                            borderRadius: AppTheme.borderRadiusFull,
                           ),
                           child: Text(
                             'Modified from original',
                             style: context.textTheme.labelSmall?.copyWith(
-                              color:
-                                  context.colorScheme.onTertiaryContainer,
+                              color: AppTheme.primaryDark,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -270,11 +314,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       // Description
                       if (recipe.description != null &&
                           recipe.description!.isNotEmpty) ...[
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing16),
                         Text(
                           recipe.description!,
                           style: context.textTheme.bodyMedium?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                            color: AppTheme.gray600,
+                            height: 1.5,
                           ),
                         ),
                       ],
@@ -282,29 +327,35 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       // Story (collapsible)
                       if (recipe.story != null &&
                           recipe.story!.isNotEmpty) ...[
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing16),
                         _CollapsibleStory(story: recipe.story!),
                       ],
 
                       // Tags
-                      const SizedBox(height: AppTheme.spacingMd),
+                      const SizedBox(height: AppTheme.spacing16),
                       _TagChips(recipe: recipe),
 
                       // Info row
-                      const SizedBox(height: AppTheme.spacingMd),
+                      const SizedBox(height: AppTheme.spacing16),
                       _InfoRow(recipe: recipe),
 
+                      // Divider before servings
+                      const SizedBox(height: AppTheme.spacing24),
+                      Divider(color: AppTheme.gray100),
+                      const SizedBox(height: AppTheme.spacing24),
+
                       // Servings adjuster
-                      const SizedBox(height: AppTheme.spacingLg),
                       Row(
                         children: [
                           Text(
                             'Servings',
                             style: context.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
+                              letterSpacing: -0.3,
+                              color: AppTheme.gray900,
                             ),
                           ),
-                          const SizedBox(width: AppTheme.spacingMd),
+                          const SizedBox(width: AppTheme.spacing16),
                           IngredientScaling(
                             currentServings: servings,
                             baseServings: recipe.baseServings,
@@ -318,53 +369,61 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
 
                       if (isScaled) ...[
-                        const SizedBox(height: AppTheme.spacingXs),
+                        const SizedBox(height: AppTheme.spacing8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: AppTheme.spacing12,
+                            vertical: AppTheme.spacing4,
                           ),
                           decoration: BoxDecoration(
-                            color: context.colorScheme.primaryContainer,
-                            borderRadius: AppTheme.borderRadiusSmall,
+                            color: AppTheme.primaryLight,
+                            borderRadius: AppTheme.borderRadiusFull,
                           ),
                           child: Text(
                             'Adjusted for $servings servings (original: ${recipe.baseServings})',
                             style: context.textTheme.labelSmall?.copyWith(
-                              color:
-                                  context.colorScheme.onPrimaryContainer,
+                              color: AppTheme.primaryDark,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                       ],
 
                       // Ingredients
-                      const SizedBox(height: AppTheme.spacingLg),
+                      const SizedBox(height: AppTheme.spacing24),
                       Text(
                         'Ingredients',
                         style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          letterSpacing: -0.3,
+                          color: AppTheme.gray900,
                         ),
                       ),
-                      const SizedBox(height: AppTheme.spacingSm),
+                      const SizedBox(height: AppTheme.spacing12),
                       _IngredientsList(
                         ingredients: recipe.ingredients,
                         baseServings: recipe.baseServings,
                         currentServings: servings,
                       ),
 
+                      // Divider before steps
+                      const SizedBox(height: AppTheme.spacing24),
+                      Divider(color: AppTheme.gray100),
+                      const SizedBox(height: AppTheme.spacing24),
+
                       // Steps
-                      const SizedBox(height: AppTheme.spacingLg),
                       Text(
                         'Steps',
                         style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          letterSpacing: -0.3,
+                          color: AppTheme.gray900,
                         ),
                       ),
-                      const SizedBox(height: AppTheme.spacingSm),
+                      const SizedBox(height: AppTheme.spacing12),
                       _StepsList(steps: recipe.steps),
 
-                      const SizedBox(height: AppTheme.spacingXl),
+                      const SizedBox(height: AppTheme.spacing40),
                     ],
                   ),
                 ),
@@ -373,8 +432,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           ),
           bottomNavigationBar: _ActionBar(
             recipe: recipe,
+            isOwner: isOwner,
             isLiked: isLiked,
+            likesCount: likesCount,
             onLike: () {
+              final currentCount = _localLikesCount ?? recipe.likesCount;
+              if (mounted) {
+                setState(() {
+                  _localIsLiked = !isLiked;
+                  _localLikesCount = currentCount + (isLiked ? -1 : 1);
+                });
+              }
               if (isLiked) {
                 ref
                     .read(recipeActionProvider.notifier)
@@ -383,7 +451,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ref.read(recipeActionProvider.notifier).like(recipe.id);
               }
             },
-            onFork: () => _onFork(recipe),
+            onForkOrDuplicate: isOwner
+                ? () => _onDuplicate(recipe)
+                : () => _onFork(recipe),
             onShare: () => _onShare(recipe),
           ),
         );
@@ -394,7 +464,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   void _onMenuAction(String action, Recipe recipe) {
     switch (action) {
       case 'edit':
-        context.push('/recipes/${recipe.id}/edit');
+        context.push('/recipe/${recipe.id}/edit');
       case 'delete':
         _confirmDelete(recipe);
       case 'report':
@@ -426,12 +496,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.of(dialogContext).pop();
-              await ref
+              context.pop();
+              ref
                   .read(recipeActionProvider.notifier)
                   .deleteRecipe(recipe.id);
-              if (mounted) context.pop();
             },
             child: Text(
               'Delete',
@@ -447,12 +517,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final forked =
         await ref.read(recipeActionProvider.notifier).fork(recipe.id);
     if (forked != null && mounted) {
+      context.push('/recipe/${forked.id}');
+    }
+  }
+
+  Future<void> _onDuplicate(Recipe recipe) async {
+    final forked =
+        await ref.read(recipeActionProvider.notifier).fork(recipe.id);
+    if (forked != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Forked "${recipe.title}" to your recipes'),
+          content: Text('Duplicated "${recipe.title}"'),
           action: SnackBarAction(
             label: 'View',
-            onPressed: () => context.push('/recipes/${forked.id}'),
+            onPressed: () => context.push('/recipe/${forked.id}'),
           ),
         ),
       );
@@ -484,87 +562,91 @@ class _CollapsibleStoryState extends State<_CollapsibleStory>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          borderRadius: AppTheme.borderRadiusMedium,
-          onTap: () {
-            if (mounted) setState(() => _isExpanded = !_isExpanded);
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
-              vertical: AppTheme.spacingSm + 2,
-            ),
-            decoration: BoxDecoration(
-              color: context.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.3),
-              borderRadius: _isExpanded
-                  ? const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    )
-                  : AppTheme.borderRadiusMedium,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.auto_stories_outlined,
-                  size: 18,
-                  color: context.colorScheme.primary,
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Expanded(
-                  child: Text(
-                    'Read the story behind this recipe',
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.gray200),
+        borderRadius: AppTheme.borderRadiusMedium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: _isExpanded
+                ? const BorderRadius.only(
+                    topLeft: Radius.circular(AppTheme.radiusMedium),
+                    topRight: Radius.circular(AppTheme.radiusMedium),
+                  )
+                : AppTheme.borderRadiusMedium,
+            onTap: () {
+              if (mounted) setState(() => _isExpanded = !_isExpanded);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing16,
+                vertical: AppTheme.spacing12,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_stories_outlined,
+                    size: 18,
+                    color: AppTheme.primaryColor,
+                  ),
+                  const SizedBox(width: AppTheme.spacing8),
+                  Expanded(
+                    child: Text(
+                      'Read the story behind this recipe',
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                AnimatedRotation(
-                  turns: _isExpanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: context.colorScheme.primary,
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            decoration: BoxDecoration(
-              color: context.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.15),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
-            ),
-            child: Text(
-              widget.story,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
-                height: 1.6,
+                ],
               ),
             ),
           ),
-          crossFadeState: _isExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 250),
-        ),
-      ],
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing16,
+                0,
+                AppTheme.spacing16,
+                AppTheme.spacing16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Divider(color: AppTheme.gray100),
+                  const SizedBox(height: AppTheme.spacing12),
+                  Text(
+                    widget.story,
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.gray600,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -576,44 +658,48 @@ class _TagChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allTags = <_TagItem>[
-      ...recipe.labels.map((l) => _TagItem(l, context.colorScheme.secondaryContainer,
-          context.colorScheme.onSecondaryContainer)),
-      ...recipe.dietaryTags.map((t) => _TagItem(t, context.colorScheme.tertiaryContainer,
-          context.colorScheme.onTertiaryContainer)),
-      ...recipe.cuisineTags.map((t) => _TagItem(t, context.colorScheme.primaryContainer,
-          context.colorScheme.onPrimaryContainer)),
-    ];
+    final hasLabels = recipe.labels.isNotEmpty;
+    final hasDietary = recipe.dietaryTags.isNotEmpty;
+    final hasCuisine = recipe.cuisineTags.isNotEmpty;
 
-    if (allTags.isEmpty) return const SizedBox.shrink();
+    if (!hasLabels && !hasDietary && !hasCuisine) {
+      return const SizedBox.shrink();
+    }
 
     return Wrap(
-      spacing: AppTheme.spacingSm,
-      runSpacing: AppTheme.spacingSm,
-      children: allTags.map((tag) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: tag.bgColor,
-            borderRadius: AppTheme.borderRadiusSmall,
-          ),
-          child: Text(
-            tag.label,
-            style: context.textTheme.labelSmall?.copyWith(
-              color: tag.textColor,
-            ),
-          ),
-        );
-      }).toList(),
+      spacing: AppTheme.spacing6,
+      runSpacing: AppTheme.spacing6,
+      children: [
+        if (hasLabels)
+          ...recipe.labels.map((tag) => _buildChip(context, tag, AppTheme.gray50, AppTheme.gray700)),
+        if (hasDietary)
+          ...recipe.dietaryTags.map((tag) => _buildChip(context, tag, AppTheme.primaryLight, AppTheme.primaryDark)),
+        if (hasCuisine)
+          ...recipe.cuisineTags.map((tag) => _buildChip(context, tag, AppTheme.gray100, AppTheme.gray600)),
+      ],
     );
   }
-}
 
-class _TagItem {
-  const _TagItem(this.label, this.bgColor, this.textColor);
-  final String label;
-  final Color bgColor;
-  final Color textColor;
+  Widget _buildChip(BuildContext context, String tag,
+      Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing12,
+        vertical: AppTheme.spacing4,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: AppTheme.borderRadiusFull,
+      ),
+      child: Text(
+        tag,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {
@@ -659,8 +745,8 @@ class _InfoRow extends StatelessWidget {
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Wrap(
-      spacing: AppTheme.spacingSm,
-      runSpacing: AppTheme.spacingSm,
+      spacing: AppTheme.spacing8,
+      runSpacing: AppTheme.spacing8,
       children: items,
     );
   }
@@ -678,20 +764,25 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing12,
+        vertical: AppTheme.spacing6,
+      ),
       decoration: BoxDecoration(
-        color: context.colorScheme.surfaceContainer,
-        borderRadius: AppTheme.borderRadiusSmall,
+        color: AppTheme.gray50,
+        borderRadius: AppTheme.borderRadiusFull,
+        border: Border.all(color: AppTheme.gray200),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: context.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 4),
+          Icon(icon, size: 15, color: AppTheme.gray500),
+          const SizedBox(width: AppTheme.spacing4),
           Text(
             label,
             style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -700,7 +791,7 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-class _IngredientsList extends StatelessWidget {
+class _IngredientsList extends StatefulWidget {
   const _IngredientsList({
     required this.ingredients,
     required this.baseServings,
@@ -712,36 +803,45 @@ class _IngredientsList extends StatelessWidget {
   final int currentServings;
 
   @override
+  State<_IngredientsList> createState() => _IngredientsListState();
+}
+
+class _IngredientsListState extends State<_IngredientsList> {
+  final Set<int> _checked = {};
+
+  @override
   Widget build(BuildContext context) {
-    if (ingredients.isEmpty) {
+    if (widget.ingredients.isEmpty) {
       return Text(
         'No ingredients listed.',
         style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
+          color: AppTheme.gray500,
         ),
       );
     }
 
     // Group ingredients by their group field.
     final grouped = <String?, List<Ingredient>>{};
-    for (final ingredient in ingredients) {
+    for (final ingredient in widget.ingredients) {
       grouped.putIfAbsent(ingredient.group, () => []).add(ingredient);
     }
 
     final widgets = <Widget>[];
+    var flatIndex = 0;
     for (final entry in grouped.entries) {
       if (entry.key != null) {
         widgets.add(
           Padding(
             padding: const EdgeInsets.only(
-              top: AppTheme.spacingMd,
-              bottom: AppTheme.spacingSm,
+              top: AppTheme.spacing16,
+              bottom: AppTheme.spacing8,
             ),
             child: Text(
               entry.key!,
               style: context.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: context.colorScheme.primary,
+                color: AppTheme.primaryColor,
+                letterSpacing: -0.2,
               ),
             ),
           ),
@@ -749,41 +849,88 @@ class _IngredientsList extends StatelessWidget {
       }
 
       for (final ingredient in entry.value) {
-        final scaledQty =
-            scaleQuantity(ingredient.quantity, baseServings, currentServings);
+        final idx = flatIndex;
+        final isChecked = _checked.contains(idx);
+        final scaledQty = scaleQuantity(
+            ingredient.quantity, widget.baseServings, widget.currentServings);
         widgets.add(
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Icon(
-                    Icons.circle,
-                    size: 6,
-                    color: context.colorScheme.primary,
-                  ),
-                ),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: context.textTheme.bodyMedium,
-                      children: [
-                        TextSpan(
-                          text: '${formatQuantity(scaledQty)} ${ingredient.unit}',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        TextSpan(text: '  ${ingredient.name}'),
-                      ],
+          InkWell(
+            borderRadius: AppTheme.borderRadiusSmall,
+            onTap: () {
+              setState(() {
+                if (isChecked) {
+                  _checked.remove(idx);
+                } else {
+                  _checked.add(idx);
+                }
+              });
+            },
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: AppTheme.spacing6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: Checkbox(
+                      value: isChecked,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            _checked.add(idx);
+                          } else {
+                            _checked.remove(idx);
+                          }
+                        });
+                      },
+                      materialTapTargetSize:
+                          MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppTheme.spacing12),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          decoration: isChecked
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isChecked
+                              ? AppTheme.gray400
+                              : AppTheme.gray900,
+                        ),
+                        children: [
+                          TextSpan(
+                            text:
+                                '${formatQuantity(scaledQty)} ${ingredient.unit}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              decoration: isChecked
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '  ${ingredient.name}',
+                            style: TextStyle(
+                              color: isChecked
+                                  ? AppTheme.gray400
+                                  : AppTheme.gray700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
+        flatIndex++;
       }
     }
 
@@ -794,75 +941,114 @@ class _IngredientsList extends StatelessWidget {
   }
 }
 
-class _StepsList extends StatelessWidget {
+class _StepsList extends StatefulWidget {
   const _StepsList({required this.steps});
 
   final List<RecipeStep> steps;
 
   @override
+  State<_StepsList> createState() => _StepsListState();
+}
+
+class _StepsListState extends State<_StepsList> {
+  final Set<int> _completed = {};
+
+  @override
   Widget build(BuildContext context) {
-    if (steps.isEmpty) {
+    if (widget.steps.isEmpty) {
       return Text(
         'No steps listed.',
         style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
+          color: AppTheme.gray500,
         ),
       );
     }
 
-    final sorted = List<RecipeStep>.from(steps)
+    final sorted = List<RecipeStep>.from(widget.steps)
       ..sort((a, b) => a.order.compareTo(b.order));
 
     return Column(
       children: sorted.map((step) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: context.colorScheme.primary,
-                  shape: BoxShape.circle,
+        final isDone = _completed.contains(step.order);
+        return InkWell(
+          borderRadius: AppTheme.borderRadiusSmall,
+          onTap: () {
+            setState(() {
+              if (isDone) {
+                _completed.remove(step.order);
+              } else {
+                _completed.add(step.order);
+              }
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacing16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: isDone
+                        ? AppTheme.success
+                        : AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: isDone
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        )
+                      : Text(
+                          '${step.order}',
+                          style: context.textTheme.labelMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${step.order}',
-                  style: context.textTheme.labelMedium?.copyWith(
-                    color: context.colorScheme.onPrimary,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: AppTheme.spacing12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: AppTheme.spacing4),
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        style: (context.textTheme.bodyMedium ?? const TextStyle())
+                            .copyWith(
+                          decoration:
+                              isDone ? TextDecoration.lineThrough : null,
+                          color: isDone
+                              ? AppTheme.gray400
+                              : AppTheme.gray800,
+                          height: 1.5,
+                        ),
+                        child: Text(step.instruction),
+                      ),
+                      if (step.photo != null) ...[
+                        const SizedBox(height: AppTheme.spacing8),
+                        ClipRRect(
+                          borderRadius: AppTheme.borderRadiusMedium,
+                          child: Image.network(
+                            step.photo!,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: AppTheme.spacingMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      step.instruction,
-                      style: context.textTheme.bodyMedium,
-                    ),
-                    if (step.photo != null) ...[
-                      const SizedBox(height: AppTheme.spacingSm),
-                      ClipRRect(
-                        borderRadius: AppTheme.borderRadiusMedium,
-                        child: Image.network(
-                          step.photo!,
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       }).toList(),
@@ -873,50 +1059,54 @@ class _StepsList extends StatelessWidget {
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
     required this.recipe,
+    required this.isOwner,
     required this.isLiked,
+    required this.likesCount,
     required this.onLike,
-    required this.onFork,
+    required this.onForkOrDuplicate,
     required this.onShare,
   });
 
   final Recipe recipe;
+  final bool isOwner;
   final bool isLiked;
+  final int likesCount;
   final VoidCallback onLike;
-  final VoidCallback onFork;
+  final VoidCallback onForkOrDuplicate;
   final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.colorScheme.surface,
+        color: Colors.white,
         border: Border(
           top: BorderSide(
-            color: context.colorScheme.outlineVariant,
+            color: AppTheme.gray200,
           ),
         ),
       ),
       padding: EdgeInsets.only(
-        left: AppTheme.spacingMd,
-        right: AppTheme.spacingMd,
-        top: AppTheme.spacingSm,
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacingSm,
+        left: AppTheme.spacing16,
+        right: AppTheme.spacing16,
+        top: AppTheme.spacing8,
+        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacing8,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _ActionButton(
-            icon: isLiked ? Icons.favorite : Icons.favorite_border,
-            label: '${recipe.likesCount}',
-            color: isLiked ? AppTheme.tertiaryColor : null,
+            icon: isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+            label: '$likesCount',
+            color: isLiked ? AppTheme.likeColor : null,
             onTap: onLike,
             tooltip: isLiked ? 'Unlike' : 'Like',
           ),
           _ActionButton(
-            icon: Icons.fork_right,
-            label: '${recipe.forksCount}',
-            onTap: onFork,
-            tooltip: 'Fork recipe',
+            icon: isOwner ? Icons.copy_outlined : Icons.autorenew_rounded,
+            label: isOwner ? 'Duplicate' : '${recipe.forksCount}',
+            onTap: onForkOrDuplicate,
+            tooltip: isOwner ? 'Duplicate recipe' : 'Remix recipe',
           ),
           _ActionButton(
             icon: Icons.share_outlined,
@@ -964,8 +1154,8 @@ class _ActionButton extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingSm,
-            vertical: AppTheme.spacingXs,
+            horizontal: AppTheme.spacing12,
+            vertical: AppTheme.spacing6,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -973,13 +1163,14 @@ class _ActionButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 22,
-                color: color ?? context.colorScheme.onSurfaceVariant,
+                color: color ?? AppTheme.gray600,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppTheme.spacing2),
               Text(
                 label,
                 style: context.textTheme.labelSmall?.copyWith(
-                  color: color ?? context.colorScheme.onSurfaceVariant,
+                  color: color ?? AppTheme.gray500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

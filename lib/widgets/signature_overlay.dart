@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
 /// A semi-transparent signature watermark positioned in the bottom-right
 /// corner of its parent [Stack].
 class SignatureOverlay extends StatelessWidget {
@@ -23,8 +25,8 @@ class SignatureOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      right: 12,
-      bottom: 24,
+      right: AppTheme.spacing12,
+      bottom: AppTheme.spacing24,
       child: IgnorePointer(
         child: Opacity(
           opacity: opacity,

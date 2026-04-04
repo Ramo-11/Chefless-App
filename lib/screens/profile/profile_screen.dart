@@ -12,6 +12,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/recipe_card.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/app_top_bar.dart';
 import '../../widgets/user_avatar.dart';
 
 /// The current user's own profile screen (Tab 5).
@@ -31,6 +32,7 @@ class ProfileScreen extends ConsumerWidget {
             tooltip: 'Search',
           ),
           title: const Text('Profile'),
+          actions: const [NotificationBellIcon()],
         ),
         body: const ProfileShimmer(),
       ),
@@ -42,6 +44,7 @@ class ProfileScreen extends ConsumerWidget {
             tooltip: 'Search',
           ),
           title: const Text('Profile'),
+          actions: const [NotificationBellIcon()],
         ),
         body: ErrorState(
           message: error.toString(),
@@ -66,6 +69,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             title: const Text('Profile'),
             actions: [
+              const NotificationBellIcon(),
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 onPressed: () => context.push('/settings'),
@@ -82,7 +86,7 @@ class ProfileScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.spacingLg,
-                vertical: AppTheme.spacingMd,
+                vertical: AppTheme.spacing20,
               ),
               children: [
                 // Avatar
@@ -103,7 +107,9 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       user.fullName,
                       style: context.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                        color: AppTheme.gray900,
                       ),
                     ),
                     if (badge != null) ...[
@@ -122,17 +128,18 @@ class ProfileScreen extends ConsumerWidget {
 
                 // Bio
                 if (user.bio != null && user.bio!.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingSm),
+                  const SizedBox(height: AppTheme.spacing6),
                   Text(
                     user.bio!,
                     style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
+                      height: 1.5,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ],
 
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
 
                 // Stats row
                 _StatsRow(
@@ -143,7 +150,7 @@ class ProfileScreen extends ConsumerWidget {
                   onFollowingTap: () => context.push('/profile/following'),
                 ),
 
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
 
                 // Edit Profile button
                 SizedBox(
@@ -157,22 +164,34 @@ class ProfileScreen extends ConsumerWidget {
                 // Kitchen
                 if (user.kitchenId != null) ...[
                   const SizedBox(height: AppTheme.spacingMd),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.kitchen_outlined,
-                        size: 18,
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: AppTheme.spacingXs),
-                      Text(
-                        'In a Kitchen',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: context.colorScheme.onSurfaceVariant,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing12,
+                      vertical: AppTheme.spacing6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      borderRadius: AppTheme.borderRadiusFull,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.kitchen_outlined,
+                          size: 16,
+                          color: AppTheme.gray500,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: AppTheme.spacing4),
+                        Text(
+                          'In a Kitchen',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.gray500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -207,28 +226,48 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatItem(
-          count: recipesCount,
-          label: 'Recipes',
-        ),
-        GestureDetector(
-          onTap: onFollowersTap,
-          child: _StatItem(
-            count: followersCount,
-            label: 'Followers',
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppTheme.spacingMd,
+        horizontal: AppTheme.spacingSm,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.gray50,
+        borderRadius: AppTheme.borderRadiusMedium,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _StatItem(
+            count: recipesCount,
+            label: 'Recipes',
           ),
-        ),
-        GestureDetector(
-          onTap: onFollowingTap,
-          child: _StatItem(
-            count: followingCount,
-            label: 'Following',
+          Container(
+            width: 1,
+            height: 32,
+            color: AppTheme.gray200,
           ),
-        ),
-      ],
+          GestureDetector(
+            onTap: onFollowersTap,
+            child: _StatItem(
+              count: followersCount,
+              label: 'Followers',
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 32,
+            color: AppTheme.gray200,
+          ),
+          GestureDetector(
+            onTap: onFollowingTap,
+            child: _StatItem(
+              count: followingCount,
+              label: 'Following',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -250,14 +289,17 @@ class _StatItem extends StatelessWidget {
         Text(
           _formatCount(count),
           style: context.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.gray900,
+            letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppTheme.spacing2),
         Text(
           label,
           style: context.textTheme.bodySmall?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
+            color: AppTheme.gray500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -285,15 +327,26 @@ class _ProfileSubTabs extends StatelessWidget {
       length: 3,
       child: Column(
         children: [
-          TabBar(
-            tabs: const [
-              Tab(text: 'My Recipes'),
-              Tab(text: 'Liked'),
-              Tab(text: 'Forked'),
-            ],
-            labelColor: context.colorScheme.primary,
-            unselectedLabelColor: context.colorScheme.onSurfaceVariant,
-            indicatorColor: context.colorScheme.primary,
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: AppTheme.gray100,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: TabBar(
+              tabs: const [
+                Tab(text: 'My Recipes'),
+                Tab(text: 'Liked'),
+                Tab(text: 'Remixed'),
+              ],
+              labelColor: AppTheme.gray900,
+              unselectedLabelColor: AppTheme.gray400,
+              indicatorColor: AppTheme.primaryColor,
+              indicatorWeight: 2,
+            ),
           ),
           SizedBox(
             height: 400,
@@ -313,9 +366,9 @@ class _ProfileSubTabs extends StatelessWidget {
                 ),
                 _ProfileRecipeList(
                   provider: forkedRecipesProvider,
-                  emptyIcon: Icons.fork_right,
-                  emptyMessage: 'No forked recipes',
-                  emptySubMessage: 'Fork recipes to make them your own',
+                  emptyIcon: Icons.autorenew_rounded,
+                  emptyMessage: 'No remixed recipes',
+                  emptySubMessage: 'Remix recipes to make them your own',
                 ),
               ],
             ),
@@ -359,10 +412,10 @@ class _ProfileRecipeList extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing12),
           itemCount: recipes.length,
           itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+            padding: const EdgeInsets.only(bottom: AppTheme.spacing12),
             child: RecipeCard(recipe: recipes[index]),
           ),
         );

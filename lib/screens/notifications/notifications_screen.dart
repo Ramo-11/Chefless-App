@@ -11,7 +11,7 @@ import '../../widgets/shimmer_loading.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Full-screen notification feed with pagination, pull-to-refresh,
-/// and tap-to-navigate.
+/// type-specific icons, and optimistic mark-as-read.
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -22,9 +22,6 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final ScrollController _scrollController = ScrollController();
-  final List<AppNotification> _notifications = [];
-  int _currentPage = 1;
-  bool _hasMore = true;
   bool _isLoadingMore = false;
 
   @override
@@ -41,53 +38,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   void _onScroll() {
-    if (_isLoadingMore || !_hasMore) return;
+    if (_isLoadingMore) return;
+
+    final notifier = ref.read(notificationListProvider.notifier);
+    if (!notifier.hasMore) return;
 
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
-    // Trigger load when within 200px of the bottom.
     if (currentScroll >= maxScroll - 200) {
       _loadMore();
     }
   }
 
   Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
+    if (_isLoadingMore) return;
     setState(() => _isLoadingMore = true);
 
-    final nextPage = _currentPage + 1;
-    final result =
-        await ref.read(notificationsProvider(nextPage).future);
+    await ref.read(notificationListProvider.notifier).loadMore();
 
-    if (!mounted) return;
-
-    setState(() {
-      _isLoadingMore = false;
-      if (result.isEmpty) {
-        _hasMore = false;
-      } else {
-        _currentPage = nextPage;
-        _notifications.addAll(result);
-      }
-    });
+    if (mounted) setState(() => _isLoadingMore = false);
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _currentPage = 1;
-      _hasMore = true;
-      _notifications.clear();
-    });
-    ref.invalidate(notificationsProvider);
+    ref.invalidate(notificationListProvider);
     ref.invalidate(unreadCountProvider);
   }
 
-  void _onNotificationTap(AppNotification notification) {
-    // Mark as read if unread.
+  void _onTap(AppNotification notification) {
     if (!notification.isRead) {
-      ref
-          .read(notificationActionProvider.notifier)
-          .markAsRead(notification.id);
+      ref.read(notificationListProvider.notifier).markAsRead(notification.id);
     }
 
     switch (notification.type) {
@@ -101,7 +80,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       case 'recipe_forked':
       case 'recipe_shared':
         if (notification.recipeId != null) {
-          context.push('/recipes/${notification.recipeId}');
+          context.push('/recipe/${notification.recipeId}');
         }
       case 'schedule_suggestion':
       case 'suggestion_approved':
@@ -117,7 +96,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final firstPageAsync = ref.watch(notificationsProvider(1));
+    final listAsync = ref.watch(notificationListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -125,66 +104,67 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              ref
-                  .read(notificationActionProvider.notifier)
-                  .markAllAsRead();
+              ref.read(notificationListProvider.notifier).markAllAsRead();
             },
-            child: const Text('Mark all read'),
+            child: Text(
+              'Mark all read',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
-      body: firstPageAsync.when(
+      body: listAsync.when(
+        // On refresh (e.g. app resume, foreground push), keep showing the
+        // existing list instead of flashing shimmer. Shimmer only shows on
+        // the very first load when there is no cached data.
+        skipLoadingOnRefresh: true,
         loading: () => const NotificationListShimmer(),
         error: (error, _) => _ErrorBody(
           message: error.toString(),
           onRetry: _refresh,
         ),
-        data: (firstPage) {
-          // Merge first page into local list on initial load.
-          if (_notifications.isEmpty && firstPage.isNotEmpty) {
-            // Use addAll in post-frame to avoid setState during build.
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && _notifications.isEmpty) {
-                setState(() => _notifications.addAll(firstPage));
-              }
-            });
-            // Render first page directly while waiting for setState.
-            return _buildList(firstPage);
-          }
+        data: (notifications) {
+          if (notifications.isEmpty) return const _EmptyState();
 
-          if (_notifications.isEmpty && firstPage.isEmpty) {
-            return const _EmptyState();
-          }
-
-          return _buildList(_notifications);
-        },
-      ),
-    );
-  }
-
-  Widget _buildList(List<AppNotification> items) {
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: items.length + (_isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == items.length) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return _NotificationTile(
-            notification: items[index],
-            onTap: () => _onNotificationTap(items[index]),
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            color: AppTheme.primaryColor,
+            child: ListView.separated(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: AppTheme.spacingLg),
+              itemCount: notifications.length + (_isLoadingMore ? 1 : 0),
+              separatorBuilder: (_, _) => Padding(
+                padding: const EdgeInsets.only(
+                  left: AppTheme.spacing16 + 48 + AppTheme.spacing12,
+                  right: AppTheme.spacing16,
+                ),
+                child: Container(height: 1, color: AppTheme.gray100),
+              ),
+              itemBuilder: (context, index) {
+                if (index == notifications.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return _NotificationTile(
+                  notification: notifications[index],
+                  onTap: () => _onTap(notifications[index]),
+                );
+              },
+            ),
           );
         },
       ),
     );
   }
 }
+
+// ── Notification tile ────────────────────────────────────────────────────────
 
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({
@@ -195,62 +175,145 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
   final VoidCallback onTap;
 
+  /// Returns a color for the type badge based on notification type.
+  Color _badgeColor() {
+    switch (notification.type) {
+      case 'new_follower':
+      case 'follow_request':
+      case 'follow_accepted':
+        return AppTheme.primaryColor;
+      case 'recipe_liked':
+        return AppTheme.likeColor;
+      case 'recipe_forked':
+      case 'recipe_shared':
+        return AppTheme.success;
+      case 'schedule_suggestion':
+      case 'suggestion_approved':
+      case 'suggestion_denied':
+        return AppTheme.warning;
+      case 'kitchen_joined':
+      case 'kitchen_removed':
+        return AppTheme.info;
+      default:
+        return AppTheme.gray400;
+    }
+  }
+
+  /// Returns an icon for the type badge based on notification type.
+  IconData _badgeIcon() {
+    switch (notification.type) {
+      case 'new_follower':
+      case 'follow_accepted':
+        return Icons.person_add_rounded;
+      case 'follow_request':
+        return Icons.person_outline_rounded;
+      case 'recipe_liked':
+        return Icons.favorite_rounded;
+      case 'recipe_forked':
+        return Icons.autorenew_rounded;
+      case 'recipe_shared':
+        return Icons.share_rounded;
+      case 'schedule_suggestion':
+      case 'suggestion_approved':
+      case 'suggestion_denied':
+        return Icons.calendar_today_rounded;
+      case 'kitchen_joined':
+      case 'kitchen_removed':
+        return Icons.people_rounded;
+      default:
+        return Icons.notifications_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
+    final iconColor = _badgeColor();
 
     return InkWell(
       onTap: onTap,
       child: Container(
         color: notification.isRead
             ? null
-            : colorScheme.primaryContainer.withValues(alpha: 0.15),
+            : AppTheme.primaryLight.withValues(alpha: 0.4),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingSm + 4,
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing12,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            UserAvatar(
-              fullName: notification.actorName ?? '?',
-              profilePictureUrl: notification.actorPhoto,
-              size: 44,
-            ),
-            const SizedBox(width: AppTheme.spacingSm + 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Avatar with type badge overlay
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Text(
-                    notification.displayMessage,
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      fontWeight: notification.isRead
-                          ? FontWeight.w400
-                          : FontWeight.w600,
-                    ),
+                  UserAvatar(
+                    fullName: notification.actorName ?? '?',
+                    profilePictureUrl: notification.actorPhoto,
+                    size: 44,
                   ),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  Text(
-                    timeAgo(notification.createdAt),
-                    style: context.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                  // Type icon badge (bottom-right of avatar)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: iconColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: notification.isRead
+                              ? Colors.white
+                              : AppTheme.primaryLight.withValues(alpha: 0.4),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        _badgeIcon(),
+                        size: 12,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: AppTheme.spacing12),
+            // Message and timestamp
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    _buildMessageSpan(context),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppTheme.spacing4),
+                  Text(
+                    timeAgo(notification.createdAt),
+                    style: context.textTheme.labelSmall?.copyWith(
+                      color: AppTheme.gray400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Unread indicator
             if (!notification.isRead)
               Padding(
                 padding: const EdgeInsets.only(
-                  top: AppTheme.spacingXs + 2,
-                  left: AppTheme.spacingSm,
+                  top: AppTheme.spacing6,
+                  left: AppTheme.spacing8,
                 ),
                 child: Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -260,7 +323,33 @@ class _NotificationTile extends StatelessWidget {
       ),
     );
   }
+
+  /// Builds a rich text span with the actor name in bold.
+  TextSpan _buildMessageSpan(BuildContext context) {
+    final style = context.textTheme.bodyMedium?.copyWith(
+      fontWeight: notification.isRead ? FontWeight.w400 : FontWeight.w500,
+      color: AppTheme.gray800,
+    );
+    final boldStyle = style?.copyWith(fontWeight: FontWeight.w700);
+
+    final actor = notification.actorName;
+    final message = notification.displayMessage;
+
+    // If we have an actor name, bold it within the message.
+    if (actor != null && message.startsWith(actor)) {
+      return TextSpan(
+        children: [
+          TextSpan(text: actor, style: boldStyle),
+          TextSpan(text: message.substring(actor.length), style: style),
+        ],
+      );
+    }
+
+    return TextSpan(text: message, style: style);
+  }
 }
+
+// ── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
@@ -268,34 +357,48 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.notifications_none_outlined,
-            size: 64,
-            color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
-          Text(
-            'No notifications yet',
-            style: context.textTheme.titleMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacing48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.gray100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                size: 36,
+                color: AppTheme.gray300,
+              ),
             ),
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            'When someone interacts with you, it will show up here.',
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+            const SizedBox(height: AppTheme.spacing20),
+            Text(
+              'No notifications yet',
+              style: context.textTheme.titleMedium?.copyWith(
+                color: AppTheme.gray900,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: AppTheme.spacing6),
+            Text(
+              'When someone follows you, likes your recipes, or\ninteracts with your kitchen, it will show up here.',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+// ── Error state ──────────────────────────────────────────────────────────────
 
 class _ErrorBody extends StatelessWidget {
   const _ErrorBody({
@@ -310,32 +413,43 @@ class _ErrorBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacing48),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 28,
+                color: AppTheme.error,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
             Text(
               'Something went wrong',
-              style: context.textTheme.titleMedium,
+              style: context.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing6),
             Text(
               message,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Retry'),
             ),
           ],

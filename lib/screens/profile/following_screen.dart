@@ -21,21 +21,31 @@ class FollowingScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: context.colorScheme.error,
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: AppTheme.error,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
                   'Failed to load following',
-                  style: context.textTheme.titleMedium,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(followingProvider(1)),
                   child: const Text('Retry'),
@@ -50,17 +60,24 @@ class FollowingScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 48,
-                    color: context.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.4),
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.spacing20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.people_outline,
+                      size: 36,
+                      color: AppTheme.gray400,
+                    ),
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   Text(
                     'Not following anyone yet',
                     style: context.textTheme.bodyLarge?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -78,10 +95,18 @@ class FollowingScreen extends ConsumerWidget {
                 vertical: AppTheme.spacingSm,
               ),
               itemCount: following.length,
-              separatorBuilder: (_, _) => const Divider(),
+              separatorBuilder: (_, _) => Divider(
+                height: 1,
+                indent: AppTheme.spacing16 + 44 + AppTheme.spacing16,
+                color: AppTheme.gray100,
+              ),
               itemBuilder: (context, index) {
                 final user = following[index];
                 return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                    vertical: AppTheme.spacing4,
+                  ),
                   leading: UserAvatar(
                     fullName: user.fullName,
                     profilePictureUrl: user.profilePicture,
@@ -89,7 +114,10 @@ class FollowingScreen extends ConsumerWidget {
                   ),
                   title: Text(
                     user.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: context.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.gray900,
+                    ),
                   ),
                   trailing: OutlinedButton(
                     onPressed: () => _confirmUnfollow(context, ref, user),
@@ -98,6 +126,7 @@ class FollowingScreen extends ConsumerWidget {
                         horizontal: AppTheme.spacingMd,
                       ),
                       visualDensity: VisualDensity.compact,
+                      side: BorderSide(color: AppTheme.gray200),
                     ),
                     child: const Text('Unfollow'),
                   ),

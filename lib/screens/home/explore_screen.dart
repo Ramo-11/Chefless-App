@@ -7,6 +7,7 @@ import '../../models/recipe.dart';
 import '../../providers/feed_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/recipe_card.dart';
+import '../../widgets/app_top_bar.dart';
 import '../../widgets/shimmer_loading.dart';
 
 /// Tab metadata for the explore sub-tabs.
@@ -87,20 +88,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
         title: const Text('Explore'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          labelStyle: context.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
+        actions: const [NotificationBellIcon()],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+              tabs: _tabs.map((tab) => Tab(text: tab.label)).toList(),
+            ),
           ),
-          unselectedLabelStyle: context.textTheme.titleSmall,
-          tabs: _tabs.map((tab) => Tab(text: tab.label)).toList(),
         ),
       ),
       body: TabBarView(
@@ -194,24 +199,34 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
 
         return RefreshIndicator(
           onRefresh: _onRefresh,
+          color: AppTheme.primaryColor,
           child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingMd,
-              vertical: AppTheme.spacingSm,
+              horizontal: AppTheme.spacing16,
+              vertical: AppTheme.spacing12,
             ),
             itemCount: recipes.length + (notifier.hasMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == recipes.length) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppTheme.spacingLg),
-                  child: Center(child: CircularProgressIndicator()),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing24),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
                 );
               }
 
               return Padding(
                 padding:
-                    const EdgeInsets.only(bottom: AppTheme.spacingSm),
+                    const EdgeInsets.only(bottom: AppTheme.spacing12),
                 child: RecipeCard(
                   recipe: recipes[index],
                   useRootRoute: true,
@@ -241,38 +256,49 @@ class _FeedErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 28,
+                color: AppTheme.error,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               'Something went wrong',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               message,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.4,
               ),
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try Again'),
             ),
           ],
         ),
@@ -299,35 +325,46 @@ class _FeedEmptyView extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
+      color: AppTheme.primaryColor,
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingXl),
+                padding: const EdgeInsets.all(AppTheme.spacing40),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      icon,
-                      size: 64,
-                      color: context.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.4),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 32,
+                        color: AppTheme.gray400,
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing20),
                     Text(
                       title,
                       style: context.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: AppTheme.gray900,
+                        letterSpacing: -0.3,
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing8),
                     Text(
                       subtitle,
                       style: context.textTheme.bodyMedium?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray500,
+                        height: 1.4,
                       ),
                       textAlign: TextAlign.center,
                     ),

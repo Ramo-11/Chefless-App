@@ -127,44 +127,34 @@ class _ImportRecipeSheetState extends ConsumerState<ImportRecipeSheet> {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppTheme.spacingMd,
-            AppTheme.spacingSm,
-            AppTheme.spacingMd,
-            AppTheme.spacingMd,
+            AppTheme.spacing20,
+            AppTheme.spacing4,
+            AppTheme.spacing20,
+            AppTheme.spacing16,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-
               // Title
               Text(
                 'Import Recipe from URL',
                 style: context.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppTheme.gray900,
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingXs),
+              const SizedBox(height: AppTheme.spacing6),
               Text(
                 'Paste a link to any recipe page. We extract the title, '
                 'ingredients, and steps — you can edit everything before saving.',
                 style: context.textTheme.bodySmall?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray500,
+                  height: 1.5,
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing20),
 
               // URL input
               TextField(
@@ -175,17 +165,17 @@ class _ImportRecipeSheetState extends ConsumerState<ImportRecipeSheet> {
                 enabled: !_isImporting,
                 decoration: InputDecoration(
                   hintText: 'https://example.com/best-pasta-recipe',
-                  prefixIcon: const Icon(Icons.link),
+                  prefixIcon: const Icon(Icons.link_rounded),
                   errorText: _error,
-                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _import(),
               ),
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing16),
 
               // Import button
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: FilledButton.icon(
                   onPressed: _isImporting ? null : _import,
                   icon: _isImporting
@@ -197,21 +187,26 @@ class _ImportRecipeSheetState extends ConsumerState<ImportRecipeSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Icon(Icons.download),
-                  label: Text(_isImporting ? 'Importing…' : 'Import Recipe'),
+                      : const Icon(Icons.download_rounded),
+                  label: Text(_isImporting ? 'Importing...' : 'Import Recipe'),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                  ),
                 ),
               ),
 
               if (!_isImporting) ...[
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing12),
                 Center(
                   child: Text(
                     'Works best with sites that use structured recipe data\n'
                     '(Allrecipes, Food Network, NYT Cooking, etc.)',
                     textAlign: TextAlign.center,
                     style: context.textTheme.bodySmall?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
+                      color: AppTheme.gray400,
+                      height: 1.5,
                     ),
                   ),
                 ),

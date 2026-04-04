@@ -65,19 +65,17 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     if (widget.photos.isEmpty) {
       return SizedBox(
         height: widget.height,
         width: double.infinity,
         child: Container(
-          color: colorScheme.surfaceContainerHighest,
-          child: Center(
+          color: AppTheme.gray100,
+          child: const Center(
             child: Icon(
               Icons.restaurant_menu,
               size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              color: AppTheme.gray300,
             ),
           ),
         ),
@@ -104,16 +102,18 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                   width: double.infinity,
                   height: widget.height,
                   placeholder: (context, url) => Container(
-                    color: colorScheme.surfaceContainerHighest,
-                    child: const Center(child: CircularProgressIndicator()),
+                    color: AppTheme.gray100,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
                   errorWidget: (context, url, error) => Container(
-                    color: colorScheme.surfaceContainerHighest,
-                    child: Center(
+                    color: AppTheme.gray100,
+                    child: const Center(
                       child: Icon(
                         Icons.broken_image_outlined,
                         size: 48,
-                        color: colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray400,
                       ),
                     ),
                   ),
@@ -124,7 +124,7 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
           if (widget.overlayWidget != null) widget.overlayWidget!,
           if (widget.photos.length > 1)
             Positioned(
-              bottom: AppTheme.spacingSm,
+              bottom: AppTheme.spacing12,
               left: 0,
               right: 0,
               child: Row(
@@ -132,21 +132,16 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
                 children: List.generate(
                   widget.photos.length,
                   (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
                     margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: _currentPage == index ? 10 : 7,
-                    height: _currentPage == index ? 10 : 7,
+                    width: _currentPage == index ? 20 : 6,
+                    height: 6,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      borderRadius: AppTheme.borderRadiusFull,
                       color: _currentPage == index
                           ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 2,
-                        ),
-                      ],
+                          : Colors.white.withValues(alpha: 0.45),
                     ),
                   ),
                 ),
@@ -235,6 +230,7 @@ class _FullScreenPhotoViewerState extends State<_FullScreenPhotoViewer> {
               icon: const Icon(Icons.close, color: Colors.white, size: 28),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.black45,
+                shape: const CircleBorder(),
               ),
             ),
           ),
@@ -246,11 +242,22 @@ class _FullScreenPhotoViewerState extends State<_FullScreenPhotoViewer> {
               left: 0,
               right: 0,
               child: Center(
-                child: Text(
-                  '${_currentPage + 1} / ${widget.photos.length}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing12,
+                    vertical: AppTheme.spacing4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: AppTheme.borderRadiusFull,
+                  ),
+                  child: Text(
+                    '${_currentPage + 1} / ${widget.photos.length}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),

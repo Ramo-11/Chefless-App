@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/theme/app_theme.dart';
 import '../services/connectivity_service.dart';
 
 /// A banner displayed at the top of screens when the device is offline.
@@ -16,23 +17,37 @@ class OfflineBanner extends ConsumerWidget {
 
     if (isOnline) return const SizedBox.shrink();
 
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return MaterialBanner(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      content: Text(
-        'You\'re offline. Some features may be limited.',
-        style: TextStyle(
-          color: colorScheme.onErrorContainer,
-          fontSize: 14,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing8,
+      ),
+      decoration: const BoxDecoration(
+        color: AppTheme.warningLight,
+        border: Border(
+          bottom: BorderSide(color: AppTheme.warning, width: 0.5),
         ),
       ),
-      leading: Icon(
-        Icons.cloud_off,
-        color: colorScheme.onErrorContainer,
+      child: Row(
+        children: [
+          Icon(
+            Icons.cloud_off_outlined,
+            size: 18,
+            color: AppTheme.gray700,
+          ),
+          const SizedBox(width: AppTheme.spacing8),
+          Expanded(
+            child: Text(
+              'You\'re offline. Some features may be limited.',
+              style: TextStyle(
+                color: AppTheme.gray700,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
-      backgroundColor: colorScheme.errorContainer,
-      actions: const [SizedBox.shrink()],
     );
   }
 }

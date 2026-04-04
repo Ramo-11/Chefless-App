@@ -400,6 +400,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           final recipeId = state.pathParameters['id']!;
           return RecipeDetailScreen(recipeId: recipeId);
         },
+        routes: [
+          GoRoute(
+            parentNavigatorKey: rootNavigatorKey,
+            path: 'edit',
+            builder: (context, state) {
+              final recipeId = state.pathParameters['id']!;
+              return EditRecipeScreen(recipeId: recipeId);
+            },
+          ),
+        ],
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
@@ -495,7 +505,6 @@ class CheflessApp extends ConsumerWidget {
       title: 'Chefless',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: router,
       builder: (context, child) {

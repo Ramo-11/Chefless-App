@@ -149,21 +149,22 @@ class _AddMealSheetState extends ConsumerState<AddMealSheet>
         return Column(
           children: [
             // Handle bar
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             Container(
-              width: 40,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: context.colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+                color: AppTheme.gray300,
+                borderRadius: AppTheme.borderRadiusFull,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
 
             // Header
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing20,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -175,28 +176,50 @@ class _AddMealSheetState extends ConsumerState<AddMealSheet>
                               ? 'Replace Meal'
                               : 'Add Meal',
                           style: context.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.gray900,
+                            letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$slotLabel - $dayLabel',
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                        const SizedBox(height: AppTheme.spacing4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacing8,
+                            vertical: AppTheme.spacing2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.gray50,
+                            borderRadius: AppTheme.borderRadiusFull,
+                            border: Border.all(color: AppTheme.gray200),
+                          ),
+                          child: Text(
+                            '$slotLabel  ·  $dayLabel',
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.gray600,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Close',
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.gray200),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Close',
+                      color: AppTheme.gray600,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing16),
 
             // Tab bar
             TabBar(
@@ -259,21 +282,39 @@ class _MyRecipesTab extends ConsumerWidget {
     return recipesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Failed to load recipes',
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.error,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacing32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.errorLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  size: 22,
+                  color: AppTheme.error,
+                ),
               ),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            OutlinedButton(
-              onPressed: () => ref.invalidate(myRecipesProvider),
-              child: const Text('Retry'),
-            ),
-          ],
+              const SizedBox(height: AppTheme.spacing12),
+              Text(
+                'Failed to load recipes',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.gray700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacing12),
+              OutlinedButton(
+                onPressed: () => ref.invalidate(myRecipesProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
       data: (recipes) {
@@ -283,27 +324,39 @@ class _MyRecipesTab extends ConsumerWidget {
         if (shared.isEmpty) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingXl),
+              padding: const EdgeInsets.all(AppTheme.spacing32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.menu_book_outlined,
-                    size: 48,
-                    color: context.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.4),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.gray200),
+                    ),
+                    child: const Icon(
+                      Icons.menu_book_outlined,
+                      size: 28,
+                      color: AppTheme.gray400,
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                  const SizedBox(height: AppTheme.spacing16),
                   Text(
                     'No shared recipes',
-                    style: context.textTheme.titleSmall,
+                    style: context.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.spacingXs),
+                  const SizedBox(height: AppTheme.spacing6),
                   Text(
                     'Your shared recipes will appear here. Make sure your recipes are not set to private.',
                     textAlign: TextAlign.center,
                     style: context.textTheme.bodySmall?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
+                      height: 1.4,
                     ),
                   ),
                 ],
@@ -314,10 +367,10 @@ class _MyRecipesTab extends ConsumerWidget {
 
         return ListView.separated(
           controller: scrollController,
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          padding: const EdgeInsets.all(AppTheme.spacing16),
           itemCount: shared.length,
           separatorBuilder: (context, index) =>
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing8),
           itemBuilder: (_, index) {
             return _RecipeListTile(
               recipe: shared[index],
@@ -355,7 +408,7 @@ class _KitchenMembersTab extends ConsumerWidget {
         child: Text(
           'Failed to load kitchen members',
           style: context.textTheme.bodyMedium?.copyWith(
-            color: context.colorScheme.error,
+            color: AppTheme.error,
           ),
         ),
       ),
@@ -400,35 +453,63 @@ class _MemberPicker extends StatelessWidget {
         child: Text(
           'No members in this kitchen.',
           style: context.textTheme.bodyMedium?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
+            color: AppTheme.gray500,
           ),
         ),
       );
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      padding: const EdgeInsets.all(AppTheme.spacing16),
       itemCount: members.length,
-      separatorBuilder: (context, index) => const SizedBox(height: AppTheme.spacingSm),
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppTheme.spacing8),
       itemBuilder: (_, index) {
         final member = members[index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage: member.profilePicture != null
-                ? CachedNetworkImageProvider(member.profilePicture!)
-                : null,
-            child: member.profilePicture == null
-                ? Text(member.fullName.isNotEmpty
-                    ? member.fullName[0].toUpperCase()
-                    : '?')
-                : null,
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: AppTheme.borderRadiusMedium,
+            border: Border.all(color: AppTheme.gray200),
           ),
-          title: Text(member.fullName),
-          subtitle: Text('${member.recipesCount} recipes'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => onSelect(member.id),
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppTheme.borderRadiusSmall,
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppTheme.primaryLight,
+              foregroundColor: AppTheme.primaryColor,
+              backgroundImage: member.profilePicture != null
+                  ? CachedNetworkImageProvider(member.profilePicture!)
+                  : null,
+              child: member.profilePicture == null
+                  ? Text(
+                      member.fullName.isNotEmpty
+                          ? member.fullName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    )
+                  : null,
+            ),
+            title: Text(
+              member.fullName,
+              style: context.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppTheme.gray900,
+              ),
+            ),
+            subtitle: Text(
+              '${member.recipesCount} recipes',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: AppTheme.gray500,
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right,
+              color: AppTheme.gray400,
+              size: 20,
+            ),
+            onTap: () => onSelect(member.id),
+            shape: RoundedRectangleBorder(
+              borderRadius: AppTheme.borderRadiusMedium,
+            ),
           ),
         );
       },
@@ -476,7 +557,7 @@ class _MemberRecipesList extends ConsumerWidget {
               child: Text(
                 'Failed to load recipes',
                 style: context.textTheme.bodyMedium?.copyWith(
-                  color: context.colorScheme.error,
+                  color: AppTheme.error,
                 ),
               ),
             ),
@@ -486,7 +567,7 @@ class _MemberRecipesList extends ConsumerWidget {
                   child: Text(
                     'This member has no shared recipes.',
                     style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
                     ),
                   ),
                 );
@@ -495,11 +576,11 @@ class _MemberRecipesList extends ConsumerWidget {
               return ListView.separated(
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMd,
+                  horizontal: AppTheme.spacing16,
                 ),
                 itemCount: recipes.length,
                 separatorBuilder: (context, index) =>
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing8),
                 itemBuilder: (_, index) {
                   return _RecipeListTile(
                     recipe: recipes[index],
@@ -529,7 +610,7 @@ class _FreeformTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      padding: const EdgeInsets.all(AppTheme.spacing20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -537,16 +618,18 @@ class _FreeformTab extends StatelessWidget {
             'What are you having?',
             style: context.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+              letterSpacing: -0.2,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacing6),
           Text(
             'Enter a short description for this meal slot.',
             style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: AppTheme.spacing20),
           TextField(
             controller: controller,
             decoration: const InputDecoration(
@@ -556,7 +639,7 @@ class _FreeformTab extends StatelessWidget {
             maxLength: 100,
             onSubmitted: (_) => onSubmit(),
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: AppTheme.spacing16),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -585,21 +668,19 @@ class _RecipeListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: AppTheme.borderRadiusSmall,
+      borderRadius: AppTheme.borderRadiusMedium,
       child: Container(
-        padding: const EdgeInsets.all(AppTheme.spacingSm),
+        padding: const EdgeInsets.all(AppTheme.spacing12),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-          borderRadius: AppTheme.borderRadiusSmall,
+          color: Colors.white,
+          border: Border.all(color: AppTheme.gray200),
+          borderRadius: AppTheme.borderRadiusMedium,
         ),
         child: Row(
           children: [
             // Thumbnail
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.all(Radius.circular(AppTheme.radiusSmall)),
+              borderRadius: AppTheme.borderRadiusSmall,
               child: recipe.photos.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: recipe.photos.first,
@@ -609,14 +690,18 @@ class _RecipeListTile extends StatelessWidget {
                       placeholder: (context, url) => Container(
                         width: 48,
                         height: 48,
-                        color: context.colorScheme.surfaceContainerHighest,
+                        decoration: BoxDecoration(
+                          color: AppTheme.gray100,
+                          borderRadius: AppTheme.borderRadiusSmall,
+                        ),
                       ),
-                      errorWidget: (context, url, error) => _recipePlaceholder(context),
+                      errorWidget: (context, url, error) =>
+                          _recipePlaceholder(context),
                     )
                   : _recipePlaceholder(context),
             ),
 
-            const SizedBox(width: AppTheme.spacingSm),
+            const SizedBox(width: AppTheme.spacing12),
 
             // Title & metadata
             Expanded(
@@ -627,24 +712,38 @@ class _RecipeListTile extends StatelessWidget {
                     recipe.title,
                     style: context.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
+                      color: AppTheme.gray900,
+                      letterSpacing: -0.1,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (recipe.totalTime != null || recipe.cookTime != null)
-                    Text(
-                      '${recipe.totalTime ?? recipe.cookTime} min',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppTheme.spacing2),
+                      child: Text(
+                        '${recipe.totalTime ?? recipe.cookTime} min',
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.gray400,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
 
-            Icon(
-              Icons.add_circle_outline,
-              color: context.colorScheme.primary,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add,
+                size: 18,
+                color: AppTheme.primaryColor,
+              ),
             ),
           ],
         ),
@@ -656,11 +755,14 @@ class _RecipeListTile extends StatelessWidget {
     return Container(
       width: 48,
       height: 48,
-      color: context.colorScheme.surfaceContainerHighest,
-      child: Icon(
+      decoration: BoxDecoration(
+        color: AppTheme.gray100,
+        borderRadius: AppTheme.borderRadiusSmall,
+      ),
+      child: const Icon(
         Icons.restaurant_menu,
-        size: 24,
-        color: context.colorScheme.onSurfaceVariant,
+        size: 22,
+        color: AppTheme.gray400,
       ),
     );
   }

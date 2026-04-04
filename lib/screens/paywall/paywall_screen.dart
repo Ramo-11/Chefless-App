@@ -10,6 +10,7 @@ import '../../utils/extensions.dart';
 // Warm accent color for the paywall — premium gold/amber tone.
 const _accentColor = Color(0xFFD4920B);
 const _accentLight = Color(0xFFF5C842);
+const _accentBg = Color(0xFFFFF8E7);
 
 class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
@@ -77,34 +78,43 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close_rounded),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Close',
           ),
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingXl),
+            padding: const EdgeInsets.all(AppTheme.spacing48),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.workspace_premium_rounded,
-                  size: 64,
-                  color: context.colorScheme.onSurfaceVariant,
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: _accentBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    size: 36,
+                    color: _accentColor,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 Text(
                   'Subscriptions coming soon',
                   style: context.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AppTheme.gray900,
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing8),
                 Text(
                   'Premium features are not available yet. Stay tuned!',
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -123,22 +133,33 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spacingLg),
+              padding: const EdgeInsets.all(AppTheme.spacing48),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: context.colorScheme.error,
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline_rounded,
+                      size: 28,
+                      color: AppTheme.error,
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                  const SizedBox(height: AppTheme.spacing16),
                   Text(
                     'Unable to load subscription options.',
-                    style: context.textTheme.titleMedium,
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
+                    ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                  const SizedBox(height: AppTheme.spacing16),
                   OutlinedButton(
                     onPressed: () => ref.invalidate(offeringsProvider),
                     child: const Text('Retry'),
@@ -158,7 +179,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close_rounded),
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Close',
                   ),
@@ -171,15 +192,24 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     ),
                     child: Column(
                       children: [
-                        const SizedBox(height: AppTheme.spacingSm),
+                        const SizedBox(height: AppTheme.spacing8),
 
                         // App logo
-                        Image.asset(
-                          'assets/images/logo.png',
+                        Container(
                           width: 80,
                           height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: AppTheme.borderRadiusXL,
+                            boxShadow: AppTheme.shadowSm,
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 80,
+                            height: 80,
+                          ),
                         ),
-                        const SizedBox(height: AppTheme.spacingLg),
+                        const SizedBox(height: AppTheme.spacing24),
 
                         // Title
                         Text(
@@ -187,24 +217,26 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                           style: context.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                             height: 1.15,
+                            letterSpacing: -0.5,
+                            color: AppTheme.gray900,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: AppTheme.spacingSm),
+                        const SizedBox(height: AppTheme.spacing8),
                         Text(
                           'Take your cooking to the next level',
                           style: context.textTheme.bodyLarge?.copyWith(
-                            color: context.colorScheme.onSurfaceVariant,
+                            color: AppTheme.gray500,
                           ),
                           textAlign: TextAlign.center,
                         ),
 
-                        const SizedBox(height: AppTheme.spacingXl),
+                        const SizedBox(height: AppTheme.spacing32),
 
                         // Feature list
                         const _FeatureList(),
 
-                        const SizedBox(height: AppTheme.spacingXl),
+                        const SizedBox(height: AppTheme.spacing32),
 
                         // Plan selection
                         if (annual != null)
@@ -219,7 +251,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             onTap: () => _purchase(annual),
                           ),
                         if (annual != null && monthly != null)
-                          const SizedBox(height: AppTheme.spacingSm),
+                          const SizedBox(height: AppTheme.spacing12),
                         if (monthly != null)
                           _PlanCard(
                             title: 'Monthly',
@@ -239,13 +271,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               'Subscription options are not available right now. '
                               'Please try again later.',
                               style: context.textTheme.bodyMedium?.copyWith(
-                                color: context.colorScheme.onSurfaceVariant,
+                                color: AppTheme.gray500,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
 
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing16),
 
                         // Restore
                         TextButton(
@@ -261,11 +293,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               : Text(
                                   'Restore Purchases',
                                   style: context.textTheme.bodySmall?.copyWith(
-                                    color: context.colorScheme.onSurfaceVariant,
+                                    color: AppTheme.gray400,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                         ),
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing16),
                       ],
                     ),
                   ),
@@ -285,7 +318,7 @@ class _FeatureList extends StatelessWidget {
   const _FeatureList();
 
   static const _features = [
-    _Feature(icon: Icons.all_inclusive, text: 'Unlimited recipe storage'),
+    _Feature(icon: Icons.all_inclusive_rounded, text: 'Unlimited recipe storage'),
     _Feature(icon: Icons.calendar_month_rounded, text: 'Schedule meals for the full year'),
     _Feature(icon: Icons.group_rounded, text: 'Unlimited kitchen members'),
     _Feature(icon: Icons.auto_awesome_rounded, text: 'AI-powered recipe helper'),
@@ -294,13 +327,21 @@ class _FeatureList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: _features
-          .map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: f,
-              ))
-          .toList(),
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing20),
+      decoration: BoxDecoration(
+        color: AppTheme.gray50,
+        borderRadius: AppTheme.borderRadiusLarge,
+        border: Border.all(color: AppTheme.gray200.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        children: _features
+            .map((f) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.spacing12),
+                  child: f,
+                ))
+            .toList(),
+      ),
     );
   }
 }
@@ -319,7 +360,7 @@ class _Feature extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: _accentColor.withValues(alpha: 0.1),
+            color: _accentBg,
             borderRadius: AppTheme.borderRadiusSmall,
           ),
           child: Icon(
@@ -328,12 +369,13 @@ class _Feature extends StatelessWidget {
             color: _accentColor,
           ),
         ),
-        const SizedBox(width: AppTheme.spacingMd),
+        const SizedBox(width: AppTheme.spacing12),
         Expanded(
           child: Text(
             text,
             style: context.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
+              color: AppTheme.gray800,
             ),
           ),
         ),
@@ -367,24 +409,20 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        padding: const EdgeInsets.all(AppTheme.spacing16),
         decoration: BoxDecoration(
           borderRadius: AppTheme.borderRadiusMedium,
           border: Border.all(
             color: isSelected
                 ? _accentColor
-                : context.colorScheme.outlineVariant,
+                : AppTheme.gray200,
             width: isSelected ? 2 : 1,
           ),
-          color: isSelected
-              ? _accentColor.withValues(alpha: isDark ? 0.08 : 0.04)
-              : Colors.transparent,
+          color: isSelected ? _accentBg : Colors.white,
         ),
         child: Row(
           children: [
@@ -397,7 +435,7 @@ class _PlanCard extends StatelessWidget {
                 border: Border.all(
                   color: isSelected
                       ? _accentColor
-                      : context.colorScheme.outline,
+                      : AppTheme.gray300,
                   width: 2,
                 ),
               ),
@@ -414,7 +452,7 @@ class _PlanCard extends StatelessWidget {
                     )
                   : null,
             ),
-            const SizedBox(width: AppTheme.spacingMd),
+            const SizedBox(width: AppTheme.spacing12),
 
             // Plan info
             Expanded(
@@ -427,20 +465,21 @@ class _PlanCard extends StatelessWidget {
                         title,
                         style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: AppTheme.gray900,
                         ),
                       ),
                       if (badge != null) ...[
-                        const SizedBox(width: AppTheme.spacingSm),
+                        const SizedBox(width: AppTheme.spacing8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: AppTheme.spacing8,
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [_accentColor, _accentLight],
                             ),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: AppTheme.borderRadiusFull,
                           ),
                           child: Text(
                             badge!,
@@ -459,7 +498,7 @@ class _PlanCard extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray500,
                       ),
                     ),
                   ],
@@ -481,12 +520,13 @@ class _PlanCard extends StatelessWidget {
                         price,
                         style: context.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: AppTheme.gray900,
                         ),
                       ),
                       Text(
                         period,
                         style: context.textTheme.bodySmall?.copyWith(
-                          color: context.colorScheme.onSurfaceVariant,
+                          color: AppTheme.gray400,
                         ),
                       ),
                     ],

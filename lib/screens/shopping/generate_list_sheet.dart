@@ -106,47 +106,36 @@ class _GenerateListSheetState extends ConsumerState<GenerateListSheet> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          left: AppTheme.spacingMd,
-          right: AppTheme.spacingMd,
-          top: AppTheme.spacingMd,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.spacingMd,
+          left: AppTheme.spacing20,
+          right: AppTheme.spacing20,
+          top: AppTheme.spacing4,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + AppTheme.spacing16,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: AppTheme.spacingMd),
-
             // Title
             Text(
               'Generate from Schedule',
               style: context.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: AppTheme.gray900,
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
 
             Text(
               'Create a shopping list from all scheduled recipes in the selected date range.',
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Start date
             _DatePickerRow(
@@ -155,7 +144,7 @@ class _GenerateListSheetState extends ConsumerState<GenerateListSheet> {
               onTap: _isGenerating ? null : _pickStartDate,
             ),
 
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
 
             // End date
             _DatePickerRow(
@@ -164,53 +153,63 @@ class _GenerateListSheetState extends ConsumerState<GenerateListSheet> {
               onTap: _isGenerating ? null : _pickEndDate,
             ),
 
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
 
             // Range preview
             Container(
-              padding: const EdgeInsets.all(AppTheme.spacingSm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing12,
+                vertical: AppTheme.spacing8,
+              ),
               decoration: BoxDecoration(
-                color: context.colorScheme.primaryContainer
-                    .withValues(alpha: 0.3),
+                color: AppTheme.primaryLight,
                 borderRadius: AppTheme.borderRadiusSmall,
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.date_range,
+                  const Icon(
+                    Icons.date_range_rounded,
                     size: 18,
-                    color: context.colorScheme.primary,
+                    color: AppTheme.primaryColor,
                   ),
-                  const SizedBox(width: AppTheme.spacingSm),
+                  const SizedBox(width: AppTheme.spacing8),
                   Text(
                     '$dayCount day${dayCount == 1 ? '' : 's'} selected',
                     style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Generate button
-            FilledButton(
-              onPressed: _isGenerating ? null : _generate,
-              child: _isGenerating
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Generate Shopping List'),
+            SizedBox(
+              height: 52,
+              child: FilledButton(
+                onPressed: _isGenerating ? null : _generate,
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppTheme.borderRadiusMedium,
+                  ),
+                ),
+                child: _isGenerating
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Generate Shopping List'),
+              ),
             ),
 
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
           ],
         ),
       ),
@@ -235,15 +234,16 @@ class _DatePickerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: AppTheme.borderRadiusSmall,
+      borderRadius: AppTheme.borderRadiusMedium,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingSm + 4,
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing12,
         ),
         decoration: BoxDecoration(
-          color: context.colorScheme.surfaceContainer,
-          borderRadius: AppTheme.borderRadiusSmall,
+          color: AppTheme.gray50,
+          borderRadius: AppTheme.borderRadiusMedium,
+          border: Border.all(color: AppTheme.gray200),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,7 +251,7 @@ class _DatePickerRow extends StatelessWidget {
             Text(
               label,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
             ),
             Row(
@@ -260,14 +260,15 @@ class _DatePickerRow extends StatelessWidget {
                 Text(
                   value,
                   style: context.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingXs),
-                Icon(
-                  Icons.calendar_today,
+                const SizedBox(width: AppTheme.spacing8),
+                const Icon(
+                  Icons.calendar_today_rounded,
                   size: 16,
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray400,
                 ),
               ],
             ),

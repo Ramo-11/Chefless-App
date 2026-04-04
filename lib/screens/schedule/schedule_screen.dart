@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../providers/schedule_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/app_top_bar.dart';
 import '../paywall/paywall_bottom_sheet.dart';
 import 'add_meal_sheet.dart';
 
@@ -74,6 +75,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ),
         title: const Text('Schedule'),
         actions: [
+          const NotificationBellIcon(),
           // Suggestions button — only visible for leads/approvers.
           _SuggestionsButton(kitchenAsync: kitchenAsync),
         ],
@@ -146,34 +148,52 @@ class _WeekNavigationHeader extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacingSm,
-        vertical: AppTheme.spacingSm,
+        horizontal: AppTheme.spacing4,
+        vertical: AppTheme.spacing8,
       ),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border(
-          bottom: BorderSide(
-            color: context.colorScheme.outlineVariant,
-          ),
+          bottom: BorderSide(color: AppTheme.gray200),
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const Icon(Icons.chevron_left, size: 24),
             onPressed: onPrevious,
             tooltip: 'Previous week',
+            style: IconButton.styleFrom(
+              foregroundColor: AppTheme.gray700,
+            ),
           ),
-          Text(
-            label,
-            style: context.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing16,
+              vertical: AppTheme.spacing6,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.gray50,
+              borderRadius: AppTheme.borderRadiusFull,
+              border: Border.all(color: AppTheme.gray200),
+            ),
+            child: Text(
+              label,
+              style: context.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const Icon(Icons.chevron_right, size: 24),
             onPressed: onNext,
             tooltip: 'Next week',
+            style: IconButton.styleFrom(
+              foregroundColor: AppTheme.gray700,
+            ),
           ),
         ],
       ),
@@ -208,7 +228,7 @@ class _WeekView extends ConsumerWidget {
       ),
       data: (entries) {
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+          padding: const EdgeInsets.only(bottom: AppTheme.spacing32),
           itemCount: 7,
           itemBuilder: (context, dayIndex) {
             final day = weekStart.add(Duration(days: dayIndex));
@@ -266,21 +286,40 @@ class _DayColumn extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingSm,
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing12,
           ),
-          color: isToday
-              ? context.colorScheme.primaryContainer.withValues(alpha: 0.3)
-              : context.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.3),
-          child: Text(
-            isToday ? '$dayLabel (Today)' : dayLabel,
-            style: context.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isToday
-                  ? context.colorScheme.primary
-                  : context.colorScheme.onSurface,
+          decoration: BoxDecoration(
+            color: isToday ? AppTheme.primaryLight : AppTheme.gray50,
+            border: Border(
+              bottom: BorderSide(
+                color: isToday
+                    ? AppTheme.primaryColor.withValues(alpha: 0.15)
+                    : AppTheme.gray200,
+              ),
             ),
+          ),
+          child: Row(
+            children: [
+              if (isToday)
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(right: AppTheme.spacing8),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              Text(
+                isToday ? '$dayLabel (Today)' : dayLabel,
+                style: context.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isToday ? AppTheme.primaryColor : AppTheme.gray800,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
         ),
 
@@ -361,13 +400,13 @@ class _MealSlotRow extends ConsumerWidget {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingSm,
+          horizontal: AppTheme.spacing16,
+          vertical: AppTheme.spacing12,
         ),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: context.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              color: AppTheme.gray100,
             ),
           ),
         ),
@@ -383,25 +422,38 @@ class _MealSlotRow extends ConsumerWidget {
                   Text(
                     _slotDisplayName,
                     style: context.textTheme.bodySmall?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
                       fontWeight: FontWeight.w500,
+                      letterSpacing: -0.1,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (isCustom)
-                    Text(
-                      'custom',
-                      style: context.textTheme.labelSmall?.copyWith(
-                        color: context.colorScheme.tertiary,
-                        fontSize: 9,
+                    Container(
+                      margin: const EdgeInsets.only(top: AppTheme.spacing2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing4,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryLight,
+                        borderRadius: AppTheme.borderRadiusFull,
+                      ),
+                      child: Text(
+                        'custom',
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: AppTheme.primaryDark,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
 
-            const SizedBox(width: AppTheme.spacingSm),
+            const SizedBox(width: AppTheme.spacing12),
 
             // Entry content or add button
             Expanded(
@@ -436,77 +488,116 @@ class _MealSlotRow extends ConsumerWidget {
       context: context,
       builder: (sheetContext) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: AppTheme.spacingSm),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
-                child: Text(
-                  entry.displayLabel,
-                  style: context.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: AppTheme.spacing12),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.gray300,
+                    borderRadius: AppTheme.borderRadiusFull,
                   ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spacingSm),
-              if (entry.isRecipe)
+                const SizedBox(height: AppTheme.spacing20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing12,
+                  ),
+                  child: Text(
+                    entry.displayLabel,
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing16),
+                if (entry.isRecipe)
+                  ListTile(
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryLight,
+                        borderRadius: AppTheme.borderRadiusSmall,
+                      ),
+                      child: const Icon(
+                        Icons.restaurant_menu,
+                        size: 18,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    title: const Text('View recipe'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      context.push('/recipe/${entry.recipeId}');
+                    },
+                  ),
                 ListTile(
-                  leading: const Icon(Icons.restaurant_menu),
-                  title: const Text('View recipe'),
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray50,
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    child: const Icon(
+                      Icons.swap_horiz,
+                      size: 18,
+                      color: AppTheme.gray600,
+                    ),
+                  ),
+                  title: const Text('Replace'),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
-                    context.push('/recipes/${entry.recipeId}');
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      useSafeArea: true,
+                      builder: (_) => AddMealSheet(
+                        date: date,
+                        mealSlot: slot,
+                        replacingEntryId: entry.id,
+                      ),
+                    );
                   },
                 ),
-              ListTile(
-                leading: const Icon(Icons.swap_horiz),
-                title: const Text('Replace'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    builder: (_) => AddMealSheet(
-                      date: date,
-                      mealSlot: slot,
-                      replacingEntryId: entry.id,
+                ListTile(
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorLight,
+                      borderRadius: AppTheme.borderRadiusSmall,
                     ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline,
-                  color: context.colorScheme.error,
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: AppTheme.error,
+                    ),
+                  ),
+                  title: Text(
+                    'Remove',
+                    style: TextStyle(color: AppTheme.error),
+                  ),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    final confirmed = await _confirmDelete(context);
+                    if (confirmed && context.mounted) {
+                      ref
+                          .read(scheduleActionProvider.notifier)
+                          .deleteEntry(entry.id);
+                    }
+                  },
                 ),
-                title: Text(
-                  'Remove',
-                  style: TextStyle(color: context.colorScheme.error),
-                ),
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  final confirmed = await _confirmDelete(context);
-                  if (confirmed && context.mounted) {
-                    ref
-                        .read(scheduleActionProvider.notifier)
-                        .deleteEntry(entry.id);
-                  }
-                },
-              ),
-              const SizedBox(height: AppTheme.spacingSm),
-            ],
+                const SizedBox(height: AppTheme.spacing12),
+              ],
+            ),
           ),
         );
       },
@@ -530,7 +621,7 @@ class _MealSlotRow extends ConsumerWidget {
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
               'Remove',
-              style: TextStyle(color: context.colorScheme.error),
+              style: TextStyle(color: AppTheme.error),
             ),
           ),
         ],
@@ -557,56 +648,62 @@ class _EntryContent extends StatelessWidget {
             borderRadius: AppTheme.borderRadiusSmall,
             child: CachedNetworkImage(
               imageUrl: entry.recipePhoto!,
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
-                width: 36,
-                height: 36,
-                color: context.colorScheme.surfaceContainerHighest,
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.gray100,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
               ),
               errorWidget: (context, url, error) => Container(
-                width: 36,
-                height: 36,
-                color: context.colorScheme.surfaceContainerHighest,
-                child: Icon(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.gray100,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                child: const Icon(
                   Icons.restaurant_menu,
                   size: 18,
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray400,
                 ),
               ),
             ),
           )
         else if (entry.isRecipe)
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: context.colorScheme.surfaceContainerHighest,
+              color: AppTheme.gray100,
               borderRadius: AppTheme.borderRadiusSmall,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.restaurant_menu,
               size: 18,
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray400,
             ),
           )
         else
           Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: context.colorScheme.tertiaryContainer,
+              color: AppTheme.primaryLight,
               borderRadius: AppTheme.borderRadiusSmall,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.edit_note,
               size: 18,
-              color: context.colorScheme.onTertiaryContainer,
+              color: AppTheme.primaryDark,
             ),
           ),
 
-        const SizedBox(width: AppTheme.spacingSm),
+        const SizedBox(width: AppTheme.spacing12),
 
         Expanded(
           child: Column(
@@ -616,18 +713,24 @@ class _EntryContent extends StatelessWidget {
                 entry.displayLabel,
                 style: context.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
+                  color: AppTheme.gray900,
+                  letterSpacing: -0.1,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               if (entry.isRecipe && entry.recipeAuthorName != null)
-                Text(
-                  'by ${entry.recipeAuthorName}',
-                  style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.spacing2),
+                  child: Text(
+                    'by ${entry.recipeAuthorName}',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.gray400,
+                      letterSpacing: -0.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
             ],
           ),
@@ -636,15 +739,23 @@ class _EntryContent extends StatelessWidget {
         // Suggestion badge
         if (entry.status == 'suggested')
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing8,
+              vertical: AppTheme.spacing2,
+            ),
             decoration: BoxDecoration(
-              color: context.colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(4),
+              color: AppTheme.warningLight,
+              borderRadius: AppTheme.borderRadiusFull,
+              border: Border.all(
+                color: AppTheme.warning.withValues(alpha: 0.3),
+              ),
             ),
             child: Text(
               'Suggested',
               style: context.textTheme.labelSmall?.copyWith(
-                color: context.colorScheme.onSecondaryContainer,
+                color: AppTheme.gray700,
+                fontWeight: FontWeight.w500,
+                fontSize: 11,
               ),
             ),
           ),
@@ -664,16 +775,28 @@ class _AddButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          Icons.add_circle_outline,
-          size: 20,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppTheme.gray200,
+              style: BorderStyle.solid,
+            ),
+            borderRadius: AppTheme.borderRadiusSmall,
+          ),
+          child: Icon(
+            Icons.add,
+            size: 18,
+            color: AppTheme.gray300,
+          ),
         ),
-        const SizedBox(width: AppTheme.spacingSm),
+        const SizedBox(width: AppTheme.spacing12),
         Text(
           'Add meal',
           style: context.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            color: AppTheme.gray400,
+            letterSpacing: -0.1,
           ),
         ),
       ],
@@ -690,41 +813,59 @@ class _NoKitchenPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.kitchen,
-              size: 64,
-              color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.gray50,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.gray200),
+              ),
+              child: const Icon(
+                Icons.kitchen,
+                size: 36,
+                color: AppTheme.gray400,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing24),
             Text(
               'No Kitchen Yet',
               style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray900,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               'Join or create a kitchen to start planning meals together with your family or friends.',
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
-            FilledButton.icon(
-              onPressed: () => context.push('/kitchen/create'),
-              icon: const Icon(Icons.add),
-              label: const Text('Create Kitchen'),
+            const SizedBox(height: AppTheme.spacing32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.push('/kitchen/create'),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Create Kitchen'),
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/kitchen/join'),
-              icon: const Icon(Icons.group_add),
-              label: const Text('Join Kitchen'),
+            const SizedBox(height: AppTheme.spacing12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/kitchen/join'),
+                icon: const Icon(Icons.group_add, size: 18),
+                label: const Text('Join Kitchen'),
+              ),
             ),
           ],
         ),
@@ -742,40 +883,54 @@ class _PremiumLockOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.lock_outline,
-              size: 64,
-              color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_outline,
+                size: 36,
+                color: AppTheme.primaryColor,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing24),
             Text(
               'Premium Feature',
               style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray900,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               'Free accounts can only view the current and next week. Upgrade to Premium to plan further ahead.',
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
-            FilledButton.icon(
-              onPressed: () {
-                PaywallBottomSheet.show(
-                  context,
-                  reason: PaywallReason.scheduleLimitReached,
-                );
-              },
-              icon: const Icon(Icons.star),
-              label: const Text('Go Premium'),
+            const SizedBox(height: AppTheme.spacing32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  PaywallBottomSheet.show(
+                    context,
+                    reason: PaywallReason.scheduleLimitReached,
+                  );
+                },
+                icon: const Icon(Icons.star, size: 18),
+                label: const Text('Go Premium'),
+              ),
             ),
           ],
         ),
@@ -814,6 +969,8 @@ class _SuggestionsButton extends ConsumerWidget {
       icon: Badge(
         isLabelVisible: count > 0,
         label: Text('$count'),
+        backgroundColor: AppTheme.primaryColor,
+        textColor: Colors.white,
         child: const Icon(Icons.inbox),
       ),
       onPressed: () => context.push('/schedule/suggestions'),
@@ -837,31 +994,42 @@ class _ErrorBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                size: 28,
+                color: AppTheme.error,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               'Something went wrong',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing24),
             OutlinedButton(
               onPressed: onRetry,
               child: const Text('Try again'),

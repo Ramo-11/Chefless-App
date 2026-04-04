@@ -64,7 +64,7 @@ class _KitchenRecipesScreenState extends ConsumerState<KitchenRecipesScreen> {
                     padding: const EdgeInsets.all(AppTheme.spacingMd),
                     itemCount: recipes.length,
                     separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppTheme.spacingMd),
+                        const SizedBox(height: AppTheme.spacing12),
                     itemBuilder: (context, index) {
                       return RecipeCard(recipe: recipes[index]);
                     },
@@ -79,10 +79,17 @@ class _KitchenRecipesScreenState extends ConsumerState<KitchenRecipesScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: context.colorScheme.error,
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingMd),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorLight,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.error_outline,
+                          size: 32,
+                          color: AppTheme.error,
+                        ),
                       ),
                       const SizedBox(height: AppTheme.spacingMd),
                       Text(
@@ -90,8 +97,11 @@ class _KitchenRecipesScreenState extends ConsumerState<KitchenRecipesScreen> {
                             .toString()
                             .replaceFirst('Exception: ', ''),
                         textAlign: TextAlign.center,
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.gray600,
+                        ),
                       ),
-                      const SizedBox(height: AppTheme.spacingMd),
+                      const SizedBox(height: AppTheme.spacing20),
                       OutlinedButton(
                         onPressed: () => ref
                             .invalidate(kitchenRecipesProvider(params)),
@@ -122,8 +132,16 @@ class _MemberFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       height: 56,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.gray100,
+            width: 1,
+          ),
+        ),
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(
@@ -160,17 +178,25 @@ class _EmptyRecipesView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.menu_book_outlined,
-              size: 64,
-              color: context.colorScheme.onSurfaceVariant
-                  .withValues(alpha: 0.4),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacing24),
+              decoration: BoxDecoration(
+                color: AppTheme.gray50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.menu_book_outlined,
+                size: 40,
+                color: AppTheme.gray400,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               hasFilter ? 'No Recipes Found' : 'No Kitchen Recipes Yet',
               style: context.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),
@@ -180,7 +206,8 @@ class _EmptyRecipesView extends StatelessWidget {
                   : 'Recipes shared by kitchen members will appear here.',
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
           ],

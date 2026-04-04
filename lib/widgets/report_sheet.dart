@@ -93,7 +93,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
+            horizontal: AppTheme.spacing20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -103,14 +103,13 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
               Center(
                 child: Container(
                   margin: const EdgeInsets.only(
-                    top: AppTheme.spacingSm,
-                    bottom: AppTheme.spacingMd,
+                    top: AppTheme.spacing8,
+                    bottom: AppTheme.spacing20,
                   ),
-                  width: 40,
+                  width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: context.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.3),
+                    color: AppTheme.gray300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -121,21 +120,23 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
                 'Report $targetLabel',
                 style: context.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: AppTheme.gray900,
+                  letterSpacing: -0.3,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing16),
 
               // Subtitle
               Text(
                 'Why are you reporting this $targetLabel?',
                 style: context.textTheme.bodyMedium?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray500,
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing12),
 
               // Reason radio buttons
               RadioGroup<ReportReason>(
@@ -152,7 +153,9 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
                       value: reason,
                       title: Text(
                         reason.label,
-                        style: context.textTheme.bodyMedium,
+                        style: context.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.gray700,
+                        ),
                       ),
                       contentPadding: EdgeInsets.zero,
                       dense: true,
@@ -162,7 +165,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing16),
 
               // Description field
               TextField(
@@ -178,12 +181,12 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
                 maxLength: 500,
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing16),
 
               // Submit button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed:
                       _selectedReason != null && !_isSubmitting
                           ? _submit
@@ -199,7 +202,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing20),
             ],
           ),
         ),

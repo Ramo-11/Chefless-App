@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../utils/extensions.dart';
 
 /// A reusable empty state widget with icon, title, subtitle,
 /// and an optional call-to-action button.
@@ -31,38 +32,49 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing32,
+          vertical: AppTheme.spacing48,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: AppTheme.gray50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 32,
+                color: AppTheme.gray400,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               title,
-              style: textTheme.titleMedium?.copyWith(
+              style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               subtitle,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: AppTheme.spacingLg),
+              const SizedBox(height: AppTheme.spacing24),
               FilledButton(
                 onPressed: onAction,
                 child: Text(actionLabel!),

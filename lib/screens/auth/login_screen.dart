@@ -86,8 +86,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/welcome'),
@@ -97,7 +98,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing32,
+              vertical: AppTheme.spacing24,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Form(
@@ -109,26 +113,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // ── Header ──────────────────────────────────────────
                     Image.asset(
                       'assets/images/logo.png',
-                      width: 100,
-                      height: 100,
+                      width: 80,
+                      height: 80,
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing16),
                     Text(
                       'Welcome Back',
                       textAlign: TextAlign.center,
                       style: context.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        color: AppTheme.gray900,
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingXs),
+                    const SizedBox(height: AppTheme.spacing6),
                     Text(
                       'Sign in to continue',
                       textAlign: TextAlign.center,
                       style: context.textTheme.bodyLarge?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray500,
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingXl),
+                    const SizedBox(height: AppTheme.spacing40),
 
                     // ── Email Field ─────────────────────────────────────
                     TextFormField(
@@ -150,7 +156,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing16),
 
                     // ── Password Field ──────────────────────────────────
                     TextFormField(
@@ -183,7 +189,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing4),
 
                     // ── Forgot Password ─────────────────────────────────
                     Align(
@@ -191,65 +197,100 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: TextButton(
                         onPressed:
                             _isLoading ? null : () => context.go('/forgot-password'),
-                        child: const Text('Forgot Password?'),
+                        child: Text(
+                          'Forgot Password?',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing20),
 
                     // ── Sign In Button ──────────────────────────────────
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _signInWithEmail,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Sign In'),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signInWithEmail,
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: AppTheme.borderRadiusMedium,
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Sign In'),
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingLg),
+                    const SizedBox(height: AppTheme.spacing32),
 
                     // ── Divider ─────────────────────────────────────────
                     Row(
                       children: [
-                        const Expanded(child: Divider()),
+                        Expanded(child: Divider(color: AppTheme.gray200)),
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingMd),
+                              horizontal: AppTheme.spacing16),
                           child: Text(
                             'or',
                             style: context.textTheme.bodySmall?.copyWith(
-                              color: context.colorScheme.onSurfaceVariant,
+                              color: AppTheme.gray400,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                        const Expanded(child: Divider()),
+                        Expanded(child: Divider(color: AppTheme.gray200)),
                       ],
                     ),
-                    const SizedBox(height: AppTheme.spacingLg),
+                    const SizedBox(height: AppTheme.spacing32),
 
                     // ── Google Sign-In ───────────────────────────────────
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signInWithGoogle,
-                      icon: const Icon(Icons.g_mobiledata, size: 24),
-                      label: const Text('Continue with Google'),
+                    SizedBox(
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        icon: const Icon(Icons.g_mobiledata, size: 24),
+                        label: const Text('Continue with Google'),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: AppTheme.borderRadiusFull,
+                          ),
+                          side: BorderSide(color: AppTheme.gray200),
+                          foregroundColor: AppTheme.gray800,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing12),
 
                     // ── Apple Sign-In (iOS only) ────────────────────────
                     if (Platform.isIOS) ...[
-                      OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _signInWithApple,
-                        icon: const Icon(Icons.apple, size: 24),
-                        label: const Text('Continue with Apple'),
+                      SizedBox(
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _signInWithApple,
+                          icon: const Icon(Icons.apple, size: 24),
+                          label: const Text('Continue with Apple'),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: AppTheme.borderRadiusFull,
+                            ),
+                            side: BorderSide(color: AppTheme.gray200),
+                            foregroundColor: AppTheme.gray800,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: AppTheme.spacingSm),
+                      const SizedBox(height: AppTheme.spacing12),
                     ],
 
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing16),
 
                     // ── Sign Up Link ────────────────────────────────────
                     Row(
@@ -257,12 +298,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style: context.textTheme.bodyMedium,
+                          style: context.textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.gray500,
+                          ),
                         ),
                         TextButton(
                           onPressed:
                               _isLoading ? null : () => context.go('/signup'),
-                          child: const Text('Sign Up'),
+                          child: Text(
+                            'Sign Up',
+                            style: context.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),

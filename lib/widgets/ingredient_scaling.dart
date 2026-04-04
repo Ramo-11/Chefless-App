@@ -34,11 +34,13 @@ class IngredientScaling extends StatelessWidget {
             ),
             Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
+                  const EdgeInsets.symmetric(horizontal: AppTheme.spacing20),
               child: Text(
                 '$currentServings',
                 style: context.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.gray900,
+                  letterSpacing: -0.3,
                 ),
               ),
             ),
@@ -49,11 +51,11 @@ class IngredientScaling extends StatelessWidget {
           ],
         ),
         if (_isAdjusted) ...[
-          const SizedBox(height: AppTheme.spacingXs),
+          const SizedBox(height: AppTheme.spacing6),
           Text(
             'Original: $baseServings',
             style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray400,
             ),
           ),
         ],
@@ -73,14 +75,25 @@ class _AdjustButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: IconButton.outlined(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        padding: EdgeInsets.zero,
-        tooltip: icon == Icons.add ? 'Increase servings' : 'Decrease servings',
+    final isDisabled = onPressed == null;
+
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          borderRadius: AppTheme.borderRadiusSmall,
+          border: Border.all(
+            color: isDisabled ? AppTheme.gray200 : AppTheme.gray300,
+          ),
+          color: isDisabled ? AppTheme.gray50 : Colors.white,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: isDisabled ? AppTheme.gray300 : AppTheme.gray700,
+        ),
       ),
     );
   }

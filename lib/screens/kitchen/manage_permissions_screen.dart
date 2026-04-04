@@ -71,7 +71,9 @@ class _ManagePermissionsScreenState
             return Center(
               child: Text(
                 'No kitchen found.',
-                style: context.textTheme.bodyLarge,
+                style: context.textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.gray500,
+                ),
               ),
             );
           }
@@ -89,17 +91,25 @@ class _ManagePermissionsScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 64,
-                      color: context.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.4),
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacing24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.people_outline,
+                        size: 40,
+                        color: AppTheme.gray400,
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing20),
                     Text(
                       'No Members Yet',
                       style: context.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.gray900,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: AppTheme.spacingSm),
@@ -108,7 +118,8 @@ class _ManagePermissionsScreenState
                       'their permissions.',
                       textAlign: TextAlign.center,
                       style: context.textTheme.bodyMedium?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
+                        color: AppTheme.gray500,
+                        height: 1.5,
                       ),
                     ),
                   ],
@@ -124,7 +135,7 @@ class _ManagePermissionsScreenState
                   padding: const EdgeInsets.all(AppTheme.spacingMd),
                   itemCount: nonLeadMembers.length,
                   separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppTheme.spacingMd),
+                      const SizedBox(height: AppTheme.spacing12),
                   itemBuilder: (context, index) {
                     final member = nonLeadMembers[index];
                     return _PermissionCard(
@@ -156,22 +167,35 @@ class _ManagePermissionsScreenState
               ),
 
               // Save button
-              Padding(
+              Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        _isSaving ? null : () => _handleSave(detail),
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('Save Permissions'),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(
+                      color: AppTheme.gray100,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isSaving ? null : () => _handleSave(detail),
+                      child: _isSaving
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Save Permissions'),
+                    ),
                   ),
                 ),
               ),
@@ -182,9 +206,30 @@ class _ManagePermissionsScreenState
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
-            child: Text(
-              error.toString().replaceFirst('Exception: ', ''),
-              textAlign: TextAlign.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: AppTheme.error,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Text(
+                  error.toString().replaceFirst('Exception: ', ''),
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.gray600,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -210,7 +255,12 @@ class _PermissionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.borderRadiusMedium,
+        border: Border.all(color: AppTheme.gray200),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingMd),
         child: Column(
@@ -224,12 +274,13 @@ class _PermissionCard extends StatelessWidget {
                   profilePictureUrl: member.profilePicture,
                   size: 40,
                 ),
-                const SizedBox(width: AppTheme.spacingMd),
+                const SizedBox(width: AppTheme.spacing12),
                 Expanded(
                   child: Text(
                     member.fullName,
                     style: context.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: AppTheme.gray900,
                     ),
                   ),
                 ),
@@ -237,12 +288,24 @@ class _PermissionCard extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spacingMd),
 
+            Divider(height: 1, color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing4),
+
             // Schedule edit toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Can edit schedule'),
-              subtitle: const Text(
+              title: Text(
+                'Can edit schedule',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.gray900,
+                ),
+              ),
+              subtitle: Text(
                 'Add, update, or remove meals from the schedule.',
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.gray500,
+                ),
               ),
               value: canEditSchedule,
               onChanged: onScheduleEditChanged,
@@ -251,9 +314,18 @@ class _PermissionCard extends StatelessWidget {
             // Approval power toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Can approve suggestions'),
-              subtitle: const Text(
+              title: Text(
+                'Can approve suggestions',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.gray900,
+                ),
+              ),
+              subtitle: Text(
                 'Approve or deny meal suggestions from other members.',
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.gray500,
+                ),
               ),
               value: canApprove,
               onChanged: onApproveChanged,

@@ -13,12 +13,11 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDarkMode;
-
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing32),
           child: Column(
             children: [
               const Spacer(flex: 2),
@@ -86,25 +85,27 @@ class WelcomeScreen extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: AppTheme.spacingLg),
+              const SizedBox(height: AppTheme.spacing32),
 
               // App name
               Text(
                 'Chefless',
                 style: context.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                   color: AppTheme.primaryColor,
+                  letterSpacing: -0.5,
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing12),
 
               // Tagline
               Text(
                 'Your kitchen, your recipes, your way.',
                 style: context.textTheme.titleMedium?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray500,
                   fontWeight: FontWeight.w400,
+                  letterSpacing: -0.2,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -114,11 +115,12 @@ class WelcomeScreen extends StatelessWidget {
               // Get Started → Signup
               SizedBox(
                 width: double.infinity,
+                height: 54,
                 child: FilledButton(
                   onPressed: () => context.go('/signup'),
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppTheme.spacingMd,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
                     ),
                     textStyle: const TextStyle(
                       fontSize: 16,
@@ -129,22 +131,20 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing12),
 
               // Log in
               SizedBox(
                 width: double.infinity,
+                height: 54,
                 child: OutlinedButton(
                   onPressed: () => context.go('/login'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppTheme.spacingMd,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
                     ),
-                    side: BorderSide(
-                      color: isDark
-                          ? context.colorScheme.outlineVariant
-                          : context.colorScheme.outline,
-                    ),
+                    side: BorderSide(color: AppTheme.gray200),
+                    foregroundColor: AppTheme.gray800,
                     textStyle: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -154,7 +154,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingXl),
+              const SizedBox(height: AppTheme.spacing40),
             ],
           ),
         ),

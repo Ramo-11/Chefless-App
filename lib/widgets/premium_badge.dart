@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 
-/// A small gold chef hat badge displayed next to premium users' names.
+/// A small premium badge displayed next to premium users' names.
+///
+/// Uses the primary blue palette for a subtle, cohesive look.
 class PremiumBadge extends StatelessWidget {
   const PremiumBadge({
     super.key,
@@ -19,7 +21,7 @@ class PremiumBadge extends StatelessWidget {
       child: Icon(
         Icons.workspace_premium,
         size: size,
-        color: AppTheme.secondaryColor,
+        color: AppTheme.primaryColor,
       ),
     );
   }

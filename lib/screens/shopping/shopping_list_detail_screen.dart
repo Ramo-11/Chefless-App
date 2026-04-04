@@ -70,6 +70,7 @@ class _ShoppingListDetailScreenState
                 textCapitalization: TextCapitalization.sentences,
                 style: context.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: AppTheme.gray900,
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -192,7 +193,7 @@ class _ShoppingListDetailScreenState
                     hintText: 'e.g. Chicken breast',
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing12),
                 Row(
                   children: [
                     Expanded(
@@ -207,7 +208,7 @@ class _ShoppingListDetailScreenState
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppTheme.spacingSm),
+                    const SizedBox(width: AppTheme.spacing12),
                     Expanded(
                       child: TextField(
                         controller: unitController,
@@ -220,7 +221,7 @@ class _ShoppingListDetailScreenState
                     ),
                   ],
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing12),
                 TextField(
                   controller: categoryController,
                   textCapitalization: TextCapitalization.sentences,
@@ -229,7 +230,7 @@ class _ShoppingListDetailScreenState
                     hintText: 'e.g. Produce',
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing12),
                 TextField(
                   controller: notesController,
                   textCapitalization: TextCapitalization.sentences,
@@ -307,7 +308,7 @@ class _ShoppingListDetailScreenState
                         labelText: 'Item name',
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing12),
                     Row(
                       children: [
                         Expanded(
@@ -322,7 +323,7 @@ class _ShoppingListDetailScreenState
                             ),
                           ),
                         ),
-                        const SizedBox(width: AppTheme.spacingSm),
+                        const SizedBox(width: AppTheme.spacing12),
                         Expanded(
                           child: TextField(
                             controller: unitController,
@@ -333,7 +334,7 @@ class _ShoppingListDetailScreenState
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing12),
                     TextField(
                       controller: categoryController,
                       textCapitalization: TextCapitalization.sentences,
@@ -341,7 +342,7 @@ class _ShoppingListDetailScreenState
                         labelText: 'Category',
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing12),
                     TextField(
                       controller: notesController,
                       textCapitalization: TextCapitalization.sentences,
@@ -350,7 +351,7 @@ class _ShoppingListDetailScreenState
                       ),
                       maxLines: 2,
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
+                    const SizedBox(height: AppTheme.spacing16),
                     // Image section
                     if (currentImageUrl != null) ...[
                       Stack(
@@ -365,17 +366,22 @@ class _ShoppingListDetailScreenState
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
                                 height: 120,
-                                color: context
-                                    .colorScheme.surfaceContainerHighest,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.gray100,
+                                  borderRadius: AppTheme.borderRadiusMedium,
+                                ),
                                 child: const Center(
-                                  child: Icon(Icons.broken_image_outlined),
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: AppTheme.gray400,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                           Positioned(
-                            top: 4,
-                            right: 4,
+                            top: AppTheme.spacing6,
+                            right: AppTheme.spacing6,
                             child: GestureDetector(
                               onTap: () {
                                 setDialogState(
@@ -384,8 +390,8 @@ class _ShoppingListDetailScreenState
                               child: Container(
                                 width: 28,
                                 height: 28,
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.gray900.withValues(alpha: 0.6),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -532,7 +538,7 @@ class _ShoppingListDetailScreenState
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
               'Clear',
-              style: TextStyle(color: context.colorScheme.error),
+              style: TextStyle(color: AppTheme.error),
             ),
           ),
         ],
@@ -572,7 +578,7 @@ class _FlatItemsList extends ConsumerWidget {
       });
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacing32),
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         return _ShoppingItemTile(
@@ -627,7 +633,7 @@ class _GroupedItemsList extends ConsumerWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingXl),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacing32),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
         final category = sortedKeys[index];
@@ -667,17 +673,46 @@ class _CategorySection extends ConsumerWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingSm,
+            horizontal: AppTheme.spacing20,
+            vertical: AppTheme.spacing8,
           ),
-          color: context.colorScheme.surfaceContainerHighest
-              .withValues(alpha: 0.3),
-          child: Text(
-            category,
-            style: context.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: context.colorScheme.onSurfaceVariant,
+          decoration: BoxDecoration(
+            color: AppTheme.gray50,
+            border: Border(
+              bottom: BorderSide(color: AppTheme.gray200),
             ),
+          ),
+          child: Row(
+            children: [
+              Text(
+                category.toUpperCase(),
+                style: context.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray500,
+                  letterSpacing: 0.8,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacing8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing6,
+                  vertical: AppTheme.spacing2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.gray200,
+                  borderRadius: AppTheme.borderRadiusFull,
+                ),
+                child: Text(
+                  '${items.length}',
+                  style: context.textTheme.labelSmall?.copyWith(
+                    color: AppTheme.gray600,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         ...items.map((item) {
@@ -694,7 +729,7 @@ class _CategorySection extends ConsumerWidget {
 
 // ── Shopping Item Tile ───────────────────────────────────────────────────────
 
-class _ShoppingItemTile extends ConsumerWidget {
+class _ShoppingItemTile extends ConsumerStatefulWidget {
   const _ShoppingItemTile({
     required this.item,
     required this.listId,
@@ -705,58 +740,87 @@ class _ShoppingItemTile extends ConsumerWidget {
   final String listId;
   final void Function(ShoppingItem) onEdit;
 
+  @override
+  ConsumerState<_ShoppingItemTile> createState() => _ShoppingItemTileState();
+}
+
+class _ShoppingItemTileState extends ConsumerState<_ShoppingItemTile> {
+  late bool _isChecked;
+
+  @override
+  void initState() {
+    super.initState();
+    _isChecked = widget.item.isChecked;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ShoppingItemTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.id != oldWidget.item.id ||
+        widget.item.isChecked != oldWidget.item.isChecked) {
+      _isChecked = widget.item.isChecked;
+    }
+  }
+
+  void _toggle() {
+    final wasChecked = _isChecked;
+    if (mounted) setState(() => _isChecked = !_isChecked);
+    ref
+        .read(shoppingListActionProvider.notifier)
+        .toggleItem(widget.listId, widget.item.id)
+        .then((success) {
+      if (!success && mounted) {
+        setState(() => _isChecked = wasChecked);
+      }
+    });
+  }
+
   String get _quantityLabel {
-    if (item.quantity == null) return '';
-    final qty = item.quantity!;
+    if (widget.item.quantity == null) return '';
+    final qty = widget.item.quantity!;
     final qtyStr =
         qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toString();
-    if (item.unit != null && item.unit!.isNotEmpty) {
-      return '$qtyStr ${item.unit}';
+    if (widget.item.unit != null && widget.item.unit!.isNotEmpty) {
+      return '$qtyStr ${widget.item.unit}';
     }
     return qtyStr;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final item = widget.item;
     final hasNotes = item.notes != null && item.notes!.isNotEmpty;
     final hasImage = item.imageUrl != null && item.imageUrl!.isNotEmpty;
-    const checkedAlpha = 0.5;
 
     return Dismissible(
       key: ValueKey(item.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: AppTheme.spacingLg),
-        color: context.colorScheme.error,
-        child: Icon(
+        padding: const EdgeInsets.only(right: AppTheme.spacing24),
+        color: AppTheme.error,
+        child: const Icon(
           Icons.delete_outline,
-          color: context.colorScheme.onError,
+          color: Colors.white,
         ),
       ),
       onDismissed: (_) {
         ref
             .read(shoppingListActionProvider.notifier)
-            .removeItem(listId, item.id);
+            .removeItem(widget.listId, item.id);
       },
       child: InkWell(
-        onTap: () {
-          ref
-              .read(shoppingListActionProvider.notifier)
-              .toggleItem(listId, item.id);
-        },
-        onLongPress: () => onEdit(item),
+        onTap: _toggle,
+        onLongPress: () => widget.onEdit(item),
         child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingSm,
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing12,
           ),
           decoration: BoxDecoration(
+            color: _isChecked ? AppTheme.gray50 : Colors.white,
             border: Border(
-              bottom: BorderSide(
-                color:
-                    context.colorScheme.outlineVariant.withValues(alpha: 0.3),
-              ),
+              bottom: BorderSide(color: AppTheme.gray100),
             ),
           ),
           child: Row(
@@ -766,30 +830,23 @@ class _ShoppingItemTile extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: 22,
+                  height: 22,
                   child: Checkbox(
-                    value: item.isChecked,
-                    onChanged: (_) {
-                      ref
-                          .read(shoppingListActionProvider.notifier)
-                          .toggleItem(listId, item.id);
-                    },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                    value: _isChecked,
+                    onChanged: (_) => _toggle(),
                   ),
                 ),
               ),
 
-              const SizedBox(width: AppTheme.spacingSm),
+              const SizedBox(width: AppTheme.spacing12),
 
               // Image thumbnail
               if (hasImage) ...[
                 Padding(
-                  padding: const EdgeInsets.only(right: AppTheme.spacingSm),
+                  padding: const EdgeInsets.only(right: AppTheme.spacing12),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: AppTheme.borderRadiusSmall,
                     child: Image.network(
                       item.imageUrl!,
                       width: 40,
@@ -799,9 +856,15 @@ class _ShoppingItemTile extends ConsumerWidget {
                           Container(
                         width: 40,
                         height: 40,
-                        color: context.colorScheme.surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined,
-                            size: 16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.gray100,
+                          borderRadius: AppTheme.borderRadiusSmall,
+                        ),
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          size: 16,
+                          color: AppTheme.gray400,
+                        ),
                       ),
                     ),
                   ),
@@ -820,44 +883,58 @@ class _ShoppingItemTile extends ConsumerWidget {
                             item.name,
                             style: context.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
-                              decoration: item.isChecked
+                              color: _isChecked
+                                  ? AppTheme.gray400
+                                  : AppTheme.gray900,
+                              decoration: _isChecked
                                   ? TextDecoration.lineThrough
                                   : null,
-                              color: item.isChecked
-                                  ? context.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: checkedAlpha)
-                                  : null,
+                              decorationColor: AppTheme.gray400,
+                              letterSpacing: -0.1,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (_quantityLabel.isNotEmpty) ...[
-                          const SizedBox(width: AppTheme.spacingSm),
-                          Text(
-                            _quantityLabel,
-                            style: context.textTheme.bodySmall?.copyWith(
-                              color: item.isChecked
-                                  ? context.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.4)
-                                  : context.colorScheme.onSurfaceVariant,
-                              decoration: item.isChecked
-                                  ? TextDecoration.lineThrough
-                                  : null,
+                          const SizedBox(width: AppTheme.spacing8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacing6,
+                              vertical: AppTheme.spacing2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isChecked
+                                  ? AppTheme.gray100
+                                  : AppTheme.primaryLight,
+                              borderRadius: AppTheme.borderRadiusFull,
+                            ),
+                            child: Text(
+                              _quantityLabel,
+                              style: context.textTheme.labelSmall?.copyWith(
+                                color: _isChecked
+                                    ? AppTheme.gray400
+                                    : AppTheme.primaryDark,
+                                fontWeight: FontWeight.w500,
+                                decoration: _isChecked
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                decorationColor: AppTheme.gray400,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],
                       ],
                     ),
                     if (hasNotes) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppTheme.spacing4),
                       Text(
                         item.notes!,
                         style: context.textTheme.bodySmall?.copyWith(
-                          color: item.isChecked
-                              ? context.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.4)
-                              : context.colorScheme.onSurfaceVariant,
+                          color: _isChecked
+                              ? AppTheme.gray300
+                              : AppTheme.gray500,
                           fontStyle: FontStyle.italic,
                         ),
                         maxLines: 2,
@@ -870,12 +947,11 @@ class _ShoppingItemTile extends ConsumerWidget {
 
               // Edit button
               IconButton(
-                onPressed: () => onEdit(item),
+                onPressed: () => widget.onEdit(item),
                 icon: Icon(
                   Icons.edit_outlined,
-                  size: 18,
-                  color: context.colorScheme.onSurfaceVariant
-                      .withValues(alpha: 0.5),
+                  size: 16,
+                  color: AppTheme.gray300,
                 ),
                 tooltip: 'Edit item',
                 padding: EdgeInsets.zero,
@@ -901,29 +977,40 @@ class _EmptyItemsState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.checklist,
-              size: 64,
-              color: context.colorScheme.onSurfaceVariant
-                  .withValues(alpha: 0.4),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.gray50,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.gray200),
+              ),
+              child: const Icon(
+                Icons.checklist,
+                size: 36,
+                color: AppTheme.gray400,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing24),
             Text(
               'No Items Yet',
               style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.gray900,
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               'Tap the + button to add items to your shopping list.',
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
             ),
           ],
@@ -948,31 +1035,42 @@ class _ErrorBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingXl),
+        padding: const EdgeInsets.all(AppTheme.spacing40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: context.colorScheme.error,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline,
+                size: 28,
+                color: AppTheme.error,
+              ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
             Text(
               'Something went wrong',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: AppTheme.gray900,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Text(
               message,
               textAlign: TextAlign.center,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing24),
             OutlinedButton(
               onPressed: onRetry,
               child: const Text('Try again'),

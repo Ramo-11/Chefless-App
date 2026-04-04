@@ -60,23 +60,34 @@ class _JoinKitchenScreenState extends ConsumerState<JoinKitchenScreen> {
       appBar: AppBar(title: const Text('Join Kitchen')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: AppTheme.spacing20),
+
                 // Header
-                Icon(
-                  Icons.group_add,
-                  size: 64,
-                  color: context.colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.group_add,
+                    size: 48,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 Text(
                   'Join a Kitchen',
                   style: context.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.3,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -84,17 +95,25 @@ class _JoinKitchenScreenState extends ConsumerState<JoinKitchenScreen> {
                 Text(
                   'Enter the invite code shared by your Kitchen Lead.',
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
+                    height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingXl),
+                const SizedBox(height: AppTheme.spacing40),
 
                 // Invite code field
+                Text(
+                  'Invite Code',
+                  style: context.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray700,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
                 TextFormField(
                   controller: _codeController,
                   decoration: const InputDecoration(
-                    labelText: 'Invite Code',
                     hintText: 'CHEF-XXXX',
                     prefixIcon: Icon(Icons.key),
                   ),
@@ -108,26 +127,50 @@ class _JoinKitchenScreenState extends ConsumerState<JoinKitchenScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
-                Text(
-                  'Invite codes look like CHEF-XXXX. Ask your Kitchen Lead '
-                  'to share theirs with you.',
-                  style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                const SizedBox(height: AppTheme.spacing12),
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.gray50,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: AppTheme.gray400,
+                      ),
+                      const SizedBox(width: AppTheme.spacingSm),
+                      Expanded(
+                        child: Text(
+                          'Invite codes look like CHEF-XXXX. Ask your Kitchen Lead '
+                          'to share theirs with you.',
+                          style: context.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.gray500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
 
                 // Join button
-                ElevatedButton(
-                  onPressed: _isSubmitting ? null : _handleJoin,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Join Kitchen'),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _handleJoin,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Join Kitchen'),
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
               ],

@@ -101,12 +101,16 @@ class RecipeCardShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final baseColor = colorScheme.surfaceContainerHighest;
-    final highlightColor = colorScheme.surfaceContainerLowest;
+    const baseColor = AppTheme.gray100;
+    const highlightColor = AppTheme.gray50;
 
-    return Card(
+    return Container(
       clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.borderRadiusMedium,
+        border: Border.all(color: AppTheme.gray200),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -120,7 +124,7 @@ class RecipeCardShimmer extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            padding: const EdgeInsets.all(AppTheme.spacing12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -153,7 +157,7 @@ class RecipeCardShimmer extends StatelessWidget {
                       gradientValue: gradientValue,
                       height: 20,
                       width: 60,
-                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderRadius: AppTheme.borderRadiusFull,
                     ),
                     const SizedBox(width: AppTheme.spacingSm),
                     ShimmerBox(
@@ -162,7 +166,7 @@ class RecipeCardShimmer extends StatelessWidget {
                       gradientValue: gradientValue,
                       height: 20,
                       width: 80,
-                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderRadius: AppTheme.borderRadiusFull,
                     ),
                   ],
                 ),
@@ -220,9 +224,8 @@ class UserListShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerAnimator(
       builder: (context, gradientValue) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final baseColor = colorScheme.surfaceContainerHighest;
-        final highlightColor = colorScheme.surfaceContainerLowest;
+        const baseColor = AppTheme.gray100;
+        const highlightColor = AppTheme.gray50;
 
         return ListView.builder(
           physics: const NeverScrollableScrollPhysics(),
@@ -287,9 +290,8 @@ class ProfileShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerAnimator(
       builder: (context, gradientValue) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final baseColor = colorScheme.surfaceContainerHighest;
-        final highlightColor = colorScheme.surfaceContainerLowest;
+        const baseColor = AppTheme.gray100;
+        const highlightColor = AppTheme.gray50;
 
         return Padding(
           padding: const EdgeInsets.symmetric(
@@ -362,7 +364,7 @@ class ProfileShimmer extends StatelessWidget {
                 highlightColor: highlightColor,
                 gradientValue: gradientValue,
                 height: 44,
-                borderRadius: AppTheme.borderRadiusSmall,
+                borderRadius: AppTheme.borderRadiusMedium,
               ),
             ],
           ),
@@ -385,9 +387,8 @@ class NotificationListShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerAnimator(
       builder: (context, gradientValue) {
-        final colorScheme = Theme.of(context).colorScheme;
-        final baseColor = colorScheme.surfaceContainerHighest;
-        final highlightColor = colorScheme.surfaceContainerLowest;
+        const baseColor = AppTheme.gray100;
+        const highlightColor = AppTheme.gray50;
 
         return ListView.builder(
           physics: const NeverScrollableScrollPhysics(),

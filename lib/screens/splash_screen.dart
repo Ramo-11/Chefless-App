@@ -26,6 +26,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         currentUser.hasError && authState.valueOrNull != null;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: hasConnectionError
@@ -55,21 +56,21 @@ class _LoadingState extends StatelessWidget {
           width: 120,
           height: 120,
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: AppTheme.spacing40),
         SizedBox(
           width: 24,
           height: 24,
           child: CircularProgressIndicator(
             strokeWidth: 2.5,
-            color: context.colorScheme.primary,
+            color: AppTheme.primaryColor,
           ),
         ),
         if (email != null) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppTheme.spacing24),
           Text(
             'Signed in as $email',
             style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray400,
             ),
           ),
         ],
@@ -127,34 +128,45 @@ class _ConnectionErrorState extends ConsumerState<_ConnectionError> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.cloud_off_rounded,
-            size: 64,
-            color: context.colorScheme.error,
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.errorLight,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.cloud_off_rounded,
+              size: 40,
+              color: AppTheme.error,
+            ),
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: AppTheme.spacing24),
           Text(
             'Cannot connect to server',
             style: context.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: AppTheme.gray900,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacing8),
           Text(
             widget.error.replaceFirst('Exception: ', ''),
             style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
           if (AppConstants.debugMode) ...[
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing32),
             TextField(
               controller: _urlController,
               decoration: const InputDecoration(
@@ -167,9 +179,10 @@ class _ConnectionErrorState extends ConsumerState<_ConnectionError> {
               onSubmitted: (_) => _retry(),
             ),
           ],
-          const SizedBox(height: AppTheme.spacingLg),
+          const SizedBox(height: AppTheme.spacing32),
           SizedBox(
             width: double.infinity,
+            height: 52,
             child: FilledButton.icon(
               onPressed: _isRetrying ? null : _retry,
               icon: _isRetrying
@@ -183,6 +196,11 @@ class _ConnectionErrorState extends ConsumerState<_ConnectionError> {
                     )
                   : const Icon(Icons.refresh),
               label: Text(_isRetrying ? 'Connecting...' : 'Retry'),
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppTheme.borderRadiusMedium,
+                ),
+              ),
             ),
           ),
         ],

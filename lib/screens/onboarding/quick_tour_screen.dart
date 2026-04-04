@@ -246,21 +246,30 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Skip button row
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: AppTheme.spacingSm,
-                  right: AppTheme.spacingMd,
-                ),
-                child: TextButton(
-                  onPressed: _isCompleting ? null : _completeOnboarding,
-                  child: const Text('Skip'),
-                ),
+            // Navigation row
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppTheme.spacing8,
+                left: AppTheme.spacing4,
+                right: AppTheme.spacing16,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/onboarding/premium'),
+                    tooltip: 'Back',
+                  ),
+                  TextButton(
+                    onPressed: _isCompleting ? null : _completeOnboarding,
+                    child: const Text('Skip'),
+                  ),
+                ],
               ),
             ),
 
@@ -282,7 +291,7 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
             // Dot indicators
             Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: AppTheme.spacingMd,
+                vertical: AppTheme.spacing20,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -291,12 +300,12 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 24 : 8,
+                    width: isActive ? 28 : 8,
                     height: 8,
                     decoration: BoxDecoration(
                       color: isActive
-                          ? context.colorScheme.primary
-                          : context.colorScheme.outlineVariant,
+                          ? AppTheme.primaryColor
+                          : AppTheme.gray200,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -307,10 +316,11 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
             // Action button
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingXl,
+                horizontal: AppTheme.spacing32,
               ),
               child: SizedBox(
                 width: double.infinity,
+                height: 54,
                 child: FilledButton(
                   onPressed: _isCompleting
                       ? null
@@ -323,8 +333,8 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                               );
                             },
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppTheme.spacingMd,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
                     ),
                   ),
                   child: _isCompleting
@@ -341,7 +351,7 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
               ),
             ),
 
-            const SizedBox(height: AppTheme.spacingXl),
+            const SizedBox(height: AppTheme.spacing40),
           ],
         ),
       ),
@@ -357,7 +367,7 @@ class _TourPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -370,19 +380,22 @@ class _TourPage extends StatelessWidget {
             backdropColors: card.backdropColors,
             satellites: card.satellites,
           ),
-          const SizedBox(height: AppTheme.spacingXl),
+          const SizedBox(height: AppTheme.spacing40),
           Text(
             card.title,
             style: context.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+              color: AppTheme.gray900,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: AppTheme.spacing12),
           Text(
             card.description,
             style: context.textTheme.bodyLarge?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),

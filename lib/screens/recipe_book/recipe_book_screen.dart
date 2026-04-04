@@ -11,6 +11,7 @@ import '../../widgets/error_state.dart';
 import '../../widgets/recipe_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../paywall/paywall_bottom_sheet.dart';
+import '../../widgets/app_top_bar.dart';
 import 'import_recipe_sheet.dart';
 
 /// Sort options for recipe lists.
@@ -18,7 +19,7 @@ enum RecipeSortOption {
   recent('Recent'),
   alphabetical('A-Z'),
   mostLiked('Most Liked'),
-  mostForked('Most Forked');
+  mostRemixed('Most Remixed');
 
   const RecipeSortOption(this.label);
   final String label;
@@ -61,7 +62,7 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
             (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       case RecipeSortOption.mostLiked:
         sorted.sort((a, b) => b.likesCount.compareTo(a.likesCount));
-      case RecipeSortOption.mostForked:
+      case RecipeSortOption.mostRemixed:
         sorted.sort((a, b) => b.forksCount.compareTo(a.forksCount));
     }
     return sorted;
@@ -106,19 +107,20 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
         title: const Text('Recipe Book'),
         actions: [
+          const NotificationBellIcon(),
           IconButton(
             icon: const Icon(Icons.download_outlined),
             tooltip: 'Import recipe from URL',
             onPressed: () => ImportRecipeSheet.show(context),
           ),
           PopupMenuButton<RecipeSortOption>(
-            icon: const Icon(Icons.sort),
+            icon: const Icon(Icons.sort_rounded),
             tooltip: 'Sort recipes',
             onSelected: (option) {
               if (mounted) setState(() => _sortOption = option);
@@ -129,12 +131,12 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
                       child: Row(
                         children: [
                           if (_sortOption == option)
-                            Icon(Icons.check,
+                            Icon(Icons.check_rounded,
                                 size: 18,
-                                color: context.colorScheme.primary)
+                                color: AppTheme.primaryColor)
                           else
                             const SizedBox(width: 18),
-                          const SizedBox(width: AppTheme.spacingSm),
+                          const SizedBox(width: AppTheme.spacing8),
                           Text(option.label),
                         ],
                       ),
@@ -142,16 +144,22 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
                 .toList(),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'My Recipes'),
-            Tab(text: 'Liked'),
-            Tab(text: 'Forked'),
-          ],
-          labelColor: context.colorScheme.primary,
-          unselectedLabelColor: context.colorScheme.onSurfaceVariant,
-          indicatorColor: context.colorScheme.primary,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(40),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Liked'),
+                Tab(text: 'Remixed'),
+              ],
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -204,9 +212,9 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
                 });
               }
             },
-            emptyIcon: Icons.fork_right,
-            emptyMessage: 'No forked recipes',
-            emptySubMessage: 'Fork recipes to add them to your collection',
+            emptyIcon: Icons.refresh_outlined,
+            emptyMessage: 'No remixed recipes',
+            emptySubMessage: 'Remix recipes to make them your own',
           ),
         ],
       ),
@@ -263,6 +271,7 @@ class _RecipeListTab extends ConsumerWidget {
             ref.invalidate(provider);
             await ref.read(provider.future);
           },
+          color: AppTheme.primaryColor,
           child: sorted.isEmpty
               ? _EmptyState(
                   icon: emptyIcon,
@@ -283,12 +292,12 @@ class _RecipeListTab extends ConsumerWidget {
                         ),
                       ),
                     SliverPadding(
-                      padding: const EdgeInsets.all(AppTheme.spacingMd),
+                      padding: const EdgeInsets.all(AppTheme.spacing16),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => Padding(
                             padding: const EdgeInsets.only(
-                                bottom: AppTheme.spacingMd),
+                                bottom: AppTheme.spacing12),
                             child: RecipeCard(recipe: sorted[index]),
                           ),
                           childCount: sorted.length,
@@ -318,9 +327,9 @@ class _LabelChips extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppTheme.spacingMd,
-        AppTheme.spacingSm,
-        AppTheme.spacingMd,
+        AppTheme.spacing16,
+        AppTheme.spacing12,
+        AppTheme.spacing16,
         0,
       ),
       child: SingleChildScrollView(
@@ -329,10 +338,19 @@ class _LabelChips extends StatelessWidget {
           children: labels.map((label) {
             final isSelected = selectedLabel == label;
             return Padding(
-              padding: const EdgeInsets.only(right: AppTheme.spacingSm),
+              padding: const EdgeInsets.only(right: AppTheme.spacing8),
               child: FilterChip(
                 label: Text(label),
                 selected: isSelected,
+                selectedColor: AppTheme.primaryLight,
+                labelStyle: TextStyle(
+                  color: isSelected ? AppTheme.primaryDark : AppTheme.gray700,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : AppTheme.gray200,
+                ),
                 onSelected: (_) => onLabelSelected(label),
               ),
             );
@@ -376,24 +394,33 @@ class _EmptyState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 48,
-                  color:
-                      context.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppTheme.gray50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 28,
+                    color: AppTheme.gray400,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.spacing16),
                 Text(
                   message,
                   style: context.textTheme.titleMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingXs),
+                const SizedBox(height: AppTheme.spacing4),
                 Text(
                   subMessage,
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
                   ),
                 ),
               ],

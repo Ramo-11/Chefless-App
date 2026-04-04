@@ -127,7 +127,6 @@ class _NotificationBannerOverlayState
     final title = message.notification?.title ?? 'New notification';
     final body = message.notification?.body ?? '';
     final type = message.data['type'] as String? ?? '';
-    final colorScheme = Theme.of(context).colorScheme;
     final topPadding = MediaQuery.paddingOf(context).top;
 
     return Positioned(
@@ -145,40 +144,35 @@ class _NotificationBannerOverlayState
               if ((details.primaryVelocity ?? 0) < -100) _hideBanner();
             },
             child: Container(
-              padding: EdgeInsets.only(
-                top: topPadding + AppTheme.spacingSm,
-                left: AppTheme.spacingMd,
-                right: AppTheme.spacingMd,
-                bottom: AppTheme.spacingSm,
+              margin: EdgeInsets.only(
+                top: topPadding + AppTheme.spacing8,
+                left: AppTheme.spacing12,
+                right: AppTheme.spacing12,
               ),
+              padding: const EdgeInsets.all(AppTheme.spacing12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLowest,
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.15),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                color: Colors.white,
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(color: AppTheme.gray200),
+                boxShadow: AppTheme.shadowMd,
               ),
               child: Row(
                 children: [
                   // Type icon
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: _colorForType(type, colorScheme)
-                          .withValues(alpha: 0.12),
+                      color: _colorForType(type).withValues(alpha: 0.10),
                       borderRadius: AppTheme.borderRadiusSmall,
                     ),
                     child: Icon(
                       _iconForType(type),
-                      size: 20,
-                      color: _colorForType(type, colorScheme),
+                      size: 18,
+                      color: _colorForType(type),
                     ),
                   ),
-                  const SizedBox(width: AppTheme.spacingSm + 4),
+                  const SizedBox(width: AppTheme.spacing12),
                   // Text content
                   Expanded(
                     child: Column(
@@ -190,17 +184,20 @@ class _NotificationBannerOverlayState
                           style: Theme.of(context)
                               .textTheme
                               .labelLarge
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.gray900,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (body.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppTheme.spacing2),
                           Text(
                             body,
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                                      color: AppTheme.gray500,
                                     ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -209,14 +206,14 @@ class _NotificationBannerOverlayState
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppTheme.spacingSm),
+                  const SizedBox(width: AppTheme.spacing8),
                   // Close button
                   GestureDetector(
                     onTap: _hideBanner,
-                    child: Icon(
+                    child: const Icon(
                       Icons.close_rounded,
-                      size: 18,
-                      color: colorScheme.onSurfaceVariant,
+                      size: 16,
+                      color: AppTheme.gray400,
                     ),
                   ),
                 ],
@@ -260,29 +257,29 @@ IconData _iconForType(String type) {
   }
 }
 
-Color _colorForType(String type, ColorScheme colorScheme) {
+Color _colorForType(String type) {
   switch (type) {
     case 'new_follower':
     case 'follow_request':
     case 'follow_accepted':
-      return colorScheme.primary;
+      return AppTheme.primaryColor;
     case 'recipe_liked':
-      return const Color(0xFFE91E63);
+      return AppTheme.likeColor;
     case 'recipe_forked':
-      return colorScheme.tertiary;
+      return AppTheme.primaryDark;
     case 'recipe_shared':
       return const Color(0xFF009688);
     case 'schedule_suggestion':
-      return const Color(0xFFFF9800);
+      return AppTheme.warning;
     case 'suggestion_approved':
-      return const Color(0xFF4CAF50);
+      return AppTheme.success;
     case 'suggestion_denied':
-      return colorScheme.error;
+      return AppTheme.error;
     case 'kitchen_joined':
-      return const Color(0xFF2196F3);
+      return AppTheme.info;
     case 'kitchen_removed':
-      return colorScheme.error;
+      return AppTheme.error;
     default:
-      return colorScheme.onSurfaceVariant;
+      return AppTheme.gray500;
   }
 }

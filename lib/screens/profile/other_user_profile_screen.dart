@@ -29,29 +29,39 @@ class OtherUserProfileScreen extends ConsumerWidget {
         appBar: AppBar(),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: context.colorScheme.error,
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 32,
+                    color: AppTheme.error,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
                   'Failed to load profile',
-                  style: context.textTheme.titleMedium,
+                  style: context.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray900,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
                 Text(
                   error.toString(),
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 ElevatedButton(
                   onPressed: () =>
                       ref.invalidate(userProfileProvider(userId)),
@@ -112,7 +122,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTheme.spacingLg,
-                vertical: AppTheme.spacingMd,
+                vertical: AppTheme.spacing20,
               ),
               children: [
                 // Avatar
@@ -134,7 +144,9 @@ class OtherUserProfileScreen extends ConsumerWidget {
                       child: Text(
                         user.fullName,
                         style: context.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                          color: AppTheme.gray900,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -155,17 +167,18 @@ class OtherUserProfileScreen extends ConsumerWidget {
 
                 // Bio
                 if (user.bio != null && user.bio!.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingSm),
+                  const SizedBox(height: AppTheme.spacing6),
                   Text(
                     user.bio!,
                     style: context.textTheme.bodyMedium?.copyWith(
-                      color: context.colorScheme.onSurfaceVariant,
+                      color: AppTheme.gray500,
+                      height: 1.5,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ],
 
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
 
                 // Stats row
                 _StatsRow(
@@ -174,33 +187,47 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   followingCount: user.followingCount,
                 ),
 
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
 
                 // Follow button
                 _FollowButton(
                   userId: userId,
                   followStatus: followStatus,
+                  isPublicAccount: user.isPublic,
                 ),
 
                 // Kitchen
                 if (user.kitchenId != null) ...[
                   const SizedBox(height: AppTheme.spacingMd),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.kitchen_outlined,
-                        size: 18,
-                        color: context.colorScheme.onSurfaceVariant,
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing12,
+                        vertical: AppTheme.spacing6,
                       ),
-                      const SizedBox(width: AppTheme.spacingXs),
-                      Text(
-                        'In a Kitchen',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: context.colorScheme.onSurfaceVariant,
-                        ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray50,
+                        borderRadius: AppTheme.borderRadiusFull,
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.kitchen_outlined,
+                            size: 16,
+                            color: AppTheme.gray500,
+                          ),
+                          const SizedBox(width: AppTheme.spacing4),
+                          Text(
+                            'In a Kitchen',
+                            style: context.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.gray500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
 
@@ -220,76 +247,80 @@ class OtherUserProfileScreen extends ConsumerWidget {
   }
 }
 
-/// Follow / Requested / Following button with three visual states.
-class _FollowButton extends ConsumerWidget {
+/// Follow / Requested / Following button with optimistic UI updates.
+///
+/// Tracks its own local state so the button updates instantly on tap,
+/// without waiting for the API round-trip or profile re-fetch.
+class _FollowButton extends ConsumerStatefulWidget {
   const _FollowButton({
     required this.userId,
     required this.followStatus,
+    required this.isPublicAccount,
   });
 
   final String userId;
   final String followStatus;
+  final bool isPublicAccount;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final actionState = ref.watch(followActionProvider);
-    final isLoading = actionState is AsyncLoading;
+  ConsumerState<_FollowButton> createState() => _FollowButtonState();
+}
 
-    switch (followStatus) {
-      case 'active':
-        return SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: isLoading
-                ? null
-                : () => _confirmUnfollow(context, ref),
-            child: isLoading
-                ? const _SmallLoader()
-                : const Text('Following'),
-          ),
-        );
-      case 'pending':
-        return SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: isLoading
-                ? null
-                : () {
-                    ref.read(followActionProvider.notifier).unfollow(userId);
-                  },
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: context.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            child: isLoading
-                ? const _SmallLoader()
-                : Text(
-                    'Requested',
-                    style: TextStyle(
-                      color: context.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-          ),
-        );
-      default:
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isLoading
-                ? null
-                : () {
-                    ref.read(followActionProvider.notifier).follow(userId);
-                  },
-            child: isLoading
-                ? const _SmallLoader()
-                : const Text('Follow'),
-          ),
-        );
+class _FollowButtonState extends ConsumerState<_FollowButton> {
+  late String _localStatus;
+  bool _isActioning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _localStatus = widget.followStatus;
+  }
+
+  @override
+  void didUpdateWidget(covariant _FollowButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync from server data if not mid-action (e.g. pull-to-refresh).
+    if (!_isActioning && widget.followStatus != oldWidget.followStatus) {
+      _localStatus = widget.followStatus;
     }
   }
 
-  void _confirmUnfollow(BuildContext context, WidgetRef ref) {
+  Future<void> _follow() async {
+    final previousStatus = _localStatus;
+    if (mounted) {
+      setState(() {
+        _isActioning = true;
+        _localStatus = widget.isPublicAccount ? 'active' : 'pending';
+      });
+    }
+    try {
+      await ref.read(followActionProvider.notifier).follow(widget.userId);
+    } catch (_) {
+      // Revert on failure.
+      if (mounted) setState(() => _localStatus = previousStatus);
+    } finally {
+      if (mounted) setState(() => _isActioning = false);
+    }
+  }
+
+  Future<void> _unfollow() async {
+    final previousStatus = _localStatus;
+    if (mounted) {
+      setState(() {
+        _isActioning = true;
+        _localStatus = 'none';
+      });
+    }
+    try {
+      await ref.read(followActionProvider.notifier).unfollow(widget.userId);
+    } catch (_) {
+      if (mounted) setState(() => _localStatus = previousStatus);
+    } finally {
+      if (mounted) setState(() => _isActioning = false);
+    }
+  }
+
+  void _confirmUnfollow() {
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -303,7 +334,7 @@ class _FollowButton extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(followActionProvider.notifier).unfollow(userId);
+              _unfollow();
             },
             child: const Text('Unfollow'),
           ),
@@ -311,18 +342,39 @@ class _FollowButton extends ConsumerWidget {
       ),
     );
   }
-}
-
-class _SmallLoader extends StatelessWidget {
-  const _SmallLoader();
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 20,
-      height: 20,
-      child: CircularProgressIndicator(strokeWidth: 2),
-    );
+    switch (_localStatus) {
+      case 'active':
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _isActioning ? null : _confirmUnfollow,
+            child: const Text('Following'),
+          ),
+        );
+      case 'pending':
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _isActioning ? null : _unfollow,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppTheme.gray300),
+              foregroundColor: AppTheme.gray500,
+            ),
+            child: const Text('Requested'),
+          ),
+        );
+      default:
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isActioning ? null : _follow,
+            child: const Text('Follow'),
+          ),
+        );
+    }
   }
 }
 
@@ -339,13 +391,25 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatItem(count: recipesCount, label: 'Recipes'),
-        _StatItem(count: followersCount, label: 'Followers'),
-        _StatItem(count: followingCount, label: 'Following'),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppTheme.spacingMd,
+        horizontal: AppTheme.spacingSm,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.gray50,
+        borderRadius: AppTheme.borderRadiusMedium,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _StatItem(count: recipesCount, label: 'Recipes'),
+          Container(width: 1, height: 32, color: AppTheme.gray200),
+          _StatItem(count: followersCount, label: 'Followers'),
+          Container(width: 1, height: 32, color: AppTheme.gray200),
+          _StatItem(count: followingCount, label: 'Following'),
+        ],
+      ),
     );
   }
 }
@@ -367,14 +431,17 @@ class _StatItem extends StatelessWidget {
         Text(
           _formatCount(count),
           style: context.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.gray900,
+            letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppTheme.spacing2),
         Text(
           label,
           style: context.textTheme.bodySmall?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
+            color: AppTheme.gray500,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -397,26 +464,34 @@ class _PrivacyWall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXl),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing48),
       child: Column(
         children: [
-          Icon(
-            Icons.lock_outline,
-            size: 48,
-            color: context.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacing20),
+            decoration: BoxDecoration(
+              color: AppTheme.gray50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.lock_outline,
+              size: 36,
+              color: AppTheme.gray400,
+            ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             'This account is private',
             style: context.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacing6),
           Text(
             'Follow to see their recipes.',
             style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
             ),
           ),
         ],
@@ -438,14 +513,15 @@ class _UserRecipesList extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingSm,
+          padding: const EdgeInsets.only(
+            bottom: AppTheme.spacing12,
           ),
           child: Text(
             'Recipes',
             style: context.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: AppTheme.gray900,
+              letterSpacing: -0.1,
             ),
           ),
         ),
@@ -454,12 +530,16 @@ class _UserRecipesList extends ConsumerWidget {
             height: 100,
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, _) => Padding(
+          error: (error, _) => Container(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: AppTheme.gray50,
+              borderRadius: AppTheme.borderRadiusMedium,
+            ),
             child: Text(
               'Failed to load recipes.',
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
             ),
           ),
@@ -473,15 +553,14 @@ class _UserRecipesList extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.restaurant_menu,
-                        size: 40,
-                        color: context.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.4),
+                        size: 36,
+                        color: AppTheme.gray300,
                       ),
                       const SizedBox(height: AppTheme.spacingSm),
                       Text(
                         'No recipes yet',
                         style: context.textTheme.bodyMedium?.copyWith(
-                          color: context.colorScheme.onSurfaceVariant,
+                          color: AppTheme.gray500,
                         ),
                       ),
                     ],
@@ -493,12 +572,9 @@ class _UserRecipesList extends ConsumerWidget {
             return ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-              ),
               itemCount: recipes.length,
               separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppTheme.spacingSm),
+                  const SizedBox(height: AppTheme.spacing12),
               itemBuilder: (context, index) {
                 return RecipeCard(
                   recipe: recipes[index],

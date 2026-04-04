@@ -51,11 +51,11 @@ class PaywallBottomSheet extends StatelessWidget {
   IconData get _icon {
     switch (reason) {
       case PaywallReason.recipeLimitReached:
-        return Icons.menu_book;
+        return Icons.menu_book_rounded;
       case PaywallReason.scheduleLimitReached:
-        return Icons.calendar_month;
+        return Icons.calendar_month_rounded;
       case PaywallReason.kitchenCapacityReached:
-        return Icons.group;
+        return Icons.group_rounded;
     }
   }
 
@@ -70,7 +70,7 @@ class PaywallBottomSheet extends StatelessWidget {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusLarge),
+          top: Radius.circular(AppTheme.radiusXL),
         ),
       ),
       builder: (_) => PaywallBottomSheet(reason: reason),
@@ -82,56 +82,64 @@ class PaywallBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.spacing24,
+          AppTheme.spacing8,
+          AppTheme.spacing24,
+          AppTheme.spacing24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag handle
             Container(
-              width: 40,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: context.colorScheme.outlineVariant,
+                color: AppTheme.gray300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Icon
             Container(
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppTheme.secondaryColor.withValues(alpha: 0.15),
+                color: AppTheme.primaryLight,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _icon,
-                size: 32,
-                color: AppTheme.secondaryColor,
+                size: 30,
+                color: AppTheme.primaryColor,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing20),
 
             // Title
             Text(
               _title,
-              style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: context.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: AppTheme.gray900,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
 
             // Description
             Text(
               _description,
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
+                height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Upgrade button
             SizedBox(
@@ -141,18 +149,21 @@ class PaywallBottomSheet extends StatelessWidget {
                   Navigator.of(context).pop();
                   context.push('/paywall');
                 },
-                icon: const Icon(Icons.workspace_premium),
+                icon: const Icon(Icons.workspace_premium_rounded),
                 label: const Text('Upgrade to Premium'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.secondaryColor,
+                  backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                    vertical: AppTheme.spacingMd,
+                    vertical: AppTheme.spacing16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppTheme.borderRadiusMedium,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
 
             // Dismiss
             SizedBox(
@@ -162,7 +173,8 @@ class PaywallBottomSheet extends StatelessWidget {
                 child: Text(
                   'Not now',
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray400,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

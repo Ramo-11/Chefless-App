@@ -194,6 +194,18 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
 
       try {
         final bytes = await File(image.path).readAsBytes();
+        final fileSizeMb = bytes.length / (1024 * 1024);
+
+        if (fileSizeMb > 25) {
+          if (mounted) {
+            _showMessage(
+              'Photo is too large (${fileSizeMb.toStringAsFixed(1)} MB). '
+              'Max size is 25 MB per photo.',
+            );
+          }
+          continue;
+        }
+
         final ext = image.path.split('.').last.toLowerCase();
         final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
         final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
@@ -209,10 +221,25 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
           final url = result.data!['secureUrl'] as String;
           setState(() => _photoUrls.add(url));
         } else {
-          _showMessage(result.error ?? 'Failed to upload photo.');
+          final error = result.error ?? '';
+          if (error.toLowerCase().contains('too large') ||
+              error.toLowerCase().contains('entity') ||
+              error.contains('413')) {
+            _showMessage(
+              'Photo is too large (${fileSizeMb.toStringAsFixed(1)} MB). '
+              'Try a smaller image.',
+            );
+          } else {
+            _showMessage(error.isNotEmpty ? error : 'Failed to upload photo.');
+          }
         }
       } catch (e) {
-        if (mounted) _showMessage('Failed to upload photo.');
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('too large') || msg.contains('entity') || msg.contains('413')) {
+          if (mounted) _showMessage('Photo is too large. Try a smaller image.');
+        } else {
+          if (mounted) _showMessage('Failed to upload photo.');
+        }
       }
     }
 
@@ -323,7 +350,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
         'story': _storyController.text.trim(),
       'photos': _photoUrls,
       'showSignature': _showSignature,
-      'labels': _selectedLabels.toList(),
+      'labels': _selectedLabels.map((l) => l.toLowerCase()).toList(),
       'dietaryTags': _selectedDietaryTags.toList(),
       'cuisineTags': _selectedCuisineTags.toList(),
       if (_selectedDifficulty != null) 'difficulty': _selectedDifficulty,
@@ -478,6 +505,12 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
                 const _SectionHeader(
                     title:
                         'Photos (up to ${AppConstants.maxRecipePhotos})'),
+                Text(
+                  'Max 25 MB per photo. Images are automatically resized.',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: AppTheme.spacingSm),
                 _buildPhotoSection(),
                 const SizedBox(height: AppTheme.spacingLg),

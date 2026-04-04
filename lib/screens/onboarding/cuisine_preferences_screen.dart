@@ -86,10 +86,30 @@ class _CuisinePreferencesScreenState
     });
   }
 
+  void _toggleAll() {
+    if (!mounted) return;
+    setState(() {
+      if (_selected.length == _cuisineOptions.length) {
+        _selected.clear();
+      } else {
+        _selected
+          ..clear()
+          ..addAll(_cuisineOptions);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/onboarding/dietary'),
+          tooltip: 'Back',
+        ),
         title: const Text('Cuisine Preferences'),
         actions: [
           TextButton(
@@ -100,7 +120,10 @@ class _CuisinePreferencesScreenState
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing32,
+            vertical: AppTheme.spacing24,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -151,60 +174,109 @@ class _CuisinePreferencesScreenState
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing16),
 
               Text(
                 'What cuisines do you enjoy?',
                 style: context.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  color: AppTheme.gray900,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing8),
               Text(
                 'Select as many as you like. We\'ll personalize your experience.',
                 style: context.textTheme.bodyMedium?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+                  color: AppTheme.gray500,
                 ),
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: AppTheme.spacingLg),
+              const SizedBox(height: AppTheme.spacing32),
 
               // Chips
               Expanded(
                 child: SingleChildScrollView(
                   child: Wrap(
-                    spacing: AppTheme.spacingSm,
-                    runSpacing: AppTheme.spacingSm,
-                    children: _cuisineOptions.map((option) {
-                      final isSelected = _selected.contains(option);
-                      return FilterChip(
-                        label: Text(option),
-                        selected: isSelected,
+                    spacing: AppTheme.spacing12,
+                    runSpacing: AppTheme.spacing12,
+                    children: [
+                      FilterChip(
+                        label: const Text('All!'),
+                        selected:
+                            _selected.length == _cuisineOptions.length,
                         showCheckmark: true,
-                        onSelected: (_) => _toggleOption(option),
-                      );
-                    }).toList(),
+                        checkmarkColor: AppTheme.primaryColor,
+                        selectedColor: AppTheme.primaryLight,
+                        side: BorderSide(
+                          color: _selected.length == _cuisineOptions.length
+                              ? AppTheme.primaryColor
+                              : AppTheme.gray200,
+                        ),
+                        labelStyle: TextStyle(
+                          color: _selected.length == _cuisineOptions.length
+                              ? AppTheme.primaryDark
+                              : AppTheme.gray700,
+                          fontWeight: _selected.length == _cuisineOptions.length
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                        onSelected: (_) => _toggleAll(),
+                      ),
+                      ..._cuisineOptions.map((option) {
+                        final isSelected = _selected.contains(option);
+                        return FilterChip(
+                          label: Text(option),
+                          selected: isSelected,
+                          showCheckmark: true,
+                          checkmarkColor: AppTheme.primaryColor,
+                          selectedColor: AppTheme.primaryLight,
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : AppTheme.gray200,
+                          ),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? AppTheme.primaryDark
+                                : AppTheme.gray700,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
+                          onSelected: (_) => _toggleOption(option),
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacing20),
 
               // Continue button
-              FilledButton(
-                onPressed: _isSaving ? null : _saveAndContinue,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Continue'),
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: _isSaving ? null : _saveAndContinue,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusMedium,
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Continue'),
+                ),
               ),
             ],
           ),

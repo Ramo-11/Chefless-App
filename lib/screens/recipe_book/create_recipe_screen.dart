@@ -222,6 +222,18 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
 
       try {
         final bytes = await File(image.path).readAsBytes();
+        final fileSizeMb = bytes.length / (1024 * 1024);
+
+        if (fileSizeMb > 25) {
+          if (mounted) {
+            _showMessage(
+              'Photo is too large (${fileSizeMb.toStringAsFixed(1)} MB). '
+              'Max size is 25 MB per photo.',
+            );
+          }
+          continue;
+        }
+
         final ext = image.path.split('.').last.toLowerCase();
         final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
         final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
@@ -237,10 +249,25 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
           final url = result.data!['secureUrl'] as String;
           setState(() => _photoUrls.add(url));
         } else {
-          _showMessage(result.error ?? 'Failed to upload photo.');
+          final error = result.error ?? '';
+          if (error.toLowerCase().contains('too large') ||
+              error.toLowerCase().contains('entity') ||
+              error.contains('413')) {
+            _showMessage(
+              'Photo is too large (${fileSizeMb.toStringAsFixed(1)} MB). '
+              'Try a smaller image.',
+            );
+          } else {
+            _showMessage(error.isNotEmpty ? error : 'Failed to upload photo.');
+          }
         }
       } catch (e) {
-        if (mounted) _showMessage('Failed to upload photo.');
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('too large') || msg.contains('entity') || msg.contains('413')) {
+          if (mounted) _showMessage('Photo is too large. Try a smaller image.');
+        } else {
+          if (mounted) _showMessage('Failed to upload photo.');
+        }
       }
     }
 
@@ -359,7 +386,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
         'story': _storyController.text.trim(),
       'photos': _photoUrls,
       'showSignature': _showSignature,
-      'labels': _selectedLabels.toList(),
+      'labels': _selectedLabels.map((l) => l.toLowerCase()).toList(),
       'dietaryTags': _selectedDietaryTags.toList(),
       'cuisineTags': _selectedCuisineTags.toList(),
       if (_selectedDifficulty != null) 'difficulty': _selectedDifficulty,
@@ -427,7 +454,10 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing20,
+            vertical: AppTheme.spacing16,
+          ),
           children: [
             // Title
             TextFormField(
@@ -444,7 +474,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
 
             // Description
             TextFormField(
@@ -456,7 +486,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
               textCapitalization: TextCapitalization.sentences,
               maxLines: 3,
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacing16),
 
             // Story
             TextFormField(
@@ -470,48 +500,63 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
               maxLines: 6,
               minLines: 3,
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
+            Divider(color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Photos
             const _SectionHeader(title: 'Photos (up to ${AppConstants.maxRecipePhotos})'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing4),
+            Text(
+              'Max 25 MB per photo. Images are automatically resized.',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: AppTheme.gray500,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing12),
             _buildPhotoSection(),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
+            Divider(color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Ingredients
             const _SectionHeader(title: 'Ingredients'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             ..._buildIngredientFields(),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: _addIngredient,
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add Ingredient'),
               ),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
+            Divider(color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Steps
             const _SectionHeader(title: 'Steps'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             _buildStepsSection(),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: _addStep,
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add Step'),
               ),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
+            Divider(color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Labels
             const _SectionHeader(title: 'Labels'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Wrap(
-              spacing: AppTheme.spacingSm,
-              runSpacing: AppTheme.spacingSm,
+              spacing: AppTheme.spacing8,
+              runSpacing: AppTheme.spacing8,
               children: _systemLabels.map((label) {
                 final isSelected = _selectedLabels.contains(label);
                 return FilterChip(
@@ -531,7 +576,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             // Custom label input
             Row(
               children: [
@@ -546,7 +591,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                     onFieldSubmitted: (_) => _addCustomLabel(),
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
+                const SizedBox(width: AppTheme.spacing8),
                 IconButton(
                   onPressed: _addCustomLabel,
                   icon: const Icon(Icons.add_circle_outline),
@@ -558,10 +603,10 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
             if (_selectedLabels
                 .where((l) => !_systemLabels.contains(l))
                 .isNotEmpty) ...[
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacing8),
               Wrap(
-                spacing: AppTheme.spacingSm,
-                runSpacing: AppTheme.spacingSm,
+                spacing: AppTheme.spacing8,
+                runSpacing: AppTheme.spacing8,
                 children: _selectedLabels
                     .where((l) => !_systemLabels.contains(l))
                     .map((label) => Chip(
@@ -575,14 +620,14 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                     .toList(),
               ),
             ],
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Dietary tags
             const _SectionHeader(title: 'Dietary Tags'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Wrap(
-              spacing: AppTheme.spacingSm,
-              runSpacing: AppTheme.spacingSm,
+              spacing: AppTheme.spacing8,
+              runSpacing: AppTheme.spacing8,
               children: _dietaryOptions.map((tag) {
                 final isSelected = _selectedDietaryTags.contains(tag);
                 return FilterChip(
@@ -602,14 +647,14 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Cuisine tags
             const _SectionHeader(title: 'Cuisine Tags'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Wrap(
-              spacing: AppTheme.spacingSm,
-              runSpacing: AppTheme.spacingSm,
+              spacing: AppTheme.spacing8,
+              runSpacing: AppTheme.spacing8,
               children: _cuisineOptions.map((tag) {
                 final isSelected = _selectedCuisineTags.contains(tag);
                 return FilterChip(
@@ -629,13 +674,13 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Difficulty
             const _SectionHeader(title: 'Difficulty'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing8),
             Wrap(
-              spacing: AppTheme.spacingSm,
+              spacing: AppTheme.spacing8,
               children: _difficultyOptions.map((d) {
                 final isSelected = _selectedDifficulty == d;
                 return ChoiceChip(
@@ -651,11 +696,13 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: AppTheme.spacingLg),
+            const SizedBox(height: AppTheme.spacing24),
+            Divider(color: AppTheme.gray100),
+            const SizedBox(height: AppTheme.spacing24),
 
             // Time & nutrition
             const _SectionHeader(title: 'Details'),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             Row(
               children: [
                 Expanded(
@@ -669,7 +716,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
+                const SizedBox(width: AppTheme.spacing8),
                 Expanded(
                   child: TextFormField(
                     controller: _cookTimeController,
@@ -683,7 +730,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             Row(
               children: [
                 Expanded(
@@ -697,7 +744,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
+                const SizedBox(width: AppTheme.spacing8),
                 Expanded(
                   child: TextFormField(
                     controller: _baseServingsController,
@@ -712,7 +759,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing12),
             Row(
               children: [
                 Expanded(
@@ -726,7 +773,7 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                 ),
-                const SizedBox(width: AppTheme.spacingSm),
+                const SizedBox(width: AppTheme.spacing8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedCostEstimate,
@@ -1229,10 +1276,15 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: context.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacing2),
+      child: Text(
+        title,
+        style: context.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: AppTheme.gray900,
+          letterSpacing: -0.3,
+        ),
       ),
     );
   }

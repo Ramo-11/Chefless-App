@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
 /// A floating satellite element that orbits around the center of the illustration.
 class Satellite {
   const Satellite({
@@ -153,12 +155,12 @@ class _OnboardingIllustrationState extends State<OnboardingIllustration>
           height: widget.centerCircleSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: widget.centerColor.withValues(alpha: 0.12),
+            color: widget.centerColor.withValues(alpha: 0.10),
             boxShadow: [
               BoxShadow(
-                color: widget.centerColor.withValues(alpha: 0.12),
-                blurRadius: 32,
-                spreadRadius: 8,
+                color: widget.centerColor.withValues(alpha: 0.08),
+                blurRadius: 40,
+                spreadRadius: 12,
               ),
             ],
           ),
@@ -215,10 +217,10 @@ class _OnboardingIllustrationState extends State<OnboardingIllustration>
             height: sat.containerSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: sat.color.withValues(alpha: 0.10),
+              color: sat.color.withValues(alpha: 0.08),
               border: Border.all(
-                color: sat.color.withValues(alpha: 0.18),
-                width: 1.5,
+                color: sat.color.withValues(alpha: 0.15),
+                width: 1,
               ),
             ),
             child: Icon(
@@ -255,7 +257,7 @@ class _BackdropPainter extends CustomPainter {
 
     for (int i = 0; i < offsets.length && i < colors.length; i++) {
       final paint = Paint()
-        ..color = colors[i].withValues(alpha: 0.07 * opacity)
+        ..color = colors[i].withValues(alpha: 0.06 * opacity)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 50);
       canvas.drawCircle(offsets[i], radius, paint);
     }

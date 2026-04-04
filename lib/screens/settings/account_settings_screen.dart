@@ -32,43 +32,61 @@ class AccountSettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Account Settings')),
       body: ListView(
+        padding: const EdgeInsets.only(bottom: AppTheme.spacing48),
         children: [
-          // Email
-          const _SectionHeader(title: 'Email'),
-          _EmailTile(email: user.email),
-          const Divider(),
+          // ── Email ──────────────────────────────────────────
+          const _SectionHeader(title: 'EMAIL'),
+          _SettingsGroup(
+            children: [
+              _InfoRow(
+                icon: Icons.email_outlined,
+                label: 'Email address',
+                value: user.email,
+                valueIsBold: true,
+              ),
+            ],
+          ),
 
-          // Sign-in method
-          const _SectionHeader(title: 'Sign-in Method'),
-          _SignInMethodTile(providerId: providerId),
-          const Divider(),
+          // ── Sign-in Method ─────────────────────────────────
+          const _SectionHeader(title: 'SIGN-IN METHOD'),
+          _SettingsGroup(
+            children: [
+              _SignInMethodRow(providerId: providerId),
+            ],
+          ),
 
-          // Security (password change — email/password users only)
+          // ── Security ───────────────────────────────────────
           if (isEmailUser) ...[
-            const _SectionHeader(title: 'Security'),
-            ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Change Password'),
-              subtitle: const Text('Update your account password'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _showChangePasswordSheet(context, ref),
+            const _SectionHeader(title: 'SECURITY'),
+            _SettingsGroup(
+              children: [
+                _ActionRow(
+                  icon: Icons.lock_outline,
+                  title: 'Change Password',
+                  subtitle: 'Update your account password',
+                  onTap: () => _showChangePasswordSheet(context, ref),
+                ),
+              ],
             ),
-            const Divider(),
           ],
 
-          // Account info
-          const _SectionHeader(title: 'Account Info'),
-          _InfoTile(
-            icon: Icons.calendar_today_outlined,
-            label: 'Member since',
-            value: DateFormat.yMMMM().format(user.createdAt),
+          // ── Account Info ───────────────────────────────────
+          const _SectionHeader(title: 'ACCOUNT INFO'),
+          _SettingsGroup(
+            children: [
+              _InfoRow(
+                icon: Icons.calendar_today_outlined,
+                label: 'Member since',
+                value: DateFormat.yMMMM().format(user.createdAt),
+              ),
+              const _GroupDivider(),
+              _InfoRow(
+                icon: Icons.update_outlined,
+                label: 'Last active',
+                value: _formatRelativeDate(user.lastActiveAt),
+              ),
+            ],
           ),
-          _InfoTile(
-            icon: Icons.update_outlined,
-            label: 'Last active',
-            value: _formatRelativeDate(user.lastActiveAt),
-          ),
-          const SizedBox(height: AppTheme.spacingXl),
         ],
       ),
     );
@@ -95,33 +113,141 @@ class AccountSettingsScreen extends ConsumerWidget {
   }
 }
 
-// ── Email Tile ────────────────────────────────────────────────────────────────
+// ── Section Header ───────────────────────────────────────────────────────────
 
-class _EmailTile extends StatelessWidget {
-  const _EmailTile({required this.email});
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
 
-  final String email;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.email_outlined),
-      title: const Text('Email address'),
-      subtitle: Text(
-        email,
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colorScheme.onSurface,
-          fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: AppTheme.spacing20,
+        right: AppTheme.spacing20,
+        top: AppTheme.spacing32,
+        bottom: AppTheme.spacing8,
+      ),
+      child: Text(
+        title,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: AppTheme.gray400,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
         ),
       ),
     );
   }
 }
 
-// ── Sign-in Method Tile ──────────────────────────────────────────────────────
+// ── Settings Group ───────────────────────────────────────────────────────────
 
-class _SignInMethodTile extends StatelessWidget {
-  const _SignInMethodTile({required this.providerId});
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppTheme.borderRadiusMedium,
+          border: Border.all(color: AppTheme.gray200),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Group Divider ────────────────────────────────────────────────────────────
+
+class _GroupDivider extends StatelessWidget {
+  const _GroupDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: AppTheme.spacing16 + 32 + AppTheme.spacing12,
+      ),
+      child: Container(height: 1, color: AppTheme.gray100),
+    );
+  }
+}
+
+// ── Info Row ─────────────────────────────────────────────────────────────────
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueIsBold = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool valueIsBold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing12,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppTheme.gray600.withValues(alpha: 0.08),
+              borderRadius: AppTheme.borderRadiusSmall,
+            ),
+            child: Icon(icon, size: 18, color: AppTheme.gray600),
+          ),
+          const SizedBox(width: AppTheme.spacing12),
+          Expanded(
+            child: Text(
+              label,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacing8),
+          Flexible(
+            child: Text(
+              value,
+              style: context.textTheme.bodyMedium?.copyWith(
+                fontWeight: valueIsBold ? FontWeight.w600 : FontWeight.w400,
+                color: AppTheme.gray900,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Sign-in Method Row ───────────────────────────────────────────────────────
+
+class _SignInMethodRow extends StatelessWidget {
+  const _SignInMethodRow({required this.providerId});
 
   final String providerId;
 
@@ -133,79 +259,120 @@ class _SignInMethodTile extends StatelessWidget {
       _ => (Icons.email_outlined, 'Email & Password'),
     };
 
-    return ListTile(
-      leading: Icon(icon),
-      title: const Text('Signed in with'),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingSm,
-        ),
-        decoration: BoxDecoration(
-          color: context.colorScheme.secondaryContainer,
-          borderRadius: AppTheme.borderRadiusSmall,
-        ),
-        child: Text(
-          label,
-          style: context.textTheme.labelMedium?.copyWith(
-            color: context.colorScheme.onSecondaryContainer,
-            fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing12,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppTheme.gray600.withValues(alpha: 0.08),
+              borderRadius: AppTheme.borderRadiusSmall,
+            ),
+            child: Icon(icon, size: 18, color: AppTheme.gray600),
           ),
-        ),
+          const SizedBox(width: AppTheme.spacing12),
+          Expanded(
+            child: Text(
+              'Signed in with',
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing12,
+              vertical: AppTheme.spacing4,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryLight,
+              borderRadius: AppTheme.borderRadiusFull,
+            ),
+            child: Text(
+              label,
+              style: context.textTheme.labelMedium?.copyWith(
+                color: AppTheme.primaryDark,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Info Tile ─────────────────────────────────────────────────────────────────
+// ── Action Row ───────────────────────────────────────────────────────────────
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
     required this.icon,
-    required this.label,
-    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
   });
 
   final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: Text(
-        value,
-        style: context.textTheme.bodyMedium?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Section Header ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
   final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: AppTheme.spacingMd,
-        right: AppTheme.spacingMd,
-        top: AppTheme.spacingLg,
-        bottom: AppTheme.spacingSm,
-      ),
-      child: Text(
-        title,
-        style: context.textTheme.labelLarge?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing16,
+            vertical: AppTheme.spacing12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppTheme.gray600.withValues(alpha: 0.08),
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                child: Icon(icon, size: 18, color: AppTheme.gray600),
+              ),
+              const SizedBox(width: AppTheme.spacing12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.gray900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppTheme.gray300,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -291,14 +458,15 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
             Text(
               'Change Password',
               style: context.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(height: AppTheme.spacing6),
             Text(
               'Enter your current password and choose a new one.',
               style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
+                color: AppTheme.gray500,
               ),
             ),
             const SizedBox(height: AppTheme.spacingLg),
@@ -308,14 +476,30 @@ class _ChangePasswordSheetState extends ConsumerState<_ChangePasswordSheet> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: context.colorScheme.errorContainer,
+                  color: AppTheme.errorLight,
                   borderRadius: AppTheme.borderRadiusSmall,
-                ),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: context.colorScheme.onErrorContainer,
+                  border: Border.all(
+                    color: AppTheme.error.withValues(alpha: 0.2),
                   ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 18,
+                      color: AppTheme.error,
+                    ),
+                    const SizedBox(width: AppTheme.spacing8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppTheme.spacingMd),

@@ -19,7 +19,7 @@ const _preferences = <({String key, String label, String section})>[
   (key: 'follow_accepted', label: 'Follow accepted', section: 'Social'),
   // Recipes
   (key: 'recipe_liked', label: 'Likes', section: 'Recipes'),
-  (key: 'recipe_forked', label: 'Forks', section: 'Recipes'),
+  (key: 'recipe_forked', label: 'Remixes', section: 'Recipes'),
   (key: 'recipe_shared', label: 'Shares', section: 'Recipes'),
   // Kitchen
   (
@@ -150,19 +150,45 @@ class NotificationPreferencesScreen extends ConsumerWidget {
     final prefsAsync = ref.watch(_notifPrefsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notification Preferences')),
+      appBar: AppBar(title: const Text('Notifications')),
       body: prefsAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingLg),
-            child: Text(
-              'Failed to load preferences.\n$error',
-              textAlign: TextAlign.center,
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: context.colorScheme.error,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 28,
+                    color: AppTheme.error,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Text(
+                  'Failed to load preferences',
+                  style: context.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing6),
+                Text(
+                  '$error',
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.gray500,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -183,30 +209,116 @@ class _PreferencesList extends ConsumerWidget {
     String? lastSection;
     final children = <Widget>[];
 
-    for (final pref in _preferences) {
+    for (int i = 0; i < _preferences.length; i++) {
+      final pref = _preferences[i];
+
       if (pref.section != lastSection) {
         lastSection = pref.section;
-        children.add(
-          _SectionHeader(title: pref.section),
-        );
+        children.add(_SectionHeader(title: pref.section.toUpperCase()));
       }
 
-      children.add(
-        SwitchListTile(
-          title: Text(pref.label),
-          value: prefs[pref.key] ?? true,
-          onChanged: (_) {
-            ref.read(_notifPrefsProvider.notifier).toggle(pref.key);
-          },
-        ),
-      );
+      // Determine if this is the first item in its section group
+      final isFirstInSection = i == 0 || _preferences[i - 1].section != pref.section;
+
+      if (isFirstInSection) {
+        // Start a new group
+        final sectionItems = <Widget>[];
+
+        // Collect all items for this section
+        for (int j = i; j < _preferences.length && _preferences[j].section == pref.section; j++) {
+          final sectionPref = _preferences[j];
+          if (j > i) {
+            sectionItems.add(
+              Padding(
+                padding: const EdgeInsets.only(left: AppTheme.spacing16),
+                child: Container(height: 1, color: AppTheme.gray100),
+              ),
+            );
+          }
+          sectionItems.add(
+            _NotifToggleRow(
+              label: sectionPref.label,
+              value: prefs[sectionPref.key] ?? true,
+              onChanged: (_) {
+                ref.read(_notifPrefsProvider.notifier).toggle(sectionPref.key);
+              },
+            ),
+          );
+        }
+
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: AppTheme.borderRadiusMedium,
+                border: Border.all(color: AppTheme.gray200),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: sectionItems,
+              ),
+            ),
+          ),
+        );
+
+        // Skip ahead past the items we just processed
+        // (the outer loop will handle the increment)
+      }
+
+      if (!isFirstInSection) continue;
     }
 
-    children.add(const SizedBox(height: AppTheme.spacingXl));
+    children.add(const SizedBox(height: AppTheme.spacing48));
 
     return ListView(children: children);
   }
 }
+
+// ── Notification Toggle Row ──────────────────────────────────────────────────
+
+class _NotifToggleRow extends StatelessWidget {
+  const _NotifToggleRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing4,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: context.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppTheme.gray900,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Section Header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
@@ -217,16 +329,17 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        left: AppTheme.spacingMd,
-        right: AppTheme.spacingMd,
-        top: AppTheme.spacingLg,
-        bottom: AppTheme.spacingSm,
+        left: AppTheme.spacing20,
+        right: AppTheme.spacing20,
+        top: AppTheme.spacing32,
+        bottom: AppTheme.spacing8,
       ),
       child: Text(
         title,
-        style: context.textTheme.labelLarge?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
+        style: context.textTheme.labelSmall?.copyWith(
+          color: AppTheme.gray400,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
         ),
       ),
     );

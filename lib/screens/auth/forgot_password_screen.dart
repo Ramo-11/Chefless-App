@@ -52,7 +52,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Go back',
@@ -62,7 +64,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacing32,
+              vertical: AppTheme.spacing24,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: _emailSent ? _buildSuccessState() : _buildFormState(),
@@ -77,32 +82,52 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.mark_email_read_outlined,
-          size: 64,
-          color: context.colorScheme.primary,
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryLight,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.mark_email_read_outlined,
+            size: 40,
+            color: AppTheme.primaryColor,
+          ),
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacing24),
         Text(
           'Check Your Email',
           textAlign: TextAlign.center,
           style: context.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            color: AppTheme.gray900,
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing12),
         Text(
           'We sent a password reset link to ${_emailController.text.trim()}. '
           'Check your inbox and follow the instructions.',
           textAlign: TextAlign.center,
           style: context.textTheme.bodyLarge?.copyWith(
-            color: context.colorScheme.onSurfaceVariant,
+            color: AppTheme.gray500,
+            height: 1.5,
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXl),
-        ElevatedButton(
-          onPressed: () => context.go('/login'),
-          child: const Text('Back to Sign In'),
+        const SizedBox(height: AppTheme.spacing40),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: () => context.go('/login'),
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: AppTheme.borderRadiusMedium,
+              ),
+            ),
+            child: const Text('Back to Sign In'),
+          ),
         ),
       ],
     );
@@ -115,28 +140,39 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            Icons.lock_reset_outlined,
-            size: 56,
-            color: context.colorScheme.primary,
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.lock_reset_outlined,
+              size: 36,
+              color: AppTheme.primaryColor,
+            ),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacing24),
           Text(
             'Reset Password',
             textAlign: TextAlign.center,
             style: context.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              color: AppTheme.gray900,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingXs),
+          const SizedBox(height: AppTheme.spacing8),
           Text(
             'Enter your email and we\'ll send you a link to reset your password.',
             textAlign: TextAlign.center,
             style: context.textTheme.bodyLarge?.copyWith(
-              color: context.colorScheme.onSurfaceVariant,
+              color: AppTheme.gray500,
+              height: 1.5,
             ),
           ),
-          const SizedBox(height: AppTheme.spacingXl),
+          const SizedBox(height: AppTheme.spacing40),
 
           // ── Email Field ───────────────────────────────────────────
           TextFormField(
@@ -159,21 +195,29 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               return null;
             },
           ),
-          const SizedBox(height: AppTheme.spacingLg),
+          const SizedBox(height: AppTheme.spacing32),
 
           // ── Send Reset Link Button ────────────────────────────────
-          ElevatedButton(
-            onPressed: _isLoading ? null : _sendResetLink,
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('Send Reset Link'),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _sendResetLink,
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppTheme.borderRadiusMedium,
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Send Reset Link'),
+            ),
           ),
         ],
       ),

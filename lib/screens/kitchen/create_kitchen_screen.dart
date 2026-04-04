@@ -62,23 +62,34 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
       appBar: AppBar(title: const Text('Create Kitchen')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: AppTheme.spacing20),
+
                 // Header illustration
-                Icon(
-                  Icons.kitchen,
-                  size: 64,
-                  color: context.colorScheme.primary,
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.kitchen,
+                    size: 48,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
+                const SizedBox(height: AppTheme.spacing20),
                 Text(
                   'Start Your Kitchen',
                   style: context.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.gray900,
+                    letterSpacing: -0.3,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -87,17 +98,25 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
                   'Create a shared space for your family or friends '
                   'to plan meals together.',
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
+                    color: AppTheme.gray500,
+                    height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingXl),
+                const SizedBox(height: AppTheme.spacing40),
 
                 // Kitchen name
+                Text(
+                  'Kitchen Name',
+                  style: context.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.gray700,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Kitchen Name',
                     hintText: 'e.g., The Smith Family',
                   ),
                   textCapitalization: TextCapitalization.words,
@@ -119,15 +138,18 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
                 const Spacer(),
 
                 // Create button
-                ElevatedButton(
-                  onPressed: _isSubmitting ? null : _handleCreate,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Create Kitchen'),
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _handleCreate,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Create Kitchen'),
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
               ],
