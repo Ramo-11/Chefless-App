@@ -211,6 +211,163 @@ class RecipeCardShimmerList extends StatelessWidget {
   }
 }
 
+/// Shimmer matching [RecipeCompactRow] (thumbnail + text column).
+class RecipeCompactRowShimmer extends StatelessWidget {
+  const RecipeCompactRowShimmer({
+    super.key,
+    required this.gradientValue,
+  });
+
+  final double gradientValue;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseColor = AppTheme.gray100;
+    const highlightColor = Color(0xFFF0EDE8);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing16,
+        vertical: AppTheme.spacing8,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShimmerBox(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            gradientValue: gradientValue,
+            height: 68,
+            width: 68,
+            borderRadius: AppTheme.borderRadiusMedium,
+          ),
+          const SizedBox(width: AppTheme.spacing12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  gradientValue: gradientValue,
+                  height: 16,
+                  width: double.infinity,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                const SizedBox(height: AppTheme.spacing6),
+                ShimmerBox(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  gradientValue: gradientValue,
+                  height: 12,
+                  width: 120,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                const SizedBox(height: AppTheme.spacing8),
+                Row(
+                  children: [
+                    ShimmerBox(
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                      gradientValue: gradientValue,
+                      height: 14,
+                      width: 48,
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    const SizedBox(width: AppTheme.spacing8),
+                    ShimmerBox(
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                      gradientValue: gradientValue,
+                      height: 18,
+                      width: 52,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacing8),
+          ShimmerBox(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            gradientValue: gradientValue,
+            height: 28,
+            width: 40,
+            borderRadius: AppTheme.borderRadiusSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shimmer matching [RecipeFeaturedHero] (rounded hero frame).
+class RecipeFeaturedHeroShimmer extends StatelessWidget {
+  const RecipeFeaturedHeroShimmer({
+    super.key,
+    required this.gradientValue,
+  });
+
+  final double gradientValue;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseColor = AppTheme.gray100;
+    const highlightColor = Color(0xFFF0EDE8);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        0,
+        AppTheme.spacing16,
+        AppTheme.spacing16,
+      ),
+      child: ClipRRect(
+        borderRadius: AppTheme.borderRadiusXL,
+        child: AspectRatio(
+          aspectRatio: 16 / 10,
+          child: ShimmerBox(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            gradientValue: gradientValue,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Home feed loading: one hero + compact rows.
+class ExploreFeedShimmerList extends StatelessWidget {
+  const ExploreFeedShimmerList({
+    super.key,
+    this.compactCount = 6,
+  });
+
+  final int compactCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerAnimator(
+      builder: (context, gradientValue) {
+        return ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(top: AppTheme.spacing8),
+          children: [
+            RecipeFeaturedHeroShimmer(gradientValue: gradientValue),
+            ...List.generate(
+              compactCount,
+              (i) => RecipeCompactRowShimmer(gradientValue: gradientValue),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// Shimmer placeholder for user list items (e.g. followers, search results).
 class UserListShimmer extends StatelessWidget {
   const UserListShimmer({
@@ -291,83 +448,176 @@ class ProfileShimmer extends StatelessWidget {
     return ShimmerAnimator(
       builder: (context, gradientValue) {
         const baseColor = AppTheme.gray100;
-        const highlightColor = AppTheme.gray50;
+        const highlightColor = Color(0xFFF0EDE8);
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingLg,
-            vertical: AppTheme.spacingMd,
+        return ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.spacing16,
+            AppTheme.spacing12,
+            AppTheme.spacing16,
+            AppTheme.spacing24,
           ),
-          child: Column(
-            children: [
-              // Avatar
-              ShimmerBox(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                gradientValue: gradientValue,
-                height: 96,
-                width: 96,
-                borderRadius: const BorderRadius.all(Radius.circular(48)),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacing20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: AppTheme.borderRadiusXL,
               ),
-              const SizedBox(height: AppTheme.spacingMd),
-              // Name
-              ShimmerBox(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                gradientValue: gradientValue,
-                height: 20,
-                width: 160,
-                borderRadius: AppTheme.borderRadiusSmall,
-              ),
-              const SizedBox(height: AppTheme.spacingSm),
-              // Bio
-              ShimmerBox(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                gradientValue: gradientValue,
-                height: 14,
-                width: 220,
-                borderRadius: AppTheme.borderRadiusSmall,
-              ),
-              const SizedBox(height: AppTheme.spacingLg),
-              // Stats row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(3, (_) {
-                  return Column(
-                    children: [
-                      ShimmerBox(
+              child: Column(
+                children: [
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 88,
+                    width: 88,
+                    borderRadius: const BorderRadius.all(Radius.circular(44)),
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 22,
+                    width: 180,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing8),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 14,
+                    width: 120,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing12),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 14,
+                    width: double.infinity,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing8),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 14,
+                    width: 220,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Wrap(
+                    spacing: AppTheme.spacing8,
+                    runSpacing: AppTheme.spacing8,
+                    alignment: WrapAlignment.center,
+                    children: List.generate(
+                      3,
+                      (_) => ShimmerBox(
                         baseColor: baseColor,
                         highlightColor: highlightColor,
                         gradientValue: gradientValue,
-                        height: 18,
-                        width: 40,
-                        borderRadius: AppTheme.borderRadiusSmall,
+                        height: 30,
+                        width: 94,
+                        borderRadius: AppTheme.borderRadiusFull,
                       ),
-                      const SizedBox(height: AppTheme.spacingXs),
-                      ShimmerBox(
-                        baseColor: baseColor,
-                        highlightColor: highlightColor,
-                        gradientValue: gradientValue,
-                        height: 12,
-                        width: 60,
-                        borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Row(
+                    children: List.generate(3, (index) {
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: index == 0 ? 0 : AppTheme.spacing4,
+                            right: index == 2 ? 0 : AppTheme.spacing4,
+                          ),
+                          child: ShimmerBox(
+                            baseColor: baseColor,
+                            highlightColor: highlightColor,
+                            gradientValue: gradientValue,
+                            height: 64,
+                            borderRadius: AppTheme.borderRadiusMedium,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ShimmerBox(
+                          baseColor: baseColor,
+                          highlightColor: highlightColor,
+                          gradientValue: gradientValue,
+                          height: 44,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spacing12),
+                      Expanded(
+                        child: ShimmerBox(
+                          baseColor: baseColor,
+                          highlightColor: highlightColor,
+                          gradientValue: gradientValue,
+                          height: 44,
+                          borderRadius: AppTheme.borderRadiusMedium,
+                        ),
                       ),
                     ],
-                  );
-                }),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTheme.spacingLg),
-              // Button placeholder
-              ShimmerBox(
-                baseColor: baseColor,
-                highlightColor: highlightColor,
-                gradientValue: gradientValue,
-                height: 44,
-                borderRadius: AppTheme.borderRadiusMedium,
+            ),
+            const SizedBox(height: AppTheme.spacing20),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacing16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: AppTheme.borderRadiusXL,
               ),
-            ],
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 18,
+                    width: 150,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing8),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 14,
+                    width: 240,
+                    borderRadius: AppTheme.borderRadiusSmall,
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  ShimmerBox(
+                    baseColor: baseColor,
+                    highlightColor: highlightColor,
+                    gradientValue: gradientValue,
+                    height: 38,
+                    borderRadius: AppTheme.borderRadiusFull,
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  RecipeCompactRowShimmer(gradientValue: gradientValue),
+                  RecipeCompactRowShimmer(gradientValue: gradientValue),
+                  RecipeCompactRowShimmer(gradientValue: gradientValue),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );

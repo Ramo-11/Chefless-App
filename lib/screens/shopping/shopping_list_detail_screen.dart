@@ -62,7 +62,9 @@ class _ShoppingListDetailScreenState
     final listAsync = ref.watch(shoppingListDetailProvider(widget.listId));
 
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         title: _isEditingName
             ? TextField(
                 controller: _nameController,
@@ -88,22 +90,22 @@ class _ShoppingListDetailScreenState
                 },
                 child: Text(
                   listAsync.valueOrNull?.name ?? 'Shopping List',
+                  style: AppTheme.displayTitleSmall(),
                 ),
               ),
         actions: [
           if (_isEditingName) ...[
             IconButton(
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close_rounded),
               onPressed: _cancelNameEdit,
               tooltip: 'Cancel editing',
             ),
             IconButton(
-              icon: const Icon(Icons.check),
+              icon: const Icon(Icons.check_rounded),
               onPressed: _saveNameEdit,
               tooltip: 'Save name',
             ),
           ] else ...[
-            // Group toggle
             IconButton(
               icon: Icon(
                 _groupByCategory
@@ -152,15 +154,51 @@ class _ShoppingListDetailScreenState
               ref.invalidate(shoppingListDetailProvider(widget.listId));
             },
             child: _groupByCategory
-                ? _GroupedItemsList(
-                    shoppingList: list,
-                    listId: widget.listId,
-                    onEditItem: _showEditItemDialog,
+                ? Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppTheme.spacing16,
+                          AppTheme.spacing12,
+                          AppTheme.spacing16,
+                          AppTheme.spacing8,
+                        ),
+                        child: _ShoppingListOverviewCard(
+                          shoppingList: list,
+                          groupByCategory: _groupByCategory,
+                        ),
+                      ),
+                      Expanded(
+                        child: _GroupedItemsList(
+                          shoppingList: list,
+                          listId: widget.listId,
+                          onEditItem: _showEditItemDialog,
+                        ),
+                      ),
+                    ],
                   )
-                : _FlatItemsList(
-                    shoppingList: list,
-                    listId: widget.listId,
-                    onEditItem: _showEditItemDialog,
+                : Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppTheme.spacing16,
+                          AppTheme.spacing12,
+                          AppTheme.spacing16,
+                          AppTheme.spacing8,
+                        ),
+                        child: _ShoppingListOverviewCard(
+                          shoppingList: list,
+                          groupByCategory: _groupByCategory,
+                        ),
+                      ),
+                      Expanded(
+                        child: _FlatItemsList(
+                          shoppingList: list,
+                          listId: widget.listId,
+                          onEditItem: _showEditItemDialog,
+                        ),
+                      ),
+                    ],
                   ),
           );
         },
@@ -553,6 +591,114 @@ class _ShoppingListDetailScreenState
   }
 }
 
+class _ShoppingListOverviewCard extends StatelessWidget {
+  const _ShoppingListOverviewCard({
+    required this.shoppingList,
+    required this.groupByCategory,
+  });
+
+  final ShoppingList shoppingList;
+  final bool groupByCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = shoppingList.totalCount;
+    final checked = shoppingList.checkedCount;
+    final remaining = (total - checked).clamp(0, total);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacing20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated,
+        borderRadius: AppTheme.borderRadiusXL,
+        boxShadow: AppTheme.shadowSm,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppTheme.accentPlayfulLight.withValues(alpha: 0.68),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            shoppingList.generatedFromSchedule
+                ? 'Generated from your schedule'
+                : 'Your current shopping list',
+            style: AppTheme.displayTitleSmall(),
+          ),
+          const SizedBox(height: AppTheme.spacing8),
+          Text(
+            remaining == 0 && total > 0
+                ? 'Everything on this list is checked off.'
+                : '$remaining item${remaining == 1 ? '' : 's'} left to pick up.',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.gray500,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacing16),
+          Wrap(
+            spacing: AppTheme.spacing12,
+            runSpacing: AppTheme.spacing8,
+            children: [
+              _OverviewCount(label: 'Total', value: '$total'),
+              _OverviewCount(label: 'Checked', value: '$checked'),
+              _OverviewCount(
+                label: 'View',
+                value: groupByCategory ? 'Grouped' : 'Flat',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewCount extends StatelessWidget {
+  const _OverviewCount({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing12,
+        vertical: AppTheme.spacing8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: AppTheme.borderRadiusFull,
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: context.textTheme.labelMedium?.copyWith(
+            color: AppTheme.gray600,
+            fontWeight: FontWeight.w600,
+          ),
+          children: [
+            TextSpan(text: '$label: '),
+            TextSpan(
+              text: value,
+              style: const TextStyle(color: AppTheme.textPrimaryDeep),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Flat Items List (no grouping) ────────────────────────────────────────────
 
 class _FlatItemsList extends ConsumerWidget {
@@ -677,10 +823,7 @@ class _CategorySection extends ConsumerWidget {
             vertical: AppTheme.spacing8,
           ),
           decoration: BoxDecoration(
-            color: AppTheme.gray50,
-            border: Border(
-              bottom: BorderSide(color: AppTheme.gray200),
-            ),
+            color: AppTheme.accentPlayfulLight.withValues(alpha: 0.75),
           ),
           child: Row(
             children: [
@@ -700,7 +843,7 @@ class _CategorySection extends ConsumerWidget {
                   vertical: AppTheme.spacing2,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.gray200,
+                  color: Colors.white.withValues(alpha: 0.92),
                   borderRadius: AppTheme.borderRadiusFull,
                 ),
                 child: Text(
@@ -818,7 +961,8 @@ class _ShoppingItemTileState extends ConsumerState<_ShoppingItemTile> {
             vertical: AppTheme.spacing12,
           ),
           decoration: BoxDecoration(
-            color: _isChecked ? AppTheme.gray50 : Colors.white,
+            color:
+                _isChecked ? AppTheme.gray50 : AppTheme.surfaceElevated,
             border: Border(
               bottom: BorderSide(color: AppTheme.gray100),
             ),
@@ -906,7 +1050,7 @@ class _ShoppingItemTileState extends ConsumerState<_ShoppingItemTile> {
                             decoration: BoxDecoration(
                               color: _isChecked
                                   ? AppTheme.gray100
-                                  : AppTheme.primaryLight,
+                                  : AppTheme.accentPlayfulLight,
                               borderRadius: AppTheme.borderRadiusFull,
                             ),
                             child: Text(
@@ -914,7 +1058,7 @@ class _ShoppingItemTileState extends ConsumerState<_ShoppingItemTile> {
                               style: context.textTheme.labelSmall?.copyWith(
                                 color: _isChecked
                                     ? AppTheme.gray400
-                                    : AppTheme.primaryDark,
+                                    : AppTheme.accentPlayful,
                                 fontWeight: FontWeight.w500,
                                 decoration: _isChecked
                                     ? TextDecoration.lineThrough
@@ -984,25 +1128,20 @@ class _EmptyItemsState extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.gray50,
+              decoration: const BoxDecoration(
+                color: AppTheme.accentPlayfulLight,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.gray200),
               ),
               child: const Icon(
-                Icons.checklist,
+                Icons.checklist_rounded,
                 size: 36,
-                color: AppTheme.gray400,
+                color: AppTheme.accentPlayful,
               ),
             ),
             const SizedBox(height: AppTheme.spacing24),
             Text(
-              'No Items Yet',
-              style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTheme.gray900,
-                letterSpacing: -0.5,
-              ),
+              'No items yet',
+              style: AppTheme.displayTitleSmall(),
             ),
             const SizedBox(height: AppTheme.spacing8),
             Text(
@@ -1054,12 +1193,8 @@ class _ErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spacing20),
             Text(
-              'Something went wrong',
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.gray900,
-                letterSpacing: -0.3,
-              ),
+              'Couldn’t load this list',
+              style: AppTheme.displayTitleSmall(),
             ),
             const SizedBox(height: AppTheme.spacing8),
             Text(

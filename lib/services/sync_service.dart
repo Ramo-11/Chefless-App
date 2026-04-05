@@ -210,7 +210,7 @@ class SyncService {
         // Clear old notifications and store the latest batch.
         await databaseService.clear('notifications');
         final notifications =
-            result.data!['notifications'] as List<dynamic>? ?? [];
+            result.data!['data'] as List<dynamic>? ?? [];
         for (final n in notifications) {
           final json = n as Map<String, dynamic>;
           final notification = AppNotification.fromJson(json);

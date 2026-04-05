@@ -12,6 +12,8 @@ class FcmService {
 
   final ApiService apiService;
   String? _currentToken;
+  static bool _foregroundListenerAttached = false;
+  static bool _tokenRefreshListenerAttached = false;
 
   /// Stream of foreground push messages, exposed as a static getter so
   /// Riverpod providers can subscribe without needing an FcmService instance.
@@ -45,11 +47,26 @@ class FcmService {
       name: 'FcmService',
     );
 
-    // Get the current FCM token and register with the server
+    // iOS requires explicit foreground presentation options for alerts/sound/badge.
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Get the current FCM token and register with the server.
+    // On iOS, APNs registration can lag behind app startup, so a single early
+    // getToken() call may return null and leave the device unregistered.
     try {
-      final token = await messaging.getToken();
+      final token = await _obtainReadyToken(messaging);
       if (token != null) {
         await _registerToken(token);
+      } else {
+        developer.log(
+          'FCM token unavailable after retries; device not registered yet.',
+          name: 'FcmService',
+        );
+        _retryTokenRegistrationLater(messaging);
       }
     } catch (e) {
       developer.log(
@@ -58,23 +75,61 @@ class FcmService {
       );
     }
 
-    // Listen for token refreshes (e.g., app restore, manual deletion)
-    messaging.onTokenRefresh.listen((newToken) {
-      _registerToken(newToken);
-    });
+    // Listen for token refreshes (e.g., app restore, manual deletion).
+    if (!_tokenRefreshListenerAttached) {
+      _tokenRefreshListenerAttached = true;
+      messaging.onTokenRefresh.listen((newToken) {
+        _registerToken(newToken);
+      });
+    }
 
     // Handle foreground messages — log them so the notification provider
     // can refresh. Push banners are handled by the OS only when the app is
     // backgrounded; in the foreground we rely on the in-app notification feed.
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      developer.log(
-        'Foreground FCM: ${message.notification?.title} — '
-        '${message.notification?.body}',
-        name: 'FcmService',
-      );
-      // The notification feed auto-refreshes via Riverpod, so we just log here.
-      // If you want to show a local notification banner in the foreground, add
-      // flutter_local_notifications and display it here.
+    if (!_foregroundListenerAttached) {
+      _foregroundListenerAttached = true;
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        developer.log(
+          'Foreground FCM: ${message.notification?.title} — '
+          '${message.notification?.body}',
+          name: 'FcmService',
+        );
+      });
+    }
+  }
+
+  Future<String?> _obtainReadyToken(FirebaseMessaging messaging) async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      for (var attempt = 0; attempt < 6; attempt++) {
+        final apnsToken = await messaging.getAPNSToken();
+        if (apnsToken != null && apnsToken.isNotEmpty) break;
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
+    }
+
+    for (var attempt = 0; attempt < 4; attempt++) {
+      final token = await messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    }
+    return null;
+  }
+
+  void _retryTokenRegistrationLater(FirebaseMessaging messaging) {
+    Future<void>.delayed(const Duration(seconds: 5), () async {
+      try {
+        final token = await _obtainReadyToken(messaging);
+        if (token != null) {
+          await _registerToken(token);
+        }
+      } catch (e) {
+        developer.log(
+          'Delayed FCM token retry failed: $e',
+          name: 'FcmService',
+        );
+      }
     });
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,16 +16,61 @@ import '../../widgets/user_avatar.dart';
 import '../paywall/paywall_bottom_sheet.dart';
 
 /// Shows kitchen details, members, invite code, and management actions.
-class KitchenDetailScreen extends ConsumerWidget {
+class KitchenDetailScreen extends ConsumerStatefulWidget {
   const KitchenDetailScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KitchenDetailScreen> createState() =>
+      _KitchenDetailScreenState();
+}
+
+class _KitchenDetailScreenState extends ConsumerState<KitchenDetailScreen> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted) {
+        ref.invalidate(myKitchenProvider);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final kitchenAsync = ref.watch(myKitchenProvider);
     final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Kitchen')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(
+            context.canPop() ? Icons.arrow_back_rounded : Icons.close_rounded,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
+        title: const Text('My Kitchen'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            onPressed: () => ref.invalidate(myKitchenProvider),
+          ),
+        ],
+      ),
       body: kitchenAsync.when(
         data: (detail) {
           if (detail == null) {
@@ -1231,7 +1278,7 @@ class _DangerSection extends ConsumerWidget {
                   await ref.read(kitchenActionProvider.notifier).leaveKitchen();
               if (context.mounted) {
                 if (success) {
-                  context.go('/settings');
+                  context.go('/profile');
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1273,7 +1320,7 @@ class _DangerSection extends ConsumerWidget {
                   .deleteKitchen();
               if (context.mounted) {
                 if (success) {
-                  context.go('/settings');
+                  context.go('/profile');
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

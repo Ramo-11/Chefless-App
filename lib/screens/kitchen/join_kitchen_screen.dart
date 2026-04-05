@@ -41,7 +41,7 @@ class _JoinKitchenScreenState extends ConsumerState<JoinKitchenScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Joined kitchen!')),
       );
-      context.go('/kitchen');
+      context.pushReplacement('/kitchen');
     } else {
       final error = ref.read(kitchenActionProvider);
       final errorMessage =

@@ -99,8 +99,13 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final listAsync = ref.watch(notificationListProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
-        title: const Text('Notifications'),
+        backgroundColor: AppTheme.surfaceWarm,
+        title: Text(
+          'Notifications',
+          style: AppTheme.displayTitleMedium(),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -109,7 +114,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             child: Text(
               'Mark all read',
               style: context.textTheme.bodySmall?.copyWith(
-                color: AppTheme.primaryColor,
+                color: AppTheme.accentPlayful,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -131,7 +136,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
           return RefreshIndicator(
             onRefresh: _refresh,
-            color: AppTheme.primaryColor,
+            color: AppTheme.accentPlayful,
             child: ListView.separated(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),

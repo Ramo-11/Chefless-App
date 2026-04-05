@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../providers/user_provider.dart';
-import '../../utils/badge_utils.dart';
 import '../../utils/extensions.dart';
-import '../../widgets/recipe_card.dart';
+import '../../widgets/profile_header_card.dart';
 import '../../widgets/report_sheet.dart';
-import '../../widgets/user_avatar.dart';
+import '../../widgets/recipe_compact_row.dart';
+import '../../widgets/shimmer_loading.dart';
 
 /// Profile screen for viewing another user's profile.
 class OtherUserProfileScreen extends ConsumerWidget {
@@ -22,11 +23,10 @@ class OtherUserProfileScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider(userId));
 
     return profileAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      loading: () => const _OtherProfileScaffold(
+        body: ProfileShimmer(),
       ),
-      error: (error, _) => Scaffold(
-        appBar: AppBar(),
+      error: (error, _) => _OtherProfileScaffold(
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
@@ -50,7 +50,7 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   'Failed to load profile',
                   style: context.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.gray900,
+                    color: AppTheme.textPrimaryDeep,
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
@@ -62,9 +62,12 @@ class OtherUserProfileScreen extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacing20),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(userProfileProvider(userId)),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => ref.invalidate(userProfileProvider(userId)),
                   child: const Text('Retry'),
                 ),
               ],
@@ -75,167 +78,68 @@ class OtherUserProfileScreen extends ConsumerWidget {
       data: (result) {
         final user = result.user;
         final followStatus = result.followStatus;
-        final badge = computeSpatulaBadge(user.recipesCount);
         final isPrivateAndNotFollowing =
             !user.isPublic && followStatus != 'active';
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(user.fullName),
-            actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                tooltip: 'More options',
-                onSelected: (value) {
-                  if (value == 'report') {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      useSafeArea: true,
-                      builder: (context) => ReportSheet(
-                        targetType: 'user',
-                        targetId: userId,
-                      ),
-                    );
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'report',
-                    child: Row(
-                      children: [
-                        Icon(Icons.flag_outlined, size: 20),
-                        SizedBox(width: AppTheme.spacingSm),
-                        Text('Report User'),
-                      ],
+        return _OtherProfileScaffold(
+          title: user.fullName,
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: 'More options',
+              onSelected: (value) {
+                if (value == 'report') {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (context) => ReportSheet(
+                      targetType: 'user',
+                      targetId: userId,
                     ),
+                  );
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'report',
+                  child: Row(
+                    children: [
+                      Icon(Icons.flag_outlined, size: 20),
+                      SizedBox(width: AppTheme.spacingSm),
+                      Text('Report User'),
+                    ],
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
           body: RefreshIndicator(
+            color: AppTheme.accentPlayful,
             onRefresh: () async {
               ref.invalidate(userProfileProvider(userId));
               await ref.read(userProfileProvider(userId).future);
             },
             child: ListView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingLg,
-                vertical: AppTheme.spacing20,
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing16,
+                AppTheme.spacing12,
+                AppTheme.spacing16,
+                AppTheme.spacing32,
               ),
               children: [
-                // Avatar
-                Center(
-                  child: UserAvatar(
-                    fullName: user.fullName,
-                    profilePictureUrl: user.profilePicture,
-                    size: 96,
-                    badge: badge,
+                ProfileHeaderCard(
+                  user: user,
+                  eyebrow: 'Chef profile',
+                  actionSection: _FollowButton(
+                    userId: userId,
+                    followStatus: followStatus,
+                    isPublicAccount: user.isPublic,
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingMd),
-
-                // Name + badge
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        user.fullName,
-                        style: context.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
-                          color: AppTheme.gray900,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    if (badge != null) ...[
-                      const SizedBox(width: AppTheme.spacingXs),
-                      Tooltip(
-                        message: badgeLabel(badge),
-                        child: Icon(
-                          badgeIcon(badge),
-                          size: 20,
-                          color: badgeColor(badge),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-
-                // Bio
-                if (user.bio != null && user.bio!.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacing6),
-                  Text(
-                    user.bio!,
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.gray500,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-
                 const SizedBox(height: AppTheme.spacing20),
-
-                // Stats row
-                _StatsRow(
-                  recipesCount: user.recipesCount,
-                  followersCount: user.followersCount,
-                  followingCount: user.followingCount,
-                ),
-
-                const SizedBox(height: AppTheme.spacing20),
-
-                // Follow button
-                _FollowButton(
-                  userId: userId,
-                  followStatus: followStatus,
-                  isPublicAccount: user.isPublic,
-                ),
-
-                // Kitchen
-                if (user.kitchenId != null) ...[
-                  const SizedBox(height: AppTheme.spacingMd),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacing12,
-                        vertical: AppTheme.spacing6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.gray50,
-                        borderRadius: AppTheme.borderRadiusFull,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.kitchen_outlined,
-                            size: 16,
-                            color: AppTheme.gray500,
-                          ),
-                          const SizedBox(width: AppTheme.spacing4),
-                          Text(
-                            'In a Kitchen',
-                            style: context.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.gray500,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: AppTheme.spacingLg),
-
-                // Content — privacy wall or recipes tab
                 if (isPrivateAndNotFollowing)
-                  _PrivacyWall()
+                  const _PrivacyWall()
                 else
                   _UserRecipesList(userId: userId),
               ],
@@ -243,6 +147,35 @@ class OtherUserProfileScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _OtherProfileScaffold extends StatelessWidget {
+  const _OtherProfileScaffold({
+    required this.body,
+    this.title = 'Profile',
+    this.actions,
+  });
+
+  final Widget body;
+  final String title;
+  final List<Widget>? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
+      appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
+        title: Text(
+          title,
+          style: AppTheme.displayTitleSmall(),
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: actions,
+      ),
+      body: body,
     );
   }
 }
@@ -351,6 +284,12 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
           width: double.infinity,
           child: OutlinedButton(
             onPressed: _isActioning ? null : _confirmUnfollow,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: AppTheme.accentPlayful.withValues(alpha: 0.35),
+              ),
+              foregroundColor: AppTheme.textPrimaryDeep,
+            ),
             child: const Text('Following'),
           ),
         );
@@ -369,7 +308,11 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
       default:
         return SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.accentPlayful,
+              foregroundColor: Colors.white,
+            ),
             onPressed: _isActioning ? null : _follow,
             child: const Text('Follow'),
           ),
@@ -378,121 +321,49 @@ class _FollowButtonState extends ConsumerState<_FollowButton> {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({
-    required this.recipesCount,
-    required this.followersCount,
-    required this.followingCount,
-  });
-
-  final int recipesCount;
-  final int followersCount;
-  final int followingCount;
+/// Shown when the account is private and the viewer is not a follower.
+class _PrivacyWall extends StatelessWidget {
+  const _PrivacyWall();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: AppTheme.spacingMd,
-        horizontal: AppTheme.spacingSm,
-      ),
+      padding: const EdgeInsets.all(AppTheme.spacing24),
       decoration: BoxDecoration(
-        color: AppTheme.gray50,
-        borderRadius: AppTheme.borderRadiusMedium,
+        color: AppTheme.surfaceElevated,
+        borderRadius: AppTheme.borderRadiusXL,
+        boxShadow: AppTheme.shadowSm,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _StatItem(count: recipesCount, label: 'Recipes'),
-          Container(width: 1, height: 32, color: AppTheme.gray200),
-          _StatItem(count: followersCount, label: 'Followers'),
-          Container(width: 1, height: 32, color: AppTheme.gray200),
-          _StatItem(count: followingCount, label: 'Following'),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.count,
-    required this.label,
-  });
-
-  final int count;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _formatCount(count),
-          style: context.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppTheme.gray900,
-            letterSpacing: -0.2,
-          ),
-        ),
-        const SizedBox(height: AppTheme.spacing2),
-        Text(
-          label,
-          style: context.textTheme.bodySmall?.copyWith(
-            color: AppTheme.gray500,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatCount(int value) {
-    if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
-    }
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}K';
-    }
-    return value.toString();
-  }
-}
-
-/// Shown when the account is private and the viewer is not a follower.
-class _PrivacyWall extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing48),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(AppTheme.spacing20),
             decoration: BoxDecoration(
-              color: AppTheme.gray50,
+              color: AppTheme.accentPlayfulLight,
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.lock_outline,
               size: 36,
-              color: AppTheme.gray400,
+              color: AppTheme.accentPlayful.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             'This account is private',
             style: context.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.gray900,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimaryDeep,
             ),
           ),
           const SizedBox(height: AppTheme.spacing6),
           Text(
-            'Follow to see their recipes.',
+            'Follow to unlock their recipes and activity.',
             style: context.textTheme.bodyMedium?.copyWith(
               color: AppTheme.gray500,
+              height: 1.45,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -509,82 +380,100 @@ class _UserRecipesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recipesAsync = ref.watch(userRecipesProvider(userId));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(
-            bottom: AppTheme.spacing12,
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated,
+        borderRadius: AppTheme.borderRadiusXL,
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Shared recipes',
+            style: AppTheme.displayTitleSmall(),
           ),
-          child: Text(
-            'Recipes',
-            style: context.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.gray900,
-              letterSpacing: -0.1,
+          const SizedBox(height: AppTheme.spacing4),
+          Text(
+            'A curated look at what they cook and share.',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.gray500,
             ),
           ),
-        ),
-        recipesAsync.when(
-          loading: () => const SizedBox(
-            height: 100,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (error, _) => Container(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            decoration: BoxDecoration(
-              color: AppTheme.gray50,
-              borderRadius: AppTheme.borderRadiusMedium,
+          const SizedBox(height: AppTheme.spacing12),
+          recipesAsync.when(
+            loading: () => Column(
+              children: const [
+                RecipeCompactRowShimmer(gradientValue: 0.25),
+                RecipeCompactRowShimmer(gradientValue: 0.5),
+                RecipeCompactRowShimmer(gradientValue: 0.75),
+              ],
             ),
-            child: Text(
-              'Failed to load recipes.',
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.gray500,
+            error: (error, _) => Container(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              decoration: BoxDecoration(
+                color: AppTheme.gray50,
+                borderRadius: AppTheme.borderRadiusMedium,
+              ),
+              child: Text(
+                'Failed to load recipes.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.gray500,
+                ),
               ),
             ),
-          ),
-          data: (recipes) {
-            if (recipes.isEmpty) {
-              return SizedBox(
-                height: 120,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.restaurant_menu,
-                        size: 36,
-                        color: AppTheme.gray300,
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      Text(
-                        'No recipes yet',
-                        style: context.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.gray500,
+            data: (recipes) {
+              if (recipes.isEmpty) {
+                return SizedBox(
+                  height: 160,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.accentPlayfulLight,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.restaurant_menu_rounded,
+                            size: 30,
+                            color: AppTheme.accentPlayful.withValues(alpha: 0.7),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: AppTheme.spacing12),
+                        Text(
+                          'No recipes yet',
+                          style: context.textTheme.titleMedium?.copyWith(
+                            color: AppTheme.textPrimaryDeep,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }
-
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: recipes.length,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: AppTheme.spacing12),
-              itemBuilder: (context, index) {
-                return RecipeCard(
-                  recipe: recipes[index],
-                  useRootRoute: true,
                 );
-              },
-            );
-          },
-        ),
-      ],
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: recipes.length,
+                itemBuilder: (context, index) {
+                  return RecipeCompactRow(
+                    recipe: recipes[index],
+                    useRootRoute: true,
+                    showChevron: true,
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

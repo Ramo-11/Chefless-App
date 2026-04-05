@@ -42,7 +42,7 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kitchen created!')),
       );
-      context.go('/kitchen');
+      context.pushReplacement('/kitchen');
     } else {
       final error = ref.read(kitchenActionProvider);
       ScaffoldMessenger.of(context).showSnackBar(

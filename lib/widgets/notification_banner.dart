@@ -27,8 +27,11 @@ class NotificationBannerOverlay extends ConsumerStatefulWidget {
 class _NotificationBannerOverlayState
     extends ConsumerState<NotificationBannerOverlay>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const _notificationRefreshInterval = Duration(seconds: 12);
+
   RemoteMessage? _currentMessage;
   Timer? _autoDismissTimer;
+  Timer? _refreshTimer;
 
   late final AnimationController _animController;
   late final Animation<Offset> _slideAnimation;
@@ -54,12 +57,15 @@ class _NotificationBannerOverlayState
       parent: _animController,
       curve: Curves.easeOut,
     ));
+    _refreshNotifications();
+    _startRefreshTimer();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _autoDismissTimer?.cancel();
+    _refreshTimer?.cancel();
     _animController.dispose();
     super.dispose();
   }
@@ -70,9 +76,28 @@ class _NotificationBannerOverlayState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.invalidate(unreadCountProvider);
-      ref.invalidate(notificationListProvider);
+      _refreshNotifications();
+      _startRefreshTimer();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
     }
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+      _notificationRefreshInterval,
+      (_) => _refreshNotifications(),
+    );
+  }
+
+  void _refreshNotifications() {
+    if (!mounted) return;
+    ref.invalidate(unreadCountProvider);
+    ref.invalidate(notificationListProvider);
   }
 
   void _showBanner(RemoteMessage message) {

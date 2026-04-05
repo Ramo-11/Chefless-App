@@ -40,10 +40,10 @@ class AppShell extends ConsumerWidget {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceWarm,
           border: Border(
             top: BorderSide(
-              color: AppTheme.gray100,
+              color: AppTheme.gray200.withValues(alpha: 0.55),
               width: 1,
             ),
           ),

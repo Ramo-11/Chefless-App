@@ -84,6 +84,22 @@ class AppTheme {
 
   static const Color likeColor = Color(0xFFEF4444);
 
+  // ── Warm / editorial surfaces (home & shell) ───────────────────────────────
+
+  /// Soft cream background — less clinical than pure white.
+  static const Color surfaceWarm = Color(0xFFF7F4EF);
+
+  /// Cards and bars sitting on [surfaceWarm].
+  static const Color surfaceElevated = Color(0xFFFFFEFE);
+
+  /// Deep ink for display titles and emphasis.
+  static const Color textPrimaryDeep = Color(0xFF1C1917);
+
+  /// Playful accent (terracotta) for tabs, chips, highlights.
+  static const Color accentPlayful = Color(0xFFC45C3A);
+
+  static const Color accentPlayfulLight = Color(0xFFFDF0EB);
+
   // ── Legacy aliases ─────────────────────────────────────────────────────────
 
   static const Color secondaryColor = gray800;
@@ -139,6 +155,41 @@ class AppTheme {
         ),
       ];
 
+  /// Soft lift for featured cards on warm backgrounds.
+  static List<BoxShadow> get shadowFeatured => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.03),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ];
+
+  /// Display heading for home / editorial screens (paired with Inter body).
+  static TextStyle displayTitleMedium({Color? color}) {
+    return GoogleFonts.fraunces(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      height: 1.15,
+      letterSpacing: -0.4,
+      color: color ?? textPrimaryDeep,
+    );
+  }
+
+  static TextStyle displayTitleSmall({Color? color}) {
+    return GoogleFonts.fraunces(
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+      height: 1.2,
+      letterSpacing: -0.3,
+      color: color ?? textPrimaryDeep,
+    );
+  }
+
   // ── Light Theme ────────────────────────────────────────────────────────────
 
   static ThemeData get lightTheme {
@@ -162,7 +213,7 @@ class AppTheme {
       onError: Colors.white,
       errorContainer: errorLight,
       onErrorContainer: error,
-      surface: Colors.white,
+      surface: surfaceElevated,
       onSurface: gray900,
       onSurfaceVariant: gray500,
       outline: gray300,
@@ -185,19 +236,19 @@ class AppTheme {
         bodyColor: gray900,
         displayColor: gray900,
       ),
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor: surfaceWarm,
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: gray900,
+        backgroundColor: surfaceWarm,
+        foregroundColor: textPrimaryDeep,
         surfaceTintColor: Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: gray900,
+          color: textPrimaryDeep,
           letterSpacing: -0.3,
         ),
         iconTheme: const IconThemeData(color: gray700, size: 22),
@@ -324,13 +375,13 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 64,
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: surfaceWarm,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: primaryLight,
+        indicatorColor: accentPlayfulLight,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: primaryColor, size: 22);
+            return const IconThemeData(color: accentPlayful, size: 22);
           }
           return const IconThemeData(color: gray400, size: 22);
         }),
@@ -339,7 +390,7 @@ class AppTheme {
             return GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: primaryColor,
+              color: accentPlayful,
               letterSpacing: 0,
             );
           }
@@ -352,9 +403,9 @@ class AppTheme {
         }),
       ),
       tabBarTheme: TabBarThemeData(
-        labelColor: gray900,
+        labelColor: textPrimaryDeep,
         unselectedLabelColor: gray400,
-        indicatorColor: primaryColor,
+        indicatorColor: accentPlayful,
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: Colors.transparent,
         labelStyle: GoogleFonts.inter(
@@ -394,8 +445,8 @@ class AppTheme {
           fontWeight: FontWeight.w500,
           color: gray700,
         ),
-        selectedColor: primaryLight,
-        secondarySelectedColor: primaryLight,
+        selectedColor: accentPlayfulLight,
+        secondarySelectedColor: accentPlayfulLight,
         padding: const EdgeInsets.symmetric(horizontal: spacing12, vertical: spacing4),
         showCheckmark: false,
       ),

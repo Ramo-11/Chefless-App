@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/kitchen_provider.dart';
 import '../../providers/recipe_provider.dart';
+import '../../providers/schedule_provider.dart';
 import '../../utils/extensions.dart';
 import '../../utils/fraction_utils.dart';
 import '../../widgets/ingredient_scaling.dart';
@@ -14,6 +17,8 @@ import '../../widgets/report_sheet.dart';
 import '../../widgets/signature_overlay.dart';
 import '../../widgets/user_avatar.dart';
 import 'share_recipe_sheet.dart';
+
+const _scheduleRecipeDefaultSlots = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 /// Full recipe detail screen with photo carousel, ingredients, steps,
 /// serving adjuster, and action bar.
@@ -34,6 +39,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   int? _adjustedServings;
   bool? _localIsLiked;
   int? _localLikesCount;
+  bool? _localIsPrivate;
+  bool _isUpdatingPrivacy = false;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +105,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         final isOwner = currentUser?.id == recipe.authorId;
         final isLiked = _localIsLiked ?? (recipe.isLiked ?? false);
         final likesCount = _localLikesCount ?? recipe.likesCount;
+        final isPrivate = _localIsPrivate ?? recipe.isPrivate;
         final isScaled = _adjustedServings != null &&
             _adjustedServings != recipe.baseServings;
 
@@ -130,65 +138,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     ),
                   ),
                 ),
-                actions: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    margin: const EdgeInsets.only(right: AppTheme.spacing8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      shape: BoxShape.circle,
-                    ),
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 20),
-                      tooltip: 'More options',
-                      onSelected: (value) => _onMenuAction(value, recipe),
-                      itemBuilder: (context) => [
-                        if (isOwner) ...[
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, size: 20),
-                                SizedBox(width: AppTheme.spacing8),
-                                Text('Edit'),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 20,
-                                  color: AppTheme.error,
-                                ),
-                                const SizedBox(width: AppTheme.spacing8),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                      color: AppTheme.error),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (!isOwner)
-                          const PopupMenuItem(
-                            value: 'report',
-                            child: Row(
-                              children: [
-                                Icon(Icons.flag_outlined, size: 20),
-                                SizedBox(width: AppTheme.spacing8),
-                                Text('Report'),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: PhotoCarousel(
                     photos: recipe.photos,
@@ -215,6 +164,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           letterSpacing: -0.5,
                           color: AppTheme.gray900,
                         ),
+                      ),
+                      const SizedBox(height: AppTheme.spacing12),
+                      Wrap(
+                        spacing: AppTheme.spacing8,
+                        runSpacing: AppTheme.spacing8,
+                        children: [
+                          _RecipeStatusChip(
+                            icon: isPrivate
+                                ? Icons.lock_outline_rounded
+                                : Icons.public_rounded,
+                            label: isPrivate ? 'Private' : 'Public',
+                            color: isPrivate
+                                ? AppTheme.accentPlayful
+                                : AppTheme.success,
+                          ),
+                          if (recipe.isModifiedFork)
+                            _RecipeStatusChip(
+                              icon: Icons.autorenew_rounded,
+                              label: 'Modified remix',
+                              color: AppTheme.primaryColor,
+                            ),
+                        ],
                       ),
 
                       // Author card
@@ -289,28 +260,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         ),
                       ],
 
-                      // Modified fork badge
-                      if (recipe.isModifiedFork) ...[
-                        const SizedBox(height: AppTheme.spacing8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacing12,
-                            vertical: AppTheme.spacing4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryLight,
-                            borderRadius: AppTheme.borderRadiusFull,
-                          ),
-                          child: Text(
-                            'Modified from original',
-                            style: context.textTheme.labelSmall?.copyWith(
-                              color: AppTheme.primaryDark,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-
                       // Description
                       if (recipe.description != null &&
                           recipe.description!.isNotEmpty) ...[
@@ -330,6 +279,45 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         const SizedBox(height: AppTheme.spacing16),
                         _CollapsibleStory(story: recipe.story!),
                       ],
+
+                      const SizedBox(height: AppTheme.spacing20),
+                      if (isOwner)
+                        _OwnerActionPanel(
+                          isPrivate: isPrivate,
+                          isUpdatingPrivacy: _isUpdatingPrivacy,
+                          onTogglePrivacy: () => _togglePrivacy(recipe, isPrivate),
+                          onEdit: () => context.push('/recipe/${recipe.id}/edit'),
+                          onDuplicate: () => _onDuplicate(recipe),
+                          onSchedule: () => _showScheduleSheet(recipe),
+                          onShare: () => _onShare(recipe),
+                          onDelete: () => _confirmDelete(recipe),
+                        )
+                      else
+                        _ViewerActionPanel(
+                          isLiked: isLiked,
+                          likesCount: likesCount,
+                          forksCount: recipe.forksCount,
+                          onLike: () {
+                            final currentCount = _localLikesCount ?? recipe.likesCount;
+                            if (mounted) {
+                              setState(() {
+                                _localIsLiked = !isLiked;
+                                _localLikesCount = currentCount + (isLiked ? -1 : 1);
+                              });
+                            }
+                            if (isLiked) {
+                              ref
+                                  .read(recipeActionProvider.notifier)
+                                  .unlike(recipe.id);
+                            } else {
+                              ref.read(recipeActionProvider.notifier).like(recipe.id);
+                            }
+                          },
+                          onRemix: () => _onFork(recipe),
+                          onSchedule: () => _showScheduleSheet(recipe),
+                          onShare: () => _onShare(recipe),
+                          onReport: () => _showReportSheet(recipe),
+                        ),
 
                       // Tags
                       const SizedBox(height: AppTheme.spacing16),
@@ -430,46 +418,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: _ActionBar(
-            recipe: recipe,
-            isOwner: isOwner,
-            isLiked: isLiked,
-            likesCount: likesCount,
-            onLike: () {
-              final currentCount = _localLikesCount ?? recipe.likesCount;
-              if (mounted) {
-                setState(() {
-                  _localIsLiked = !isLiked;
-                  _localLikesCount = currentCount + (isLiked ? -1 : 1);
-                });
-              }
-              if (isLiked) {
-                ref
-                    .read(recipeActionProvider.notifier)
-                    .unlike(recipe.id);
-              } else {
-                ref.read(recipeActionProvider.notifier).like(recipe.id);
-              }
-            },
-            onForkOrDuplicate: isOwner
-                ? () => _onDuplicate(recipe)
-                : () => _onFork(recipe),
-            onShare: () => _onShare(recipe),
-          ),
         );
       },
     );
-  }
-
-  void _onMenuAction(String action, Recipe recipe) {
-    switch (action) {
-      case 'edit':
-        context.push('/recipe/${recipe.id}/edit');
-      case 'delete':
-        _confirmDelete(recipe);
-      case 'report':
-        _showReportSheet(recipe);
-    }
   }
 
   void _showReportSheet(Recipe recipe) {
@@ -544,6 +495,286 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       useSafeArea: true,
       builder: (context) => ShareRecipeSheet(recipeId: recipe.id),
     );
+  }
+
+  Future<void> _showScheduleSheet(Recipe recipe) async {
+    var kitchenDetail = ref.read(myKitchenProvider).valueOrNull;
+    if (kitchenDetail == null) {
+      try {
+        kitchenDetail = await ref.read(myKitchenProvider.future);
+      } catch (_) {
+        kitchenDetail = null;
+      }
+    }
+    if (kitchenDetail == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Join or create a kitchen to use meal scheduling.'),
+          action: SnackBarAction(
+            label: 'Kitchen',
+            onPressed: () => context.push('/kitchen'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final mealSlots = {
+      ..._scheduleRecipeDefaultSlots,
+      ...kitchenDetail.kitchen.customMealSlots
+          .map((slot) => slot.trim())
+          .where((slot) => slot.isNotEmpty),
+    }.toList();
+
+    DateTime selectedDate = DateTime.now();
+    String selectedSlot = mealSlots.first;
+    bool isSubmitting = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final dayLabel = DateFormat('EEE, MMM d').format(selectedDate);
+            return Padding(
+              padding: EdgeInsets.only(
+                left: AppTheme.spacing20,
+                right: AppTheme.spacing20,
+                top: AppTheme.spacing8,
+                bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+                    AppTheme.spacing20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.gray300,
+                        borderRadius: AppTheme.borderRadiusFull,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing20),
+                  Text(
+                    'Add to schedule',
+                    style: AppTheme.displayTitleSmall(),
+                  ),
+                  const SizedBox(height: AppTheme.spacing8),
+                  Text(
+                    'Plan "${recipe.title}" for a day and meal slot in your kitchen calendar.',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.gray500,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing20),
+                  InkWell(
+                    onTap: isSubmitting
+                        ? null
+                        : () async {
+                            final picked = await showDatePicker(
+                              context: sheetContext,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 1),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 180),
+                              ),
+                            );
+                            if (picked != null) {
+                              setSheetState(() => selectedDate = picked);
+                            }
+                          },
+                    borderRadius: AppTheme.borderRadiusLarge,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppTheme.spacing16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceElevated,
+                        borderRadius: AppTheme.borderRadiusLarge,
+                        border: Border.all(color: AppTheme.gray200),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.accentPlayfulLight,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: AppTheme.accentPlayful,
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.spacing12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Day',
+                                  style: context.textTheme.labelMedium?.copyWith(
+                                    color: AppTheme.gray500,
+                                  ),
+                                ),
+                                const SizedBox(height: AppTheme.spacing2),
+                                Text(
+                                  dayLabel,
+                                  style: context.textTheme.titleSmall?.copyWith(
+                                    color: AppTheme.textPrimaryDeep,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.gray400,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Text(
+                    'Meal slot',
+                    style: context.textTheme.titleSmall?.copyWith(
+                      color: AppTheme.textPrimaryDeep,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing12),
+                  Wrap(
+                    spacing: AppTheme.spacing8,
+                    runSpacing: AppTheme.spacing8,
+                    children: mealSlots.map((slot) {
+                      final isSelected = slot == selectedSlot;
+                      final label =
+                          '${slot[0].toUpperCase()}${slot.substring(1)}';
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: isSelected,
+                        onSelected: isSubmitting
+                            ? null
+                            : (_) => setSheetState(() => selectedSlot = slot),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: AppTheme.spacing20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              setSheetState(() => isSubmitting = true);
+                              final success = await ref
+                                  .read(scheduleActionProvider.notifier)
+                                  .addEntry(
+                                    date: DateTime(
+                                      selectedDate.year,
+                                      selectedDate.month,
+                                      selectedDate.day,
+                                    ).toIso8601String(),
+                                    mealSlot: selectedSlot,
+                                    recipeId: recipe.id,
+                                  );
+
+                              if (!mounted) return;
+                              if (success) {
+                                Navigator.of(sheetContext).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Added "${recipe.title}" to $dayLabel.',
+                                    ),
+                                    action: SnackBarAction(
+                                      label: 'View',
+                                      onPressed: () => context.go('/schedule'),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                setSheetState(() => isSubmitting = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Failed to add meal to schedule.'),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.calendar_month_rounded, size: 18),
+                      label: Text(isSubmitting ? 'Adding...' : 'Add to Schedule'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.accentPlayful,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _togglePrivacy(Recipe recipe, bool currentValue) async {
+    if (_isUpdatingPrivacy) return;
+
+    final nextValue = !currentValue;
+    if (mounted) {
+      setState(() {
+        _isUpdatingPrivacy = true;
+        _localIsPrivate = nextValue;
+      });
+    }
+
+    final updated = await ref
+        .read(recipeActionProvider.notifier)
+        .update(recipe.id, {'isPrivate': nextValue});
+
+    if (!mounted) return;
+    if (updated == null) {
+      setState(() => _localIsPrivate = currentValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update recipe visibility.')),
+      );
+    } else {
+      setState(() => _localIsPrivate = updated.isPrivate);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            updated.isPrivate
+                ? 'Recipe is now private.'
+                : 'Recipe is now public.',
+          ),
+        ),
+      );
+    }
+    setState(() => _isUpdatingPrivacy = false);
   }
 }
 
@@ -784,6 +1015,223 @@ class _InfoChip extends StatelessWidget {
               color: AppTheme.gray600,
               fontWeight: FontWeight.w500,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecipeStatusChip extends StatelessWidget {
+  const _RecipeStatusChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing12,
+        vertical: AppTheme.spacing6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: AppTheme.borderRadiusFull,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: AppTheme.spacing4),
+          Text(
+            label,
+            style: context.textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OwnerActionPanel extends StatelessWidget {
+  const _OwnerActionPanel({
+    required this.isPrivate,
+    required this.isUpdatingPrivacy,
+    required this.onTogglePrivacy,
+    required this.onEdit,
+    required this.onDuplicate,
+    required this.onSchedule,
+    required this.onShare,
+    required this.onDelete,
+  });
+
+  final bool isPrivate;
+  final bool isUpdatingPrivacy;
+  final VoidCallback onTogglePrivacy;
+  final VoidCallback onEdit;
+  final VoidCallback onDuplicate;
+  final VoidCallback onSchedule;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWarm,
+        borderRadius: AppTheme.borderRadiusXL,
+        border: Border.all(color: AppTheme.gray200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Visibility',
+                      style: context.textTheme.titleSmall?.copyWith(
+                        color: AppTheme.textPrimaryDeep,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacing4),
+                    Text(
+                      isPrivate
+                          ? 'Only you can access this recipe right now.'
+                          : 'This recipe can be discovered and shared.',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.gray500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacing12),
+              Switch(
+                value: !isPrivate,
+                onChanged: isUpdatingPrivacy ? null : (_) => onTogglePrivacy(),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacing16),
+          Wrap(
+            spacing: AppTheme.spacing8,
+            runSpacing: AppTheme.spacing8,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onDuplicate,
+                icon: const Icon(Icons.copy_outlined, size: 18),
+                label: const Text('Duplicate'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onSchedule,
+                icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                label: const Text('Schedule'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onShare,
+                icon: const Icon(Icons.share_outlined, size: 18),
+                label: const Text('Share'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                label: const Text('Delete'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  side: BorderSide(color: AppTheme.error.withValues(alpha: 0.25)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewerActionPanel extends StatelessWidget {
+  const _ViewerActionPanel({
+    required this.isLiked,
+    required this.likesCount,
+    required this.forksCount,
+    required this.onLike,
+    required this.onRemix,
+    required this.onSchedule,
+    required this.onShare,
+    required this.onReport,
+  });
+
+  final bool isLiked;
+  final int likesCount;
+  final int forksCount;
+  final VoidCallback onLike;
+  final VoidCallback onRemix;
+  final VoidCallback onSchedule;
+  final VoidCallback onShare;
+  final VoidCallback onReport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWarm,
+        borderRadius: AppTheme.borderRadiusXL,
+        border: Border.all(color: AppTheme.gray200),
+      ),
+      child: Wrap(
+        spacing: AppTheme.spacing8,
+        runSpacing: AppTheme.spacing8,
+        children: [
+          FilledButton.tonalIcon(
+            onPressed: onLike,
+            icon: Icon(
+              isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+              size: 18,
+              color: isLiked ? AppTheme.likeColor : null,
+            ),
+            label: Text('$likesCount likes'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onRemix,
+            icon: const Icon(Icons.autorenew_rounded, size: 18),
+            label: Text('$forksCount remix${forksCount == 1 ? '' : 'es'}'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onSchedule,
+            icon: const Icon(Icons.calendar_today_outlined, size: 18),
+            label: const Text('Schedule'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onShare,
+            icon: const Icon(Icons.share_outlined, size: 18),
+            label: const Text('Share'),
+          ),
+          TextButton.icon(
+            onPressed: onReport,
+            icon: const Icon(Icons.flag_outlined, size: 18),
+            label: const Text('Report'),
           ),
         ],
       ),
@@ -1064,6 +1512,7 @@ class _ActionBar extends StatelessWidget {
     required this.likesCount,
     required this.onLike,
     required this.onForkOrDuplicate,
+    required this.onSchedule,
     required this.onShare,
   });
 
@@ -1073,6 +1522,7 @@ class _ActionBar extends StatelessWidget {
   final int likesCount;
   final VoidCallback onLike;
   final VoidCallback onForkOrDuplicate;
+  final VoidCallback onSchedule;
   final VoidCallback onShare;
 
   @override
@@ -1117,11 +1567,7 @@ class _ActionBar extends StatelessWidget {
           _ActionButton(
             icon: Icons.calendar_today_outlined,
             label: 'Schedule',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Scheduling coming soon')),
-              );
-            },
+            onTap: onSchedule,
             tooltip: 'Add to schedule',
           ),
         ],

@@ -1,16 +1,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_theme.dart';
 import '../models/recipe.dart';
-import '../providers/recipe_provider.dart';
 import '../utils/cloudinary_url.dart';
 import '../utils/extensions.dart';
+import 'recipe_image_placeholder.dart';
+import 'recipe_like_button.dart';
 
 /// A card widget that displays a recipe summary in a list or grid.
-class RecipeCard extends ConsumerWidget {
+class RecipeCard extends StatelessWidget {
   const RecipeCard({
     super.key,
     required this.recipe,
@@ -25,7 +25,7 @@ class RecipeCard extends ConsumerWidget {
   final bool useRootRoute;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -146,7 +146,7 @@ class RecipeCard extends ConsumerWidget {
                   // Engagement row
                   Row(
                     children: [
-                      _LikeButton(recipe: recipe),
+                      RecipeLikeButton(recipe: recipe),
                       const SizedBox(width: AppTheme.spacing16),
                       Icon(
                         Icons.autorenew_rounded,
@@ -196,16 +196,7 @@ class _PhotoPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppTheme.gray100,
-      child: const Center(
-        child: Icon(
-          Icons.restaurant_menu,
-          size: 40,
-          color: AppTheme.gray300,
-        ),
-      ),
-    );
+    return const RecipeImagePlaceholder();
   }
 }
 
@@ -251,79 +242,3 @@ class _TagsRow extends StatelessWidget {
   }
 }
 
-class _LikeButton extends ConsumerStatefulWidget {
-  const _LikeButton({required this.recipe});
-
-  final Recipe recipe;
-
-  @override
-  ConsumerState<_LikeButton> createState() => _LikeButtonState();
-}
-
-class _LikeButtonState extends ConsumerState<_LikeButton> {
-  late bool _isLiked;
-  late int _likesCount;
-
-  @override
-  void initState() {
-    super.initState();
-    _isLiked = widget.recipe.isLiked ?? false;
-    _likesCount = widget.recipe.likesCount;
-  }
-
-  @override
-  void didUpdateWidget(covariant _LikeButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.recipe.id != oldWidget.recipe.id) {
-      _isLiked = widget.recipe.isLiked ?? false;
-      _likesCount = widget.recipe.likesCount;
-    }
-  }
-
-  void _toggle() {
-    final wasLiked = _isLiked;
-    if (mounted) {
-      setState(() {
-        _isLiked = !_isLiked;
-        _likesCount += _isLiked ? 1 : -1;
-      });
-    }
-    final future = wasLiked
-        ? ref.read(recipeActionProvider.notifier).unlike(widget.recipe.id)
-        : ref.read(recipeActionProvider.notifier).like(widget.recipe.id);
-    future.catchError((_) {
-      if (mounted) {
-        setState(() {
-          _isLiked = wasLiked;
-          _likesCount += wasLiked ? 1 : -1;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: AppTheme.borderRadiusFull,
-      onTap: _toggle,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _isLiked ? Icons.favorite : Icons.favorite_border,
-            size: 18,
-            color: _isLiked ? AppTheme.likeColor : AppTheme.gray400,
-          ),
-          const SizedBox(width: AppTheme.spacing4),
-          Text(
-            '$_likesCount',
-            style: context.textTheme.bodySmall?.copyWith(
-              color: _isLiked ? AppTheme.likeColor : AppTheme.gray500,
-              fontWeight: _isLiked ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

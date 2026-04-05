@@ -67,13 +67,18 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
-        title: const Text('Schedule'),
+        title: Text(
+          'Schedule',
+          style: AppTheme.displayTitleMedium(),
+        ),
         actions: [
           const NotificationBellIcon(),
           // Suggestions button — only visible for leads/approvers.
@@ -146,56 +151,62 @@ class _WeekNavigationHeader extends StatelessWidget {
     final formatter = DateFormat('MMM d');
     final label = '${formatter.format(weekStart)} - ${formatter.format(weekEnd)}';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing4,
-        vertical: AppTheme.spacing8,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        AppTheme.spacing12,
+        AppTheme.spacing16,
+        AppTheme.spacing8,
       ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: AppTheme.gray200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing8,
+          vertical: AppTheme.spacing8,
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 24),
-            onPressed: onPrevious,
-            tooltip: 'Previous week',
-            style: IconButton.styleFrom(
-              foregroundColor: AppTheme.gray700,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacing16,
-              vertical: AppTheme.spacing6,
-            ),
-            decoration: BoxDecoration(
-              color: AppTheme.gray50,
-              borderRadius: AppTheme.borderRadiusFull,
-              border: Border.all(color: AppTheme.gray200),
-            ),
-            child: Text(
-              label,
-              style: context.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.gray900,
-                letterSpacing: -0.2,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: AppTheme.borderRadiusXL,
+          boxShadow: AppTheme.shadowSm,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left_rounded, size: 24),
+              onPressed: onPrevious,
+              tooltip: 'Previous week',
+              style: IconButton.styleFrom(
+                foregroundColor: AppTheme.gray700,
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 24),
-            onPressed: onNext,
-            tooltip: 'Next week',
-            style: IconButton.styleFrom(
-              foregroundColor: AppTheme.gray700,
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing16,
+                vertical: AppTheme.spacing8,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.accentPlayfulLight,
+                borderRadius: AppTheme.borderRadiusFull,
+              ),
+              child: Text(
+                label,
+                style: context.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimaryDeep,
+                  letterSpacing: -0.2,
+                ),
+              ),
             ),
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.chevron_right_rounded, size: 24),
+              onPressed: onNext,
+              tooltip: 'Next week',
+              style: IconButton.styleFrom(
+                foregroundColor: AppTheme.gray700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

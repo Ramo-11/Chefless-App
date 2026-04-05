@@ -215,7 +215,11 @@ class RecipeActionNotifier extends StateNotifier<AsyncValue<void>> {
       final recipe =
           Recipe.fromJson(updatedData as Map<String, dynamic>);
       _ref.invalidate(myRecipesProvider);
+      _ref.invalidate(likedRecipesProvider);
+      _ref.invalidate(forkedRecipesProvider);
+      _ref.invalidate(currentUserProvider);
       _ref.invalidate(recipeDetailProvider(recipeId));
+      _invalidateFeeds();
       state = const AsyncData<void>(null);
       return recipe;
     } catch (e, st) {

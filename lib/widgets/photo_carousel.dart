@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 import '../utils/cloudinary_url.dart';
+import 'recipe_image_placeholder.dart';
 
 /// A swipeable photo carousel with dot indicators.
 ///
@@ -69,16 +70,7 @@ class _PhotoCarouselState extends State<PhotoCarousel> {
       return SizedBox(
         height: widget.height,
         width: double.infinity,
-        child: Container(
-          color: AppTheme.gray100,
-          child: const Center(
-            child: Icon(
-              Icons.restaurant_menu,
-              size: 64,
-              color: AppTheme.gray300,
-            ),
-          ),
-        ),
+        child: const RecipeImagePlaceholder(),
       );
     }
 

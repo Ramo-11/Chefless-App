@@ -17,13 +17,35 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider).valueOrNull;
+    final kitchenDetail = ref.watch(myKitchenProvider).valueOrNull;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      backgroundColor: AppTheme.surfaceWarm,
+      appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
+        title: Text(
+          'Settings',
+          style: AppTheme.displayTitleMedium(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: AppTheme.spacing48),
         children: [
-          // ── Account Section ──────────────────────────────────
-          const _SectionHeader(title: 'ACCOUNT'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spacing16,
+              AppTheme.spacing12,
+              AppTheme.spacing16,
+              0,
+            ),
+            child: _SettingsOverviewCard(
+              userName: currentUser?.fullName ?? 'Your account',
+              email: currentUser?.email,
+              kitchenName: kitchenDetail?.kitchen.name,
+            ),
+          ),
+          const _SectionHeader(title: 'Account'),
           _SettingsGroup(
             children: [
               _SettingsTile(
@@ -40,13 +62,12 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
 
-          // ── Subscription Section ────────────────────────────
-          const _SectionHeader(title: 'SUBSCRIPTION'),
+          const _SectionHeader(title: 'Subscription'),
           _SettingsGroup(
             children: [
               _SettingsTile(
                 icon: Icons.workspace_premium_outlined,
-                iconColor: AppTheme.primaryColor,
+                iconColor: AppTheme.accentPlayful,
                 title: 'Subscription Management',
                 onTap: RevenueCatConstants.isConfigured
                     ? () => context.push('/paywall')
@@ -60,12 +81,10 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
 
-          // ── Kitchen Section ─────────────────────────────────
-          const _SectionHeader(title: 'KITCHEN'),
+          const _SectionHeader(title: 'Kitchen'),
           _KitchenSettingsSection(),
 
-          // ── About Section ───────────────────────────────────
-          const _SectionHeader(title: 'ABOUT'),
+          const _SectionHeader(title: 'About'),
           _SettingsGroup(
             children: [
               _SettingsTile(
@@ -94,8 +113,7 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
 
-          // ── Danger Zone ─────────────────────────────────────
-          const _SectionHeader(title: 'DANGER ZONE'),
+          const _SectionHeader(title: 'Danger Zone'),
           _SettingsGroup(
             children: [
               _SettingsTile(
@@ -306,6 +324,104 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class _SettingsOverviewCard extends StatelessWidget {
+  const _SettingsOverviewCard({
+    required this.userName,
+    required this.email,
+    required this.kitchenName,
+  });
+
+  final String userName;
+  final String? email;
+  final String? kitchenName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated,
+        borderRadius: AppTheme.borderRadiusXL,
+        boxShadow: AppTheme.shadowSm,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppTheme.accentPlayfulLight.withValues(alpha: 0.72),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Preferences & account',
+            style: AppTheme.displayTitleSmall(),
+          ),
+          const SizedBox(height: AppTheme.spacing8),
+          Text(
+            email == null
+                ? 'Manage your profile, kitchen, notifications, and account preferences.'
+                : '$userName · $email',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.gray500,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacing16),
+          Wrap(
+            spacing: AppTheme.spacing12,
+            runSpacing: AppTheme.spacing8,
+            children: [
+              _OverviewMeta(
+                icon: Icons.person_outline_rounded,
+                label: userName,
+              ),
+              _OverviewMeta(
+                icon: Icons.kitchen_outlined,
+                label: kitchenName ?? 'No kitchen yet',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewMeta extends StatelessWidget {
+  const _OverviewMeta({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 15,
+          color: AppTheme.accentPlayful.withValues(alpha: 0.8),
+        ),
+        const SizedBox(width: AppTheme.spacing6),
+        Text(
+          label,
+          style: context.textTheme.labelMedium?.copyWith(
+            color: AppTheme.gray600,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Kitchen Settings Section ─────────────────────────────────────────────────
 
 class _KitchenSettingsSection extends ConsumerWidget {
@@ -407,10 +523,10 @@ class _SectionHeader extends StatelessWidget {
       ),
       child: Text(
         title,
-        style: context.textTheme.labelSmall?.copyWith(
-          color: AppTheme.gray400,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.8,
+        style: context.textTheme.titleSmall?.copyWith(
+          color: AppTheme.textPrimaryDeep,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
         ),
       ),
     );
@@ -430,9 +546,10 @@ class _SettingsGroup extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: AppTheme.borderRadiusMedium,
-          border: Border.all(color: AppTheme.gray200),
+          color: AppTheme.surfaceElevated,
+          borderRadius: AppTheme.borderRadiusXL,
+          boxShadow: AppTheme.shadowSm,
+          border: Border.all(color: AppTheme.gray100),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -483,16 +600,17 @@ class _SettingsTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: (iconColor ?? AppTheme.gray600).withValues(alpha: 0.08),
-                  borderRadius: AppTheme.borderRadiusSmall,
+                  color: (iconColor ?? AppTheme.accentPlayful)
+                      .withValues(alpha: 0.1),
+                  borderRadius: AppTheme.borderRadiusMedium,
                 ),
                 child: Icon(
                   icon,
                   size: 18,
-                  color: iconColor ?? AppTheme.gray600,
+                  color: iconColor ?? AppTheme.textPrimaryDeep,
                 ),
               ),
               const SizedBox(width: AppTheme.spacing12),

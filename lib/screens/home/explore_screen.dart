@@ -6,8 +6,9 @@ import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/feed_provider.dart';
 import '../../utils/extensions.dart';
-import '../../widgets/recipe_card.dart';
 import '../../widgets/app_top_bar.dart';
+import '../../widgets/recipe_compact_row.dart';
+import '../../widgets/recipe_featured_hero.dart';
 import '../../widgets/shimmer_loading.dart';
 
 /// Tab metadata for the explore sub-tabs.
@@ -86,23 +87,51 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         leading: IconButton(
           icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
-        title: const Text('Explore'),
+        title: Text(
+          'Home',
+          style: AppTheme.displayTitleMedium(),
+        ),
         actions: const [NotificationBellIcon()],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
+          preferredSize: const Size.fromHeight(48),
           child: Align(
             alignment: Alignment.centerLeft,
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing8,
+                0,
+                AppTheme.spacing8,
+                AppTheme.spacing8,
+              ),
+              indicator: BoxDecoration(
+                color: AppTheme.accentPlayful.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: AppTheme.textPrimaryDeep,
+              unselectedLabelColor: AppTheme.gray500,
+              labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
+                  ),
+              unselectedLabelStyle:
+                  Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.gray500,
+                        letterSpacing: -0.1,
+                      ),
               tabs: _tabs.map((tab) => Tab(text: tab.label)).toList(),
             ),
           ),
@@ -180,7 +209,7 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
     final feedState = ref.watch(widget.feedTab.provider);
 
     return feedState.when(
-      loading: () => const RecipeCardShimmerList(),
+      loading: () => const ExploreFeedShimmerList(),
       error: (error, _) => _FeedErrorView(
         message: error.toString(),
         onRetry: _onRefresh,
@@ -199,12 +228,12 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
 
         return RefreshIndicator(
           onRefresh: _onRefresh,
-          color: AppTheme.primaryColor,
+          color: AppTheme.accentPlayful,
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacing16,
-              vertical: AppTheme.spacing12,
+            padding: const EdgeInsets.only(
+              top: AppTheme.spacing8,
+              bottom: AppTheme.spacing24,
             ),
             itemCount: recipes.length + (notifier.hasMore ? 1 : 0),
             itemBuilder: (context, index) {
@@ -217,19 +246,26 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: AppTheme.primaryColor,
+                        color: AppTheme.accentPlayful,
                       ),
                     ),
                   ),
                 );
               }
 
+              if (index == 0) {
+                return RecipeFeaturedHero(
+                  recipe: recipes.first,
+                  useRootRoute: true,
+                );
+              }
+
               return Padding(
-                padding:
-                    const EdgeInsets.only(bottom: AppTheme.spacing12),
-                child: RecipeCard(
+                padding: const EdgeInsets.only(bottom: AppTheme.spacing4),
+                child: RecipeCompactRow(
                   recipe: recipes[index],
                   useRootRoute: true,
+                  showChevron: false,
                 ),
               );
             },
@@ -278,7 +314,7 @@ class _FeedErrorView extends StatelessWidget {
               'Something went wrong',
               style: context.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.gray900,
+                color: AppTheme.textPrimaryDeep,
                 letterSpacing: -0.3,
               ),
               textAlign: TextAlign.center,
@@ -325,7 +361,7 @@ class _FeedEmptyView extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: onRefresh,
-      color: AppTheme.primaryColor,
+      color: AppTheme.accentPlayful,
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
@@ -340,13 +376,13 @@ class _FeedEmptyView extends StatelessWidget {
                       width: 72,
                       height: 72,
                       decoration: BoxDecoration(
-                        color: AppTheme.gray50,
+                        color: AppTheme.accentPlayfulLight,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         icon,
                         size: 32,
-                        color: AppTheme.gray400,
+                        color: AppTheme.accentPlayful.withValues(alpha: 0.55),
                       ),
                     ),
                     const SizedBox(height: AppTheme.spacing20),
@@ -354,7 +390,7 @@ class _FeedEmptyView extends StatelessWidget {
                       title,
                       style: context.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.gray900,
+                        color: AppTheme.textPrimaryDeep,
                         letterSpacing: -0.3,
                       ),
                       textAlign: TextAlign.center,

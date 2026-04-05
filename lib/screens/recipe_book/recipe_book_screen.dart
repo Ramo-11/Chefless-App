@@ -7,12 +7,12 @@ import '../../models/recipe.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../utils/extensions.dart';
-import '../../widgets/error_state.dart';
-import '../../widgets/recipe_card.dart';
-import '../../widgets/shimmer_loading.dart';
-import '../paywall/paywall_bottom_sheet.dart';
 import '../../widgets/app_top_bar.dart';
+import '../../widgets/error_state.dart';
+import '../../widgets/recipe_compact_row.dart';
+import '../../widgets/shimmer_loading.dart';
 import 'import_recipe_sheet.dart';
+import '../paywall/paywall_bottom_sheet.dart';
 
 /// Sort options for recipe lists.
 enum RecipeSortOption {
@@ -105,13 +105,18 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         leading: IconButton(
           icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
-        title: const Text('Recipe Book'),
+        title: Text(
+          'Recipe Book',
+          style: AppTheme.displayTitleMedium(),
+        ),
         actions: [
           const NotificationBellIcon(),
           IconButton(
@@ -145,14 +150,27 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
+          preferredSize: const Size.fromHeight(48),
           child: Align(
             alignment: Alignment.centerLeft,
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing4),
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing8,
+                0,
+                AppTheme.spacing8,
+                AppTheme.spacing8,
+              ),
+              indicator: BoxDecoration(
+                color: AppTheme.accentPlayful.withValues(alpha: 0.14),
+                borderRadius: AppTheme.borderRadiusFull,
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: AppTheme.textPrimaryDeep,
+              unselectedLabelColor: AppTheme.gray500,
               tabs: const [
                 Tab(text: 'All'),
                 Tab(text: 'Liked'),
@@ -166,6 +184,8 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
         controller: _tabController,
         children: [
           _RecipeListTab(
+            title: 'Your recipe library',
+            subtitle: 'Everything you have created, whether it is public or private.',
             provider: myRecipesProvider,
             sortFn: _sortRecipes,
             filterFn: _filterByLabel,
@@ -181,8 +201,16 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
             emptyIcon: Icons.restaurant_menu,
             emptyMessage: 'No recipes yet',
             emptySubMessage: 'Tap + to create your first recipe',
+            sortOption: _sortOption,
+            onSortSelected: (option) {
+              if (mounted) setState(() => _sortOption = option);
+            },
+            showAuthor: false,
+            showVisibilityBadge: true,
           ),
           _RecipeListTab(
+            title: 'Saved inspiration',
+            subtitle: 'Recipes you loved enough to keep close.',
             provider: likedRecipesProvider,
             sortFn: _sortRecipes,
             filterFn: _filterByLabel,
@@ -198,8 +226,14 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
             emptyIcon: Icons.favorite_outline,
             emptyMessage: 'No liked recipes',
             emptySubMessage: 'Like recipes to see them here',
+            sortOption: _sortOption,
+            onSortSelected: (option) {
+              if (mounted) setState(() => _sortOption = option);
+            },
           ),
           _RecipeListTab(
+            title: 'Remixed and personalized',
+            subtitle: 'Your adaptations, experiments, and second takes.',
             provider: forkedRecipesProvider,
             sortFn: _sortRecipes,
             filterFn: _filterByLabel,
@@ -215,14 +249,21 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
             emptyIcon: Icons.refresh_outlined,
             emptyMessage: 'No remixed recipes',
             emptySubMessage: 'Remix recipes to make them your own',
+            sortOption: _sortOption,
+            onSortSelected: (option) {
+              if (mounted) setState(() => _sortOption = option);
+            },
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'recipeBookFab',
         onPressed: _onAddRecipe,
         tooltip: 'Add Recipe',
-        child: const Icon(Icons.add),
+        backgroundColor: AppTheme.accentPlayful,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('New Recipe'),
       ),
     );
   }
@@ -230,6 +271,8 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
 
 class _RecipeListTab extends ConsumerWidget {
   const _RecipeListTab({
+    required this.title,
+    required this.subtitle,
     required this.provider,
     required this.sortFn,
     required this.filterFn,
@@ -239,8 +282,14 @@ class _RecipeListTab extends ConsumerWidget {
     required this.emptyIcon,
     required this.emptyMessage,
     required this.emptySubMessage,
+    required this.sortOption,
+    required this.onSortSelected,
+    this.showAuthor = true,
+    this.showVisibilityBadge = false,
   });
 
+  final String title;
+  final String subtitle;
   final FutureProvider<List<Recipe>> provider;
   final List<Recipe> Function(List<Recipe>) sortFn;
   final List<Recipe> Function(List<Recipe>) filterFn;
@@ -250,13 +299,17 @@ class _RecipeListTab extends ConsumerWidget {
   final IconData emptyIcon;
   final String emptyMessage;
   final String emptySubMessage;
+  final RecipeSortOption sortOption;
+  final ValueChanged<RecipeSortOption> onSortSelected;
+  final bool showAuthor;
+  final bool showVisibilityBadge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recipesAsync = ref.watch(provider);
 
     return recipesAsync.when(
-      loading: () => const RecipeCardShimmerList(itemCount: 3),
+      loading: () => const _RecipeBookLoadingState(),
       error: (error, _) => ErrorState(
         message: error.toString(),
         onRetry: () => ref.invalidate(provider),
@@ -271,41 +324,56 @@ class _RecipeListTab extends ConsumerWidget {
             ref.invalidate(provider);
             await ref.read(provider.future);
           },
-          color: AppTheme.primaryColor,
-          child: sorted.isEmpty
-              ? _EmptyState(
-                  icon: emptyIcon,
-                  message: emptyMessage,
-                  subMessage: emptySubMessage,
-                  labels: labels,
-                  selectedLabel: selectedLabel,
-                  onLabelSelected: onLabelSelected,
-                )
-              : CustomScrollView(
-                  slivers: [
-                    if (labels.isNotEmpty)
-                      SliverToBoxAdapter(
-                        child: _LabelChips(
-                          labels: labels,
-                          selectedLabel: selectedLabel,
-                          onLabelSelected: onLabelSelected,
-                        ),
-                      ),
-                    SliverPadding(
-                      padding: const EdgeInsets.all(AppTheme.spacing16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => Padding(
-                            padding: const EdgeInsets.only(
-                                bottom: AppTheme.spacing12),
-                            child: RecipeCard(recipe: sorted[index]),
-                          ),
-                          childCount: sorted.length,
-                        ),
-                      ),
-                    ),
-                  ],
+          color: AppTheme.accentPlayful,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _CollectionSummaryCard(
+                  title: title,
+                  subtitle: subtitle,
+                  totalCount: sorted.length,
+                  sortLabel: sortOption.label,
+                  selectedSort: sortOption,
+                  onSortSelected: onSortSelected,
                 ),
+              ),
+              if (labels.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _LabelChips(
+                    labels: labels,
+                    selectedLabel: selectedLabel,
+                    onLabelSelected: onLabelSelected,
+                  ),
+                ),
+              if (sorted.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyState(
+                    icon: emptyIcon,
+                    message: emptyMessage,
+                    subMessage: emptySubMessage,
+                    labels: labels,
+                    selectedLabel: selectedLabel,
+                    onLabelSelected: onLabelSelected,
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => RecipeCompactRow(
+                      recipe: sorted[index],
+                      showChevron: true,
+                      showAuthor: showAuthor,
+                      showVisibilityBadge: showVisibilityBadge,
+                    ),
+                    childCount: sorted.length,
+                  ),
+                ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppTheme.spacing32),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -328,9 +396,9 @@ class _LabelChips extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spacing16,
-        AppTheme.spacing12,
+        AppTheme.spacing8,
         AppTheme.spacing16,
-        0,
+        AppTheme.spacing8,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -342,14 +410,18 @@ class _LabelChips extends StatelessWidget {
               child: FilterChip(
                 label: Text(label),
                 selected: isSelected,
-                selectedColor: AppTheme.primaryLight,
+                backgroundColor: AppTheme.surfaceElevated,
+                selectedColor: AppTheme.accentPlayfulLight,
                 labelStyle: TextStyle(
-                  color: isSelected ? AppTheme.primaryDark : AppTheme.gray700,
+                  color:
+                      isSelected ? AppTheme.accentPlayful : AppTheme.gray700,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   fontSize: 13,
                 ),
                 side: BorderSide(
-                  color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : AppTheme.gray200,
+                  color: isSelected
+                      ? AppTheme.accentPlayful.withValues(alpha: 0.28)
+                      : AppTheme.gray200,
                 ),
                 onSelected: (_) => onLabelSelected(label),
               ),
@@ -380,54 +452,238 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        if (labels.isNotEmpty)
-          _LabelChips(
-            labels: labels,
-            selectedLabel: selectedLabel,
-            onLabelSelected: onLabelSelected,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacing24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: AppTheme.accentPlayfulLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 30,
+                color: AppTheme.accentPlayful.withValues(alpha: 0.72),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            Text(
+              message,
+              style: context.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimaryDeep,
+                letterSpacing: -0.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.spacing6),
+            Text(
+              subMessage,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+                height: 1.45,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (labels.isNotEmpty && selectedLabel != null) ...[
+              const SizedBox(height: AppTheme.spacing12),
+              TextButton(
+                onPressed: () => onLabelSelected(selectedLabel!),
+                child: const Text('Clear filter'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionSummaryCard extends StatelessWidget {
+  const _CollectionSummaryCard({
+    required this.title,
+    required this.subtitle,
+    required this.totalCount,
+    required this.sortLabel,
+    required this.selectedSort,
+    required this.onSortSelected,
+  });
+
+  final String title;
+  final String subtitle;
+  final int totalCount;
+  final String sortLabel;
+  final RecipeSortOption selectedSort;
+  final ValueChanged<RecipeSortOption> onSortSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        AppTheme.spacing12,
+        AppTheme.spacing16,
+        AppTheme.spacing8,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacing20),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: AppTheme.borderRadiusXL,
+          boxShadow: AppTheme.shadowSm,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              AppTheme.accentPlayfulLight.withValues(alpha: 0.72),
+            ],
           ),
-        SizedBox(
-          height: 300,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: context.textTheme.labelMedium?.copyWith(
+                color: AppTheme.accentPlayful,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing8),
+            Text(
+              '$totalCount recipe${totalCount == 1 ? '' : 's'}',
+              style: AppTheme.displayTitleSmall(),
+            ),
+            const SizedBox(height: AppTheme.spacing6),
+            Text(
+              subtitle,
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.gray500,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing16),
+            Wrap(
+              spacing: AppTheme.spacing8,
+              runSpacing: AppTheme.spacing8,
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppTheme.gray50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 28,
-                    color: AppTheme.gray400,
-                  ),
+                _SummaryMetaItem(
+                  icon: Icons.tune_rounded,
+                  label: 'Sorted by $sortLabel',
                 ),
-                const SizedBox(height: AppTheme.spacing16),
-                Text(
-                  message,
-                  style: context.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.gray900,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacing4),
-                Text(
-                  subMessage,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.gray500,
-                  ),
+                const _SummaryMetaItem(
+                  icon: Icons.auto_awesome_rounded,
+                  label: 'Focused browsing',
                 ),
               ],
             ),
+            const SizedBox(height: AppTheme.spacing16),
+            Text(
+              'Sort recipes',
+              style: context.textTheme.labelMedium?.copyWith(
+                color: AppTheme.gray600,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: RecipeSortOption.values.map((option) {
+                  final isSelected = option == selectedSort;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: AppTheme.spacing8),
+                    child: ChoiceChip(
+                      label: Text(option.label),
+                      selected: isSelected,
+                      backgroundColor: AppTheme.surfaceWarm,
+                      selectedColor: AppTheme.accentPlayfulLight,
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppTheme.accentPlayful.withValues(alpha: 0.3)
+                            : AppTheme.gray200,
+                      ),
+                      labelStyle: context.textTheme.labelMedium?.copyWith(
+                        color: isSelected
+                            ? AppTheme.accentPlayful
+                            : AppTheme.gray600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onSelected: (_) => onSortSelected(option),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryMetaItem extends StatelessWidget {
+  const _SummaryMetaItem({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: AppTheme.accentPlayful.withValues(alpha: 0.75),
+        ),
+        const SizedBox(width: AppTheme.spacing6),
+        Text(
+          label,
+          style: context.textTheme.labelMedium?.copyWith(
+            color: AppTheme.gray600,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
 }
+
+class _RecipeBookLoadingState extends StatelessWidget {
+  const _RecipeBookLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(top: AppTheme.spacing12),
+      children: const [
+        _CollectionSummaryCard(
+          title: 'Loading collection',
+          subtitle: 'Gathering your recipes and organizing the library.',
+          totalCount: 0,
+          sortLabel: 'Recent',
+          selectedSort: RecipeSortOption.recent,
+          onSortSelected: _noopSortChange,
+        ),
+        RecipeCompactRowShimmer(gradientValue: 0.25),
+        RecipeCompactRowShimmer(gradientValue: 0.5),
+        RecipeCompactRowShimmer(gradientValue: 0.75),
+      ],
+    );
+  }
+}
+
+void _noopSortChange(RecipeSortOption _) {}

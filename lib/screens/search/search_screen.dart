@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/search_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/recipe_compact_row.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Suggested categories shown in the empty state for quick exploration.
@@ -71,7 +72,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final hasQuery = query.trim().isNotEmpty;
 
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         titleSpacing: 0,
         title: Padding(
           padding: const EdgeInsets.only(right: AppTheme.spacing16),
@@ -518,7 +521,13 @@ class _AllResultsView extends StatelessWidget {
             child: Column(
               children: results.recipes
                   .take(_allTabPreviewLimit)
-                  .map((recipe) => _CompactRecipeCard(recipe: recipe))
+                  .map(
+                    (recipe) => RecipeCompactRow(
+                      recipe: recipe,
+                      useRootRoute: true,
+                      showChevron: true,
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -577,7 +586,13 @@ class _TypedResultsView extends StatelessWidget {
       ),
       children: switch (type) {
         'recipes' => results.recipes
-            .map((recipe) => _CompactRecipeCard(recipe: recipe))
+            .map(
+              (recipe) => RecipeCompactRow(
+                recipe: recipe,
+                useRootRoute: true,
+                showChevron: true,
+              ),
+            )
             .toList(),
         'users' => results.users
             .map((user) => _UserTile(user: user))
@@ -674,197 +689,6 @@ class _ResultSection extends StatelessWidget {
         child,
         const SizedBox(height: AppTheme.spacing8),
       ],
-    );
-  }
-}
-
-// ── Compact Recipe Card ─────────────────────────────────────────────────────
-
-class _CompactRecipeCard extends StatelessWidget {
-  const _CompactRecipeCard({required this.recipe});
-
-  final Recipe recipe;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasPhoto = recipe.photos.isNotEmpty;
-    final timeText = _formatTime(recipe.totalTime ?? recipe.cookTime);
-    final difficultyText = recipe.difficulty;
-
-    return InkWell(
-      onTap: () => context.push('/recipe/${recipe.id}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacing16,
-          vertical: AppTheme.spacing8,
-        ),
-        child: Row(
-          children: [
-            // Thumbnail
-            Container(
-              width: 68,
-              height: 68,
-              decoration: BoxDecoration(
-                borderRadius: AppTheme.borderRadiusMedium,
-                border: Border.all(
-                  color: AppTheme.gray200.withValues(alpha: 0.6),
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMedium - 1),
-                child: hasPhoto
-                    ? CachedNetworkImage(
-                        imageUrl: recipe.photos.first,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: AppTheme.gray100,
-                        ),
-                        errorWidget: (context, url, error) =>
-                            _RecipePlaceholder(context: context),
-                      )
-                    : _RecipePlaceholder(context: context),
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacing12),
-
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    recipe.title,
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.gray900,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-
-                  // Author
-                  if (recipe.authorName != null)
-                    Text(
-                      'by ${recipe.authorName}',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.gray500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: AppTheme.spacing6),
-
-                  // Metadata row: time, difficulty, likes
-                  Row(
-                    children: [
-                      if (timeText != null) ...[
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 13,
-                          color: AppTheme.gray400,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          timeText,
-                          style: context.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.gray500,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.spacing8),
-                      ],
-                      if (difficultyText != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _difficultyColor(difficultyText)
-                                .withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            difficultyText[0].toUpperCase() +
-                                difficultyText.substring(1),
-                            style:
-                                context.textTheme.labelSmall?.copyWith(
-                              color: _difficultyColor(difficultyText),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.spacing8),
-                      ],
-                      if (recipe.likesCount > 0) ...[
-                        const Icon(
-                          Icons.favorite_rounded,
-                          size: 13,
-                          color: AppTheme.likeColor,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${recipe.likesCount}',
-                          style: context.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.gray500,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Chevron
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: AppTheme.gray300,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String? _formatTime(int? minutes) {
-    if (minutes == null || minutes <= 0) return null;
-    if (minutes < 60) return '${minutes}m';
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    return m > 0 ? '${h}h ${m}m' : '${h}h';
-  }
-
-  static Color _difficultyColor(String difficulty) {
-    return switch (difficulty.toLowerCase()) {
-      'easy' => AppTheme.success,
-      'medium' => AppTheme.warning,
-      'hard' => AppTheme.error,
-      _ => AppTheme.gray400,
-    };
-  }
-}
-
-class _RecipePlaceholder extends StatelessWidget {
-  const _RecipePlaceholder({required this.context});
-
-  final BuildContext context;
-
-  @override
-  Widget build(BuildContext _) {
-    return Container(
-      color: AppTheme.gray100,
-      child: const Icon(
-        Icons.restaurant_menu_rounded,
-        size: 24,
-        color: AppTheme.gray300,
-      ),
     );
   }
 }

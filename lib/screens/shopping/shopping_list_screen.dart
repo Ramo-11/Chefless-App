@@ -19,27 +19,35 @@ class ShoppingListScreen extends ConsumerWidget {
     final listsAsync = ref.watch(shoppingListsProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: const Icon(Icons.search_rounded),
           onPressed: () => context.push('/search'),
           tooltip: 'Search',
         ),
-        title: const Text('Shopping Lists'),
+        title: Text(
+          'Shopping',
+          style: AppTheme.displayTitleMedium(),
+        ),
         actions: [
           const NotificationBellIcon(),
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.calendar_month_rounded),
             onPressed: () => _openGenerateSheet(context),
             tooltip: 'Generate from schedule',
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'shoppingListFab',
-        onPressed: () => _showCreateDialog(context, ref),
+        backgroundColor: AppTheme.accentPlayful,
+        foregroundColor: Colors.white,
+        onPressed: () => _showCreateSheet(context, ref),
         tooltip: 'Create shopping list',
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New List'),
       ),
       body: listsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -49,25 +57,33 @@ class ShoppingListScreen extends ConsumerWidget {
         ),
         data: (lists) {
           if (lists.isEmpty) {
-            return const _EmptyState();
+            return _EmptyState(
+              onCreate: () => _showCreateSheet(context, ref),
+              onGenerate: () => _openGenerateSheet(context),
+            );
           }
 
           return RefreshIndicator(
+            color: AppTheme.accentPlayful,
             onRefresh: () async {
               ref.invalidate(shoppingListsProvider);
             },
             child: ListView.separated(
               padding: const EdgeInsets.only(
-                top: AppTheme.spacing8,
+                top: AppTheme.spacing12,
                 left: AppTheme.spacing16,
                 right: AppTheme.spacing16,
-                bottom: 80, // Space for FAB
+                bottom: 96,
               ),
-              itemCount: lists.length,
+              itemCount: lists.length + 1,
               separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppTheme.spacing8),
+                  const SizedBox(height: AppTheme.spacing12),
               itemBuilder: (context, index) {
-                final list = lists[index];
+                if (index == 0) {
+                  return _ShoppingOverviewCard(lists: lists);
+                }
+
+                final list = lists[index - 1];
                 return _ShoppingListTile(
                   shoppingList: list,
                   onTap: () => context.push('/shopping/${list.id}'),
@@ -90,35 +106,73 @@ class ShoppingListScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateDialog(BuildContext context, WidgetRef ref) {
+  void _showCreateSheet(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('New Shopping List'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'List name',
-              hintText: 'e.g. Weekly groceries',
-            ),
-            onSubmitted: (_) =>
-                _submitCreate(dialogContext, ref, controller),
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppTheme.spacing20,
+            right: AppTheme.spacing20,
+            top: AppTheme.spacing8,
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom +
+                AppTheme.spacing20,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  _submitCreate(dialogContext, ref, controller),
-              child: const Text('Create'),
-            ),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.gray300,
+                    borderRadius: AppTheme.borderRadiusFull,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacing20),
+              Text(
+                'New shopping list',
+                style: AppTheme.displayTitleSmall(),
+              ),
+              const SizedBox(height: AppTheme.spacing8),
+              Text(
+                'Create a fresh list for groceries, prep, or anything you need for the kitchen.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.gray500,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacing20),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'List name',
+                  hintText: 'e.g. Weekly groceries',
+                ),
+                onSubmitted: (_) => _submitCreate(sheetContext, ref, controller),
+              ),
+              const SizedBox(height: AppTheme.spacing20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _submitCreate(sheetContext, ref, controller),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Create List'),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -177,6 +231,114 @@ class ShoppingListScreen extends ConsumerWidget {
   }
 }
 
+class _ShoppingOverviewCard extends StatelessWidget {
+  const _ShoppingOverviewCard({required this.lists});
+
+  final List<ShoppingList> lists;
+
+  @override
+  Widget build(BuildContext context) {
+    final generatedCount = lists.where((list) => list.generatedFromSchedule).length;
+    final completedCount =
+        lists.where((list) => list.totalCount > 0 && list.checkedCount == list.totalCount).length;
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated,
+        borderRadius: AppTheme.borderRadiusXL,
+        boxShadow: AppTheme.shadowSm,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            AppTheme.accentPlayfulLight.withValues(alpha: 0.72),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Kitchen shopping',
+            style: AppTheme.displayTitleSmall(),
+          ),
+          const SizedBox(height: AppTheme.spacing6),
+          Text(
+            'Keep grocery runs, prep lists, and schedule-generated ingredients in one calm place.',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.gray500,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacing16),
+          Wrap(
+            spacing: AppTheme.spacing12,
+            runSpacing: AppTheme.spacing8,
+            children: [
+              _MetaPill(
+                icon: Icons.receipt_long_rounded,
+                label: '${lists.length} list${lists.length == 1 ? '' : 's'}',
+              ),
+              _MetaPill(
+                icon: Icons.auto_awesome_rounded,
+                label: '$generatedCount from schedule',
+              ),
+              _MetaPill(
+                icon: Icons.check_circle_outline_rounded,
+                label: '$completedCount completed',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacing8,
+        vertical: AppTheme.spacing8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.84),
+        borderRadius: AppTheme.borderRadiusFull,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: AppTheme.accentPlayful.withValues(alpha: 0.82),
+          ),
+          const SizedBox(width: AppTheme.spacing6),
+          Text(
+            label,
+            style: context.textTheme.labelMedium?.copyWith(
+              color: AppTheme.gray600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Shopping List Tile ───────────────────────────────────────────────────────
 
 class _ShoppingListTile extends StatelessWidget {
@@ -222,9 +384,10 @@ class _ShoppingListTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppTheme.spacing16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: AppTheme.borderRadiusMedium,
-            border: Border.all(color: AppTheme.gray200),
+            color: AppTheme.surfaceElevated,
+            borderRadius: AppTheme.borderRadiusXL,
+            boxShadow: AppTheme.shadowSm,
+            border: Border.all(color: AppTheme.gray100),
           ),
           child: Row(
             children: [
@@ -235,8 +398,8 @@ class _ShoppingListTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: progress >= 1.0
                       ? AppTheme.successLight
-                      : AppTheme.gray50,
-                  borderRadius: AppTheme.borderRadiusMedium,
+                      : AppTheme.accentPlayfulLight,
+                  borderRadius: AppTheme.borderRadiusLarge,
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -250,7 +413,7 @@ class _ShoppingListTile extends StatelessWidget {
                         backgroundColor: AppTheme.gray200,
                         color: progress >= 1.0
                             ? AppTheme.success
-                            : AppTheme.primaryColor,
+                            : AppTheme.accentPlayful,
                       ),
                     ),
                     Icon(
@@ -260,7 +423,7 @@ class _ShoppingListTile extends StatelessWidget {
                       size: 14,
                       color: progress >= 1.0
                           ? AppTheme.success
-                          : AppTheme.gray500,
+                          : AppTheme.accentPlayful.withValues(alpha: 0.72),
                     ),
                   ],
                 ),
@@ -294,7 +457,7 @@ class _ShoppingListTile extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: progress >= 1.0
                                 ? AppTheme.successLight
-                                : AppTheme.gray50,
+                                : AppTheme.accentPlayfulLight,
                             borderRadius: AppTheme.borderRadiusFull,
                           ),
                           child: Text(
@@ -302,7 +465,7 @@ class _ShoppingListTile extends StatelessWidget {
                             style: context.textTheme.labelSmall?.copyWith(
                               color: progress >= 1.0
                                   ? AppTheme.success
-                                  : AppTheme.gray600,
+                                  : AppTheme.accentPlayful,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
                             ),
@@ -338,7 +501,13 @@ class _ShoppingListTile extends StatelessWidget {
 // ── Empty State ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({
+    required this.onCreate,
+    required this.onGenerate,
+  });
+
+  final VoidCallback onCreate;
+  final VoidCallback onGenerate;
 
   @override
   Widget build(BuildContext context) {
@@ -351,25 +520,20 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.gray50,
+              decoration: const BoxDecoration(
+                color: AppTheme.accentPlayfulLight,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.gray200),
               ),
               child: const Icon(
-                Icons.shopping_cart_outlined,
+                Icons.shopping_basket_outlined,
                 size: 36,
-                color: AppTheme.gray400,
+                color: AppTheme.accentPlayful,
               ),
             ),
             const SizedBox(height: AppTheme.spacing24),
             Text(
-              'No Shopping Lists',
-              style: context.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTheme.gray900,
-                letterSpacing: -0.5,
-              ),
+              'No shopping lists yet',
+              style: AppTheme.displayTitleSmall(),
             ),
             const SizedBox(height: AppTheme.spacing8),
             Text(
@@ -379,6 +543,26 @@ class _EmptyState extends StatelessWidget {
                 color: AppTheme.gray500,
                 height: 1.5,
               ),
+            ),
+            const SizedBox(height: AppTheme.spacing20),
+            Wrap(
+              spacing: AppTheme.spacing8,
+              runSpacing: AppTheme.spacing8,
+              alignment: WrapAlignment.center,
+              children: [
+                FilledButton(
+                  onPressed: onCreate,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Create list'),
+                ),
+                OutlinedButton(
+                  onPressed: onGenerate,
+                  child: const Text('Generate from schedule'),
+                ),
+              ],
             ),
           ],
         ),
@@ -421,12 +605,8 @@ class _ErrorBody extends StatelessWidget {
             ),
             const SizedBox(height: AppTheme.spacing20),
             Text(
-              'Something went wrong',
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.gray900,
-                letterSpacing: -0.3,
-              ),
+              'Couldn’t load shopping lists',
+              style: AppTheme.displayTitleSmall(),
             ),
             const SizedBox(height: AppTheme.spacing8),
             Text(
