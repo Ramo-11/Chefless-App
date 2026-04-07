@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/shopping_list.dart';
 import '../../providers/shopping_list_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/app_top_bar.dart';
 import 'generate_list_sheet.dart';
@@ -33,10 +34,12 @@ class ShoppingListScreen extends ConsumerWidget {
         ),
         actions: [
           const NotificationBellIcon(),
-          IconButton(
-            icon: const Icon(Icons.calendar_month_rounded),
-            onPressed: () => _openGenerateSheet(context),
-            tooltip: 'Generate from schedule',
+          const ProfileShortcutIcon(),
+          MainTabMoreButton(
+            topic: AppHelpTopic.shopping,
+            primaryActionLabel: 'Generate from schedule',
+            primaryActionIcon: Icons.calendar_month_rounded,
+            onPrimaryAction: () => _openGenerateSheet(context),
           ),
         ],
       ),
@@ -50,7 +53,26 @@ class ShoppingListScreen extends ConsumerWidget {
         label: const Text('New List'),
       ),
       body: listsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
         error: (error, _) => _ErrorBody(
           message: error.toString(),
           onRetry: () => ref.invalidate(shoppingListsProvider),
@@ -125,17 +147,7 @@ class ShoppingListScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.gray300,
-                    borderRadius: AppTheme.borderRadiusFull,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTheme.spacing20),
+              const SizedBox(height: AppTheme.spacing8),
               Text(
                 'New shopping list',
                 style: AppTheme.displayTitleSmall(),

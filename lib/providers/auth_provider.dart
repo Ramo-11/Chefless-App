@@ -26,7 +26,12 @@ final apiServiceProvider = FutureProvider<ApiService>((ref) async {
   await ref.watch(authStateProvider.future);
   final authService = ref.read(authServiceProvider);
   final token = await authService.getIdToken();
-  return ApiService(authToken: token);
+  return ApiService(
+    authToken: token,
+    authTokenProvider: ({bool forceRefresh = false}) {
+      return authService.getIdToken(forceRefresh: forceRefresh);
+    },
+  );
 });
 
 /// Fetches the current user's Chefless profile from the API.
@@ -39,8 +44,10 @@ final currentUserProvider = FutureProvider<CheflessUser?>((ref) async {
   final firebaseUser = await ref.watch(authStateProvider.future);
   if (firebaseUser == null) return null;
 
-  debugPrint('[currentUserProvider] Firebase user: ${firebaseUser.email} '
-      '(uid: ${firebaseUser.uid})');
+  assert(() {
+    debugPrint('[currentUserProvider] Firebase user: ${firebaseUser.email}');
+    return true;
+  }());
 
   final apiService = await ref.watch(apiServiceProvider.future);
   final result = await apiService.get('/auth/me');
@@ -49,22 +56,29 @@ final currentUserProvider = FutureProvider<CheflessUser?>((ref) async {
     final userData = result.data!['user'];
     if (userData is Map<String, dynamic>) {
       final user = CheflessUser.fromJson(userData);
-      debugPrint('[currentUserProvider] Profile loaded: ${user.fullName}, '
-          'onboardingComplete: ${user.onboardingComplete}');
+      assert(() {
+        debugPrint('[currentUserProvider] Profile loaded: ${user.fullName}');
+        return true;
+      }());
       return user;
     }
   }
 
   // 404 means the user hasn't registered yet — not a connection error.
   if (result.statusCode == 404) {
-    debugPrint('[currentUserProvider] User not registered yet (404)');
+    assert(() {
+      debugPrint('[currentUserProvider] User not registered yet (404)');
+      return true;
+    }());
     return null;
   }
 
   // Any other failure (timeout, connection refused, 500, etc.) is a real error.
   final errorMsg = result.error ?? 'Failed to connect to server';
-  debugPrint('[currentUserProvider] API error: $errorMsg '
-      '(status: ${result.statusCode})');
+  assert(() {
+    debugPrint('[currentUserProvider] API error: $errorMsg');
+    return true;
+  }());
   throw Exception(errorMsg);
 });
 

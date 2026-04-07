@@ -69,18 +69,7 @@ class _ShareRecipeSheetState extends ConsumerState<ShareRecipeSheet> {
         builder: (context, scrollController) {
           return Column(
             children: [
-              // Handle
-              Padding(
-                padding: const EdgeInsets.only(top: AppTheme.spacing12),
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.gray300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+              const SizedBox(height: AppTheme.spacing12),
 
               // Title
               Padding(

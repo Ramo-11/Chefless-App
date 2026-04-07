@@ -125,7 +125,7 @@ class _SuggestionCardState extends ConsumerState<_SuggestionCard> {
                     ),
                     child: Icon(
                       entry.isRecipe
-                          ? Icons.restaurant_menu
+                          ? Icons.ramen_dining_rounded
                           : Icons.edit_note,
                       size: 18,
                       color: AppTheme.primaryColor,

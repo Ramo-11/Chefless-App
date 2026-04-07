@@ -41,7 +41,9 @@ final weekScheduleProvider = FutureProvider.family<List<ScheduleEntry>,
     throw Exception(result.error ?? 'Failed to load schedule.');
   }
 
-  final entries = result.data!['entries'] as List<dynamic>? ?? [];
+  final entries = (result.data!['suggestions'] ??
+          result.data!['entries']) as List<dynamic>? ??
+      [];
   return entries
       .map((e) => ScheduleEntry.fromJson(e as Map<String, dynamic>))
       .toList();

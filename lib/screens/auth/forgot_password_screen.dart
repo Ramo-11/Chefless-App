@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../utils/validators.dart';
 
 /// Allows users to request a password reset email.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -185,15 +186,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               labelText: 'Email',
               prefixIcon: Icon(Icons.email_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email.';
-              }
-              if (!value.contains('@') || !value.contains('.')) {
-                return 'Please enter a valid email address.';
-              }
-              return null;
-            },
+            validator: validateEmail,
           ),
           const SizedBox(height: AppTheme.spacing32),
 

@@ -64,7 +64,9 @@ final kitchenRecipesProvider = FutureProvider.family<List<Recipe>,
     throw Exception(result.error ?? 'Failed to load kitchen recipes.');
   }
 
-  final recipes = result.data!['recipes'] as List<dynamic>? ?? [];
+  final recipes = (result.data!['recipes'] ??
+          result.data!['data']) as List<dynamic>? ??
+      [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();
@@ -251,6 +253,26 @@ class KitchenActionNotifier extends StateNotifier<AsyncValue<void>> {
       );
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to update meal slots.');
+      }
+      _ref.invalidate(myKitchenProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  Future<bool> updateKitchenVisibility(bool isPublic) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.patch(
+        '/kitchens/me',
+        data: {'isPublic': isPublic},
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to update kitchen privacy.');
       }
       _ref.invalidate(myKitchenProvider);
       state = const AsyncData<void>(null);

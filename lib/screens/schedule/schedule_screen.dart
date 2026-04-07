@@ -9,6 +9,7 @@ import '../../models/schedule_entry.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../providers/schedule_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/app_top_bar.dart';
 import '../paywall/paywall_bottom_sheet.dart';
@@ -81,12 +82,33 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ),
         actions: [
           const NotificationBellIcon(),
+          const ProfileShortcutIcon(),
           // Suggestions button — only visible for leads/approvers.
           _SuggestionsButton(kitchenAsync: kitchenAsync),
+          const MainTabMoreButton(topic: AppHelpTopic.schedule),
         ],
       ),
       body: kitchenAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
         error: (error, _) => _ErrorBody(
           message: error.toString(),
           onRetry: () => ref.invalidate(myKitchenProvider),
@@ -230,7 +252,26 @@ class _WeekView extends ConsumerWidget {
         kitchenAsync.valueOrNull?.kitchen.customMealSlots ?? const [];
 
     return scheduleAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading...',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
       error: (error, _) => _ErrorBody(
         message: error.toString(),
         onRetry: () => ref.invalidate(
@@ -504,16 +545,7 @@ class _MealSlotRow extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: AppTheme.spacing12),
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.gray300,
-                    borderRadius: AppTheme.borderRadiusFull,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacing20),
+                const SizedBox(height: AppTheme.spacing8),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTheme.spacing12,
@@ -678,7 +710,7 @@ class _EntryContent extends StatelessWidget {
                   borderRadius: AppTheme.borderRadiusSmall,
                 ),
                 child: const Icon(
-                  Icons.restaurant_menu,
+                  Icons.ramen_dining_rounded,
                   size: 18,
                   color: AppTheme.gray400,
                 ),
@@ -694,7 +726,7 @@ class _EntryContent extends StatelessWidget {
               borderRadius: AppTheme.borderRadiusSmall,
             ),
             child: const Icon(
-              Icons.restaurant_menu,
+              Icons.ramen_dining_rounded,
               size: 18,
               color: AppTheme.gray400,
             ),

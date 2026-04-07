@@ -99,21 +99,7 @@ class _ReportSheetState extends ConsumerState<ReportSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Drag handle
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(
-                    top: AppTheme.spacing8,
-                    bottom: AppTheme.spacing20,
-                  ),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.gray300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+              const SizedBox(height: AppTheme.spacing8),
 
               // Title
               Text(

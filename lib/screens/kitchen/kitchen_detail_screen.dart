@@ -11,7 +11,9 @@ import '../../models/kitchen.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/kitchen_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/app_top_bar.dart';
 import '../../widgets/user_avatar.dart';
 import '../paywall/paywall_bottom_sheet.dart';
 
@@ -52,23 +54,21 @@ class _KitchenDetailScreenState extends ConsumerState<KitchenDetailScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(
-            context.canPop() ? Icons.arrow_back_rounded : Icons.close_rounded,
+            context.canPop() ? Icons.arrow_back_rounded : Icons.search_rounded,
           ),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go('/profile');
+              context.push('/search');
             }
           },
         ),
         title: const Text('My Kitchen'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: () => ref.invalidate(myKitchenProvider),
-          ),
+        actions: const [
+          NotificationBellIcon(),
+          ProfileShortcutIcon(),
+          MainTabMoreButton(topic: AppHelpTopic.kitchen),
         ],
       ),
       body: kitchenAsync.when(
@@ -241,6 +241,12 @@ class _KitchenContent extends ConsumerWidget {
         _InviteCodeCard(inviteCode: kitchen.inviteCode),
         const SizedBox(height: AppTheme.spacingLg),
 
+        _KitchenPrivacySection(
+          kitchen: kitchen,
+          isLead: isLead,
+        ),
+        const SizedBox(height: AppTheme.spacingLg),
+
         // Kitchen recipes link
         Container(
           decoration: BoxDecoration(
@@ -375,6 +381,28 @@ class _KitchenHeader extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: AppTheme.spacing8),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing12,
+            vertical: AppTheme.spacing4,
+          ),
+          decoration: BoxDecoration(
+            color: kitchen.isPublic
+                ? AppTheme.accentPlayfulLight
+                : AppTheme.gray50,
+            borderRadius: AppTheme.borderRadiusFull,
+          ),
+          child: Text(
+            kitchen.isPublic ? 'Public kitchen' : 'Private kitchen',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: kitchen.isPublic
+                  ? AppTheme.accentPlayful
+                  : AppTheme.gray600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -450,6 +478,159 @@ class _InviteCodeCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KitchenPrivacySection extends ConsumerStatefulWidget {
+  const _KitchenPrivacySection({
+    required this.kitchen,
+    required this.isLead,
+  });
+
+  final Kitchen kitchen;
+  final bool isLead;
+
+  @override
+  ConsumerState<_KitchenPrivacySection> createState() =>
+      _KitchenPrivacySectionState();
+}
+
+class _KitchenPrivacySectionState
+    extends ConsumerState<_KitchenPrivacySection> {
+  bool _isSaving = false;
+  late bool _localIsPublic;
+
+  @override
+  void initState() {
+    super.initState();
+    _localIsPublic = widget.kitchen.isPublic;
+  }
+
+  @override
+  void didUpdateWidget(covariant _KitchenPrivacySection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.kitchen.isPublic != widget.kitchen.isPublic) {
+      _localIsPublic = widget.kitchen.isPublic;
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() {
+      _isSaving = true;
+      _localIsPublic = value;
+    });
+    final success = await ref
+        .read(kitchenActionProvider.notifier)
+        .updateKitchenVisibility(value);
+    if (!mounted) return;
+    setState(() {
+      _isSaving = false;
+      if (!success) {
+        _localIsPublic = widget.kitchen.isPublic;
+      }
+    });
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update kitchen privacy.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPublic = _localIsPublic;
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacing16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.borderRadiusMedium,
+        border: Border.all(color: AppTheme.gray200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacing8),
+                decoration: BoxDecoration(
+                  color: isPublic
+                      ? AppTheme.accentPlayfulLight
+                      : AppTheme.gray50,
+                  borderRadius: AppTheme.borderRadiusSmall,
+                ),
+                child: Icon(
+                  isPublic ? Icons.public_rounded : Icons.lock_rounded,
+                  size: 18,
+                  color: isPublic
+                      ? AppTheme.accentPlayful
+                      : AppTheme.gray700,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacing12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kitchen privacy',
+                      style: context.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimaryDeep,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacing2),
+                    Text(
+                      isPublic
+                          ? 'This kitchen is marked public.'
+                          : 'This kitchen is marked private.',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.isLead)
+                Switch(
+                  value: isPublic,
+                  onChanged: _isSaving ? null : _toggle,
+                ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacing12),
+          Text(
+            widget.isLead
+                ? 'Private kitchens are intended to stay member-only. Turn this on only if you are comfortable marking the kitchen as share-friendly where kitchen visibility is supported.'
+                : 'Private kitchens are intended to stay member-only. Your kitchen lead controls this setting.',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.gray600,
+              height: 1.45,
+            ),
+          ),
+          if (_isSaving) ...[
+            const SizedBox(height: AppTheme.spacing12),
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: AppTheme.spacing8),
+                Text(
+                  'Saving privacy setting...',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.gray500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1278,7 +1459,7 @@ class _DangerSection extends ConsumerWidget {
                   await ref.read(kitchenActionProvider.notifier).leaveKitchen();
               if (context.mounted) {
                 if (success) {
-                  context.go('/profile');
+                  context.go('/kitchen');
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1320,7 +1501,7 @@ class _DangerSection extends ConsumerWidget {
                   .deleteKitchen();
               if (context.mounted) {
                 if (success) {
-                  context.go('/profile');
+                  context.go('/kitchen');
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

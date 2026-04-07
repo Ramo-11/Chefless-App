@@ -56,9 +56,7 @@ class _AddMealSheetState extends ConsumerState<AddMealSheet>
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
 
-    final dateStr =
-        DateTime(widget.date.year, widget.date.month, widget.date.day)
-            .toIso8601String();
+    final dateStr = DateFormat('yyyy-MM-dd').format(widget.date);
 
     bool success;
     if (widget.replacingEntryId != null) {
@@ -95,9 +93,7 @@ class _AddMealSheetState extends ConsumerState<AddMealSheet>
 
     setState(() => _isSubmitting = true);
 
-    final dateStr =
-        DateTime(widget.date.year, widget.date.month, widget.date.day)
-            .toIso8601String();
+    final dateStr = DateFormat('yyyy-MM-dd').format(widget.date);
 
     bool success;
     if (widget.replacingEntryId != null) {
@@ -148,17 +144,7 @@ class _AddMealSheetState extends ConsumerState<AddMealSheet>
       builder: (_, scrollController) {
         return Column(
           children: [
-            // Handle bar
             const SizedBox(height: AppTheme.spacing12),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.gray300,
-                borderRadius: AppTheme.borderRadiusFull,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacing20),
 
             // Header
             Padding(
@@ -395,7 +381,7 @@ class _KitchenMembersTab extends ConsumerWidget {
 
   final ScrollController scrollController;
   final String? selectedMemberId;
-  final void Function(String) onMemberSelected;
+  final void Function(String?) onMemberSelected;
   final void Function(Recipe) onSelect;
 
   @override
@@ -430,7 +416,7 @@ class _KitchenMembersTab extends ConsumerWidget {
           memberId: selectedMemberId!,
           scrollController: scrollController,
           onSelect: onSelect,
-          onBack: () => onMemberSelected(''),
+          onBack: () => onMemberSelected(null),
         );
       },
     );
@@ -760,7 +746,7 @@ class _RecipeListTile extends StatelessWidget {
         borderRadius: AppTheme.borderRadiusSmall,
       ),
       child: const Icon(
-        Icons.restaurant_menu,
+        Icons.ramen_dining_rounded,
         size: 22,
         color: AppTheme.gray400,
       ),

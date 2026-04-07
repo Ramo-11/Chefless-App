@@ -96,6 +96,20 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(notificationListProvider, (_, next) {
+      next.whenData((notifications) {
+        if (notifications.isEmpty ||
+            notifications.every((notification) => notification.isRead)) {
+          return;
+        }
+
+        Future.microtask(() {
+          if (!mounted) return;
+          ref.read(notificationListProvider.notifier).markAllAsRead();
+        });
+      });
+    });
+
     final listAsync = ref.watch(notificationListProvider);
 
     return Scaffold(
@@ -108,11 +122,37 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ref.read(notificationListProvider.notifier).markAllAsRead();
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Clear all notifications?'),
+                  content: const Text(
+                    'This will permanently delete all your notifications.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                await ref
+                    .read(notificationListProvider.notifier)
+                    .clearNotifications();
+              }
             },
             child: Text(
-              'Mark all read',
+              'Clear notifications',
               style: context.textTheme.bodySmall?.copyWith(
                 color: AppTheme.accentPlayful,
                 fontWeight: FontWeight.w600,
@@ -297,6 +337,19 @@ class _NotificationTile extends StatelessWidget {
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (notification.shareMessage?.trim().isNotEmpty ?? false) ...[
+                    const SizedBox(height: AppTheme.spacing6),
+                    Text(
+                      '"${notification.shareMessage!.trim()}"',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.gray500,
+                        fontStyle: FontStyle.italic,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppTheme.spacing4),
                   Text(
                     timeAgo(notification.createdAt),
@@ -370,7 +423,7 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.gray100,
                 shape: BoxShape.circle,
               ),
@@ -425,7 +478,7 @@ class _ErrorBody extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.errorLight,
                 shape: BoxShape.circle,
               ),

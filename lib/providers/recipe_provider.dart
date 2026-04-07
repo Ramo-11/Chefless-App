@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/recipe.dart';
@@ -51,6 +53,7 @@ final forkedRecipesProvider = FutureProvider<List<Recipe>>((ref) async {
 });
 
 /// Fetches a single recipe by ID.
+/// Cached results auto-invalidate after 5 minutes to prevent stale data.
 final recipeDetailProvider =
     FutureProvider.family<Recipe, String>((ref, recipeId) async {
   final apiService = await ref.watch(apiServiceProvider.future);
@@ -64,6 +67,14 @@ final recipeDetailProvider =
   if (recipeData == null) {
     throw Exception('Recipe not found.');
   }
+
+  // Auto-invalidate cached recipe detail after 5 minutes
+  ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 5), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(() => timer.cancel());
+
   return Recipe.fromJson(recipeData as Map<String, dynamic>);
 });
 
@@ -270,8 +281,8 @@ final userSearchProvider =
 
   final apiService = await ref.watch(apiServiceProvider.future);
   final result = await apiService.get(
-    '/users/search',
-    queryParameters: {'q': query.trim()},
+    '/search',
+    queryParameters: {'q': query.trim(), 'type': 'users'},
   );
 
   if (result.isFailure || result.data == null) {

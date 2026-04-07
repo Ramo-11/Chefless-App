@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../utils/validators.dart';
 
 /// Account creation screen with email/password and social sign-in options.
 class SignupScreen extends ConsumerStatefulWidget {
@@ -171,15 +172,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your email.';
-                        }
-                        if (!value.contains('@') || !value.contains('.')) {
-                          return 'Please enter a valid email address.';
-                        }
-                        return null;
-                      },
+                      validator: validateEmail,
                     ),
                     const SizedBox(height: AppTheme.spacing16),
 
@@ -207,15 +200,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           },
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password.';
-                        }
-                        if (value.length < 8) {
-                          return 'Password must be at least 8 characters.';
-                        }
-                        return null;
-                      },
+                      validator: (value) => validatePassword(value, requireStrength: true),
                     ),
                     const SizedBox(height: AppTheme.spacing32),
 

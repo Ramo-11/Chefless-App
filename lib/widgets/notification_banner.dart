@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -27,11 +28,12 @@ class NotificationBannerOverlay extends ConsumerStatefulWidget {
 class _NotificationBannerOverlayState
     extends ConsumerState<NotificationBannerOverlay>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static const _notificationRefreshInterval = Duration(seconds: 12);
+  static const _notificationRefreshInterval = Duration(seconds: 4);
 
   RemoteMessage? _currentMessage;
   Timer? _autoDismissTimer;
   Timer? _refreshTimer;
+  bool _didRunInitialRefresh = false;
 
   late final AnimationController _animController;
   late final Animation<Offset> _slideAnimation;
@@ -57,8 +59,18 @@ class _NotificationBannerOverlayState
       parent: _animController,
       curve: Curves.easeOut,
     ));
-    _refreshNotifications();
-    _startRefreshTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didRunInitialRefresh) return;
+    _didRunInitialRefresh = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _refreshNotifications();
+      _startRefreshTimer();
+    });
   }
 
   @override
@@ -76,6 +88,7 @@ class _NotificationBannerOverlayState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      developer.log('App resumed; refreshing notifications', name: 'Notifications');
       _refreshNotifications();
       _startRefreshTimer();
     } else if (state == AppLifecycleState.inactive ||
@@ -90,14 +103,16 @@ class _NotificationBannerOverlayState
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
       _notificationRefreshInterval,
-      (_) => _refreshNotifications(),
+      (_) {
+        developer.log('Polling notifications', name: 'Notifications');
+        _refreshNotifications();
+      },
     );
   }
 
   void _refreshNotifications() {
     if (!mounted) return;
-    ref.invalidate(unreadCountProvider);
-    ref.invalidate(notificationListProvider);
+    refreshNotificationProviders(ref, reason: 'overlay');
   }
 
   void _showBanner(RemoteMessage message) {
@@ -151,6 +166,7 @@ class _NotificationBannerOverlayState
     final message = _currentMessage!;
     final title = message.notification?.title ?? 'New notification';
     final body = message.notification?.body ?? '';
+    final shareMessage = message.data['shareMessage'] as String?;
     final type = message.data['type'] as String? ?? '';
     final topPadding = MediaQuery.paddingOf(context).top;
 
@@ -223,6 +239,19 @@ class _NotificationBannerOverlayState
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppTheme.gray500,
+                                    ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (shareMessage != null && shareMessage.trim().isNotEmpty) ...[
+                          const SizedBox(height: AppTheme.spacing4),
+                          Text(
+                            '"${shareMessage.trim()}"',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.gray500,
+                                      fontStyle: FontStyle.italic,
                                     ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,

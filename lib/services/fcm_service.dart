@@ -42,11 +42,6 @@ class FcmService {
       return;
     }
 
-    developer.log(
-      'Notification permission: ${settings.authorizationStatus}',
-      name: 'FcmService',
-    );
-
     // iOS requires explicit foreground presentation options for alerts/sound/badge.
     await messaging.setForegroundNotificationPresentationOptions(
       alert: true,

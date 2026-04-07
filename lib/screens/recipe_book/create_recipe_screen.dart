@@ -412,8 +412,10 @@ class _CreateRecipeScreenState extends ConsumerState<CreateRecipeScreen> {
     if (!mounted) return;
 
     if (recipe != null) {
-      context.pop();
-      _showMessage('Recipe created!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recipe created!')),
+      );
+      context.go('/recipes');
     } else {
       setState(() => _isSaving = false);
       _showMessage('Failed to create recipe. Please try again.');

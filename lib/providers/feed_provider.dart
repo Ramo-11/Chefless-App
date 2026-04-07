@@ -94,6 +94,10 @@ class FeedNotifier extends AutoDisposeAsyncNotifier<List<Recipe>> {
   int _currentPage = 1;
   bool _hasMore = true;
   bool _isLoadingMore = false;
+  String? _loadMoreError;
+
+  /// Error from the last loadMore attempt, if any. Cleared on next successful load.
+  String? get loadMoreError => _loadMoreError;
 
   /// Whether more pages are available.
   bool get hasMore => _hasMore;
@@ -101,14 +105,18 @@ class FeedNotifier extends AutoDisposeAsyncNotifier<List<Recipe>> {
   /// Whether a load-more request is in progress.
   bool get isLoadingMore => _isLoadingMore;
 
+  Future<FeedResult> _loadPage(int page) {
+    return ref.read(feedPageProvider(FeedPage(type: _feedType, page: page)).future);
+  }
+
   @override
   Future<List<Recipe>> build() async {
     _currentPage = 1;
     _hasMore = true;
     _isLoadingMore = false;
+    _loadMoreError = null;
 
-    final feedPage = FeedPage(type: _feedType);
-    final result = await ref.watch(feedPageProvider(feedPage).future);
+    final result = await _loadPage(1);
 
     _hasMore = result.hasMore;
     _currentPage = result.page;
@@ -123,21 +131,22 @@ class FeedNotifier extends AutoDisposeAsyncNotifier<List<Recipe>> {
 
     try {
       final nextPage = _currentPage + 1;
-      final feedPage = FeedPage(type: _feedType, page: nextPage);
-      final result = await ref.read(feedPageProvider(feedPage).future);
+      final result = await _loadPage(nextPage);
 
       _currentPage = result.page;
       _hasMore = result.hasMore;
+      _loadMoreError = null;
 
       final current = state.valueOrNull ?? [];
       state = AsyncData([...current, ...result.recipes]);
     } catch (e, st) {
-      // Keep existing data but report the error via state.
       final current = state.valueOrNull ?? [];
       if (current.isEmpty) {
         state = AsyncError(e, st);
+      } else {
+        // Keep existing data and set _loadMoreError so UI can show a message.
+        _loadMoreError = e.toString();
       }
-      // If we already have data, silently fail — the user can retry.
     } finally {
       _isLoadingMore = false;
     }
@@ -145,16 +154,25 @@ class FeedNotifier extends AutoDisposeAsyncNotifier<List<Recipe>> {
 
   /// Resets to page 1 and refetches.
   Future<void> refresh() async {
+    final lastKnownPage = _currentPage;
+
     _currentPage = 1;
     _hasMore = true;
     _isLoadingMore = false;
 
-    // Invalidate all cached pages for this feed type.
-    for (int i = 1; i <= _currentPage + 1; i++) {
+    // Invalidate all cached pages fetched so far for this feed type.
+    for (int i = 1; i <= lastKnownPage; i++) {
       ref.invalidate(feedPageProvider(FeedPage(type: _feedType, page: i)));
     }
 
-    ref.invalidateSelf();
+    state = const AsyncLoading<List<Recipe>>();
+
+    state = await AsyncValue.guard(() async {
+      final result = await _loadPage(1);
+      _currentPage = result.page;
+      _hasMore = result.hasMore;
+      return result.recipes;
+    });
   }
 }
 

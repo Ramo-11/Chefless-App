@@ -1,17 +1,29 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/constants.dart';
 
-/// Typed wrapper around [SharedPreferences] for persistent local storage.
+/// Typed wrapper around [SharedPreferences] for non-sensitive data and
+/// [FlutterSecureStorage] for sensitive data (auth tokens, credentials).
 class StorageService {
   StorageService._(this._prefs);
 
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secure = const FlutterSecureStorage();
 
   /// Initializes the storage service. Must be called once before use.
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
-    return StorageService._(prefs);
+    final service = StorageService._(prefs);
+
+    // One-time migration: move auth token from SharedPreferences to secure storage.
+    final legacyToken = prefs.getString(StorageKeys.authToken);
+    if (legacyToken != null) {
+      await service._secure.write(key: StorageKeys.authToken, value: legacyToken);
+      await prefs.remove(StorageKeys.authToken);
+    }
+
+    return service;
   }
 
   // ── Dark Mode ──────────────────────────────────────────────────────────────
@@ -29,14 +41,16 @@ class StorageService {
   Future<bool> setOnboardingComplete({required bool complete}) =>
       _prefs.setBool(StorageKeys.onboardingComplete, complete);
 
-  // ── Auth Token ─────────────────────────────────────────────────────────────
+  // ── Auth Token (secure storage) ────────────────────────────────────────────
 
-  String? get authToken => _prefs.getString(StorageKeys.authToken);
+  Future<String?> getAuthToken() =>
+      _secure.read(key: StorageKeys.authToken);
 
-  Future<bool> setAuthToken(String token) =>
-      _prefs.setString(StorageKeys.authToken, token);
+  Future<void> setAuthToken(String token) =>
+      _secure.write(key: StorageKeys.authToken, value: token);
 
-  Future<bool> clearAuthToken() => _prefs.remove(StorageKeys.authToken);
+  Future<void> clearAuthToken() =>
+      _secure.delete(key: StorageKeys.authToken);
 
   // ── Generic Accessors ──────────────────────────────────────────────────────
 
@@ -47,5 +61,8 @@ class StorageService {
 
   Future<bool> remove(String key) => _prefs.remove(key);
 
-  Future<bool> clear() => _prefs.clear();
+  Future<bool> clear() async {
+    await _secure.deleteAll();
+    return _prefs.clear();
+  }
 }

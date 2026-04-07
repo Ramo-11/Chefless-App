@@ -54,9 +54,20 @@ class ProfileHeaderCard extends StatelessWidget {
           icon: Icons.kitchen_outlined,
           label: 'Kitchen member',
         ),
+      ...user.dietaryPreferences.take(2).map(
+            (dietary) => _ProfileChipData(
+              icon: Icons.eco_rounded,
+              label: dietary,
+            ),
+          ),
       ...user.cuisinePreferences
           .take(2)
-          .map((cuisine) => _ProfileChipData(icon: Icons.auto_awesome, label: cuisine)),
+          .map(
+            (cuisine) => _ProfileChipData(
+              icon: Icons.auto_awesome,
+              label: cuisine,
+            ),
+          ),
     ];
 
     return Container(

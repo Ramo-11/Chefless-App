@@ -14,6 +14,7 @@ class AppNotification extends Equatable {
     this.actorPhoto,
     this.recipeId,
     this.recipeTitle,
+    this.shareMessage,
     this.kitchenId,
     this.scheduleEntryId,
     required this.isRead,
@@ -28,6 +29,7 @@ class AppNotification extends Equatable {
   final String? actorPhoto;
   final String? recipeId;
   final String? recipeTitle;
+  final String? shareMessage;
   final String? kitchenId;
   final String? scheduleEntryId;
   final bool isRead;
@@ -76,6 +78,7 @@ class AppNotification extends Equatable {
       actorPhoto: json['actorPhoto'] as String?,
       recipeId: json['recipeId'] as String?,
       recipeTitle: json['recipeTitle'] as String?,
+      shareMessage: json['shareMessage'] as String?,
       kitchenId: json['kitchenId'] as String?,
       scheduleEntryId: json['scheduleEntryId'] as String?,
       isRead: json['isRead'] as bool? ?? false,
@@ -93,6 +96,7 @@ class AppNotification extends Equatable {
       'actorPhoto': actorPhoto,
       'recipeId': recipeId,
       'recipeTitle': recipeTitle,
+      'shareMessage': shareMessage,
       'kitchenId': kitchenId,
       'scheduleEntryId': scheduleEntryId,
       'isRead': isRead,
@@ -109,6 +113,7 @@ class AppNotification extends Equatable {
     String? actorPhoto,
     String? recipeId,
     String? recipeTitle,
+    String? shareMessage,
     String? kitchenId,
     String? scheduleEntryId,
     bool? isRead,
@@ -123,6 +128,7 @@ class AppNotification extends Equatable {
       actorPhoto: actorPhoto ?? this.actorPhoto,
       recipeId: recipeId ?? this.recipeId,
       recipeTitle: recipeTitle ?? this.recipeTitle,
+      shareMessage: shareMessage ?? this.shareMessage,
       kitchenId: kitchenId ?? this.kitchenId,
       scheduleEntryId: scheduleEntryId ?? this.scheduleEntryId,
       isRead: isRead ?? this.isRead,
@@ -140,6 +146,7 @@ class AppNotification extends Equatable {
         actorPhoto,
         recipeId,
         recipeTitle,
+        shareMessage,
         kitchenId,
         scheduleEntryId,
         isRead,

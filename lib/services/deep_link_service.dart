@@ -153,6 +153,9 @@ class DeepLinkService {
   // Route derivation
   // ---------------------------------------------------------------------------
 
+  /// MongoDB ObjectId format: 24 hex characters.
+  static final _objectIdPattern = RegExp(r'^[a-fA-F0-9]{24}$');
+
   /// Maps a custom-scheme URI to an in-app GoRouter path.
   ///
   /// Supported URIs:
@@ -169,11 +172,11 @@ class DeepLinkService {
 
     switch (segments[0]) {
       case 'recipe':
-        if (segments.length >= 2 && segments[1].isNotEmpty) {
+        if (segments.length >= 2 && _isValidId(segments[1])) {
           return '/recipe/${segments[1]}';
         }
       case 'user':
-        if (segments.length >= 2 && segments[1].isNotEmpty) {
+        if (segments.length >= 2 && _isValidId(segments[1])) {
           return '/user/${segments[1]}';
         }
       case 'kitchen':
@@ -189,6 +192,9 @@ class DeepLinkService {
     return null;
   }
 
+  static bool _isValidId(String id) =>
+      id.isNotEmpty && _objectIdPattern.hasMatch(id);
+
   /// Derives an in-app route from an FCM [RemoteMessage].
   ///
   /// The API sets a `route` field in the notification data payload for direct
@@ -197,9 +203,9 @@ class DeepLinkService {
   static String? _routeFromFcmMessage(RemoteMessage message) {
     final data = message.data;
 
-    // Prefer explicit route set by the API server.
+    // Prefer explicit route set by the API server — validate against whitelist.
     final explicitRoute = data['route'] as String?;
-    if (explicitRoute != null && explicitRoute.isNotEmpty) {
+    if (explicitRoute != null && _isAllowedRoute(explicitRoute)) {
       return explicitRoute;
     }
 
@@ -231,5 +237,20 @@ class DeepLinkService {
     }
 
     return null;
+  }
+
+  /// Allowed route prefixes for FCM explicit routes.
+  static const _allowedRoutePrefixes = [
+    '/recipe/',
+    '/user/',
+    '/kitchen',
+    '/schedule',
+    '/notifications',
+    '/home',
+  ];
+
+  static bool _isAllowedRoute(String route) {
+    if (route.isEmpty || !route.startsWith('/')) return false;
+    return _allowedRoutePrefixes.any((prefix) => route.startsWith(prefix));
   }
 }

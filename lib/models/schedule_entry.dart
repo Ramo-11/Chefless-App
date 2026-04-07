@@ -47,7 +47,7 @@ class ScheduleEntry extends Equatable {
     return ScheduleEntry(
       id: json['_id'] as String,
       kitchenId: json['kitchenId'] as String,
-      date: DateTime.parse(json['date'] as String),
+      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
       mealSlot: json['mealSlot'] as String,
       recipeId: json['recipeId'] as String?,
       recipeTitle: json['recipeTitle'] as String?,
@@ -58,8 +58,8 @@ class ScheduleEntry extends Equatable {
       status: json['status'] as String? ?? 'confirmed',
       suggestedBy: json['suggestedBy'] as String?,
       confirmedBy: json['confirmedBy'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 

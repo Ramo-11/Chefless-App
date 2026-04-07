@@ -378,8 +378,10 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     if (!mounted) return;
 
     if (recipe != null) {
-      context.pop();
-      _showMessage('Recipe updated!');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recipe updated!')),
+      );
+      context.go('/recipes');
     } else {
       final error = ref.read(recipeActionProvider);
       debugPrint('[EditRecipe] Update failed: ${error.error}');

@@ -116,13 +116,31 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               SignatureOverlay(signatureUrl: currentUser!.signature!);
         }
 
+        void onLikeToggle() {
+          final currentCount = _localLikesCount ?? recipe.likesCount;
+          if (mounted) {
+            setState(() {
+              _localIsLiked = !isLiked;
+              _localLikesCount = currentCount + (isLiked ? -1 : 1);
+            });
+          }
+          if (isLiked) {
+            ref.read(recipeActionProvider.notifier).unlike(recipe.id);
+          } else {
+            ref.read(recipeActionProvider.notifier).like(recipe.id);
+          }
+        }
+
         return Scaffold(
+          backgroundColor: AppTheme.surfaceWarm,
           body: CustomScrollView(
             slivers: [
-              // App bar with photo carousel
+              // ── Hero photo ────────────────────────────────────────
               SliverAppBar(
-                expandedHeight: 320,
+                expandedHeight: MediaQuery.of(context).size.height * 0.4,
                 pinned: true,
+                stretch: true,
+                backgroundColor: AppTheme.surfaceWarm,
                 leading: Center(
                   child: Container(
                     width: 38,
@@ -138,282 +156,404 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     ),
                   ),
                 ),
+                actions: [
+                  if (isOwner)
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        margin: const EdgeInsets.only(right: AppTheme.spacing8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
+                          onPressed: () => context.push('/recipe/${recipe.id}/edit'),
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Edit recipe',
+                        ),
+                      ),
+                    ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: PhotoCarousel(
                     photos: recipe.photos,
-                    height: 370,
+                    height: 410,
                     overlayWidget: signatureOverlay,
                   ),
                 ),
               ),
 
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacing20,
-                    vertical: AppTheme.spacing20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title
-                      Text(
-                        recipe.title,
-                        style: context.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          color: AppTheme.gray900,
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Title & Author ──────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppTheme.spacing20,
+                        AppTheme.spacing24,
+                        AppTheme.spacing20,
+                        0,
                       ),
-                      const SizedBox(height: AppTheme.spacing12),
-                      Wrap(
-                        spacing: AppTheme.spacing8,
-                        runSpacing: AppTheme.spacing8,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _RecipeStatusChip(
-                            icon: isPrivate
-                                ? Icons.lock_outline_rounded
-                                : Icons.public_rounded,
-                            label: isPrivate ? 'Private' : 'Public',
-                            color: isPrivate
-                                ? AppTheme.accentPlayful
-                                : AppTheme.success,
+                          Text(
+                            recipe.title,
+                            style: AppTheme.displayTitleMedium().copyWith(
+                              fontSize: 26,
+                            ),
                           ),
-                          if (recipe.isModifiedFork)
+                          const SizedBox(height: AppTheme.spacing8),
+
+                          // Author row
+                          if (recipe.authorName != null && !isOwner)
+                            GestureDetector(
+                              onTap: () => context.push('/user/${recipe.authorId}'),
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTheme.spacing4,
+                                  bottom: AppTheme.spacing4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    UserAvatar(
+                                      fullName: recipe.authorName!,
+                                      profilePictureUrl: recipe.authorPhoto,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(width: AppTheme.spacing8),
+                                    Expanded(
+                                      child: Text(
+                                        recipe.authorName!,
+                                        style: context.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.gray700,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppTheme.gray400,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          if (recipe.authorName != null && isOwner)
+                            Text(
+                              'By you',
+                              style: context.textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.gray500,
+                              ),
+                            ),
+
+                          // Fork source
+                          if (recipe.forkedFrom != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: AppTheme.spacing4),
+                              child: GestureDetector(
+                                onTap: () => context.push(
+                                    '/recipe/${recipe.forkedFrom!.recipeId}'),
+                                child: Text(
+                                  'Remixed from @${recipe.forkedFrom!.authorName}',
+                                  style: context.textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Status chips (only non-visibility badges)
+                          if (recipe.isModifiedFork) ...[
+                            const SizedBox(height: AppTheme.spacing12),
                             _RecipeStatusChip(
                               icon: Icons.autorenew_rounded,
                               label: 'Modified remix',
                               color: AppTheme.primaryColor,
                             ),
+                          ],
+
+                          // Tags
+                          if (recipe.labels.isNotEmpty ||
+                              recipe.dietaryTags.isNotEmpty ||
+                              recipe.cuisineTags.isNotEmpty) ...[
+                            const SizedBox(height: AppTheme.spacing12),
+                            _TagChips(recipe: recipe),
+                          ],
                         ],
                       ),
+                    ),
 
-                      // Author card
-                      if (recipe.authorName != null && !isOwner) ...[
-                        const SizedBox(height: AppTheme.spacing16),
-                        GestureDetector(
-                          onTap: () =>
-                              context.push('/user/${recipe.authorId}'),
-                          child: Row(
-                            children: [
-                              UserAvatar(
-                                fullName: recipe.authorName!,
-                                profilePictureUrl: recipe.authorPhoto,
-                                size: 40,
-                              ),
-                              const SizedBox(width: AppTheme.spacing12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      recipe.authorName!,
-                                      style: context.textTheme.titleSmall
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.gray900,
-                                      ),
-                                    ),
-                                    Text(
-                                      'View profile',
-                                      style: context.textTheme.bodySmall
-                                          ?.copyWith(
-                                        color: AppTheme.gray500,
-                                      ),
-                                    ),
-                                  ],
+                    // ── Quick Stats Card ────────────────────────────
+                    _QuickStatsCard(recipe: recipe),
+
+                    // ── Description, Story & Actions Card ────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing16,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppTheme.spacing16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated,
+                          borderRadius: AppTheme.borderRadiusXL,
+                          boxShadow: AppTheme.shadowSubtle,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Description
+                            if (recipe.description != null &&
+                                recipe.description!.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spacing4,
+                                ),
+                                child: Text(
+                                  recipe.description!,
+                                  style: context.textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.gray600,
+                                    height: 1.6,
+                                  ),
                                 ),
                               ),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: AppTheme.gray400,
-                                size: 20,
+                              const SizedBox(height: AppTheme.spacing12),
+                            ],
+
+                            // Story
+                            if (recipe.story != null &&
+                                recipe.story!.isNotEmpty) ...[
+                              _CollapsibleStory(story: recipe.story!),
+                              const SizedBox(height: AppTheme.spacing12),
+                            ],
+
+                            // Visibility row
+                            if ((recipe.description != null &&
+                                    recipe.description!.isNotEmpty) ||
+                                (recipe.story != null &&
+                                    recipe.story!.isNotEmpty))
+                              Divider(color: AppTheme.gray100, height: AppTheme.spacing4),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppTheme.spacing4,
+                                vertical: AppTheme.spacing4,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isPrivate
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.public_rounded,
+                                    size: 16,
+                                    color: isPrivate
+                                        ? AppTheme.accentPlayful
+                                        : AppTheme.success,
+                                  ),
+                                  const SizedBox(width: AppTheme.spacing6),
+                                  Expanded(
+                                    child: Text(
+                                      isPrivate ? 'Private' : 'Public',
+                                      style: context.textTheme.bodyMedium
+                                          ?.copyWith(
+                                        color: AppTheme.gray700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isOwner)
+                                    SizedBox(
+                                      height: 28,
+                                      child: FittedBox(
+                                        child: Switch(
+                                          value: !isPrivate,
+                                          onChanged: _isUpdatingPrivacy
+                                              ? null
+                                              : (_) =>
+                                                  _togglePrivacy(recipe, isPrivate),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // Divider before actions
+                            Divider(color: AppTheme.gray100, height: AppTheme.spacing4),
+
+                            // Action row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _InlineAction(
+                                  icon: isLiked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_outline_rounded,
+                                  label: '$likesCount',
+                                  color: isLiked ? AppTheme.likeColor : null,
+                                  onTap: onLikeToggle,
+                                ),
+                                _InlineAction(
+                                  icon: isOwner
+                                      ? Icons.copy_outlined
+                                      : Icons.autorenew_rounded,
+                                  label: isOwner
+                                      ? 'Copy'
+                                      : '${recipe.forksCount}',
+                                  onTap: isOwner
+                                      ? () => _onDuplicate(recipe)
+                                      : () => _onFork(recipe),
+                                ),
+                                _InlineAction(
+                                  icon: Icons.calendar_today_outlined,
+                                  label: 'Plan',
+                                  onTap: () => _showScheduleSheet(recipe),
+                                ),
+                                _InlineAction(
+                                  icon: Icons.share_outlined,
+                                  label: 'Share',
+                                  onTap: () => _onShare(recipe),
+                                ),
+                                if (isOwner)
+                                  _InlineAction(
+                                    icon: Icons.delete_outline_rounded,
+                                    label: 'Delete',
+                                    color: AppTheme.error,
+                                    onTap: () => _confirmDelete(recipe),
+                                  ),
+                                if (!isOwner)
+                                  _InlineAction(
+                                    icon: Icons.flag_outlined,
+                                    label: 'Report',
+                                    onTap: () => _showReportSheet(recipe),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppTheme.spacing16),
+
+                    // ── Ingredients Card ─────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing16,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppTheme.spacing20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated,
+                          borderRadius: AppTheme.borderRadiusXL,
+                          boxShadow: AppTheme.shadowSubtle,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.restaurant_outlined,
+                                  size: 20,
+                                  color: AppTheme.accentPlayful,
+                                ),
+                                const SizedBox(width: AppTheme.spacing8),
+                                Expanded(
+                                  child: Text(
+                                    'Ingredients',
+                                    style: AppTheme.displayTitleSmall(),
+                                  ),
+                                ),
+                                IngredientScaling(
+                                  currentServings: servings,
+                                  baseServings: recipe.baseServings,
+                                  onChanged: (value) {
+                                    if (mounted) {
+                                      setState(() => _adjustedServings = value);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                            if (isScaled) ...[
+                              const SizedBox(height: AppTheme.spacing8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spacing12,
+                                  vertical: AppTheme.spacing4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryLight,
+                                  borderRadius: AppTheme.borderRadiusFull,
+                                ),
+                                child: Text(
+                                  'Scaled to $servings servings (base: ${recipe.baseServings})',
+                                  style: context.textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.primaryDark,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                      ],
-                      if (recipe.authorName != null && isOwner) ...[
-                        const SizedBox(height: AppTheme.spacing6),
-                        Text(
-                          'By you',
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.gray500,
-                          ),
-                        ),
-                      ],
-
-                      // Fork source
-                      if (recipe.forkedFrom != null) ...[
-                        const SizedBox(height: AppTheme.spacing6),
-                        GestureDetector(
-                          onTap: () => context.push(
-                              '/recipe/${recipe.forkedFrom!.recipeId}'),
-                          child: Text(
-                            'Remixed from @${recipe.forkedFrom!.authorName}',
-                            style: context.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(height: AppTheme.spacing16),
+                            _IngredientsList(
+                              ingredients: recipe.ingredients,
+                              baseServings: recipe.baseServings,
+                              currentServings: servings,
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
 
-                      // Description
-                      if (recipe.description != null &&
-                          recipe.description!.isNotEmpty) ...[
-                        const SizedBox(height: AppTheme.spacing16),
-                        Text(
-                          recipe.description!,
-                          style: context.textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.gray600,
-                            height: 1.5,
-                          ),
+                    const SizedBox(height: AppTheme.spacing16),
+
+                    // ── Steps Card ───────────────────────────────────
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing16,
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppTheme.spacing20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated,
+                          borderRadius: AppTheme.borderRadiusXL,
+                          boxShadow: AppTheme.shadowSubtle,
                         ),
-                      ],
-
-                      // Story (collapsible)
-                      if (recipe.story != null &&
-                          recipe.story!.isNotEmpty) ...[
-                        const SizedBox(height: AppTheme.spacing16),
-                        _CollapsibleStory(story: recipe.story!),
-                      ],
-
-                      const SizedBox(height: AppTheme.spacing20),
-                      if (isOwner)
-                        _OwnerActionPanel(
-                          isPrivate: isPrivate,
-                          isUpdatingPrivacy: _isUpdatingPrivacy,
-                          onTogglePrivacy: () => _togglePrivacy(recipe, isPrivate),
-                          onEdit: () => context.push('/recipe/${recipe.id}/edit'),
-                          onDuplicate: () => _onDuplicate(recipe),
-                          onSchedule: () => _showScheduleSheet(recipe),
-                          onShare: () => _onShare(recipe),
-                          onDelete: () => _confirmDelete(recipe),
-                        )
-                      else
-                        _ViewerActionPanel(
-                          isLiked: isLiked,
-                          likesCount: likesCount,
-                          forksCount: recipe.forksCount,
-                          onLike: () {
-                            final currentCount = _localLikesCount ?? recipe.likesCount;
-                            if (mounted) {
-                              setState(() {
-                                _localIsLiked = !isLiked;
-                                _localLikesCount = currentCount + (isLiked ? -1 : 1);
-                              });
-                            }
-                            if (isLiked) {
-                              ref
-                                  .read(recipeActionProvider.notifier)
-                                  .unlike(recipe.id);
-                            } else {
-                              ref.read(recipeActionProvider.notifier).like(recipe.id);
-                            }
-                          },
-                          onRemix: () => _onFork(recipe),
-                          onSchedule: () => _showScheduleSheet(recipe),
-                          onShare: () => _onShare(recipe),
-                          onReport: () => _showReportSheet(recipe),
-                        ),
-
-                      // Tags
-                      const SizedBox(height: AppTheme.spacing16),
-                      _TagChips(recipe: recipe),
-
-                      // Info row
-                      const SizedBox(height: AppTheme.spacing16),
-                      _InfoRow(recipe: recipe),
-
-                      // Divider before servings
-                      const SizedBox(height: AppTheme.spacing24),
-                      Divider(color: AppTheme.gray100),
-                      const SizedBox(height: AppTheme.spacing24),
-
-                      // Servings adjuster
-                      Row(
-                        children: [
-                          Text(
-                            'Servings',
-                            style: context.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.3,
-                              color: AppTheme.gray900,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.format_list_numbered_rounded,
+                                  size: 20,
+                                  color: AppTheme.accentPlayful,
+                                ),
+                                const SizedBox(width: AppTheme.spacing8),
+                                Text(
+                                  'Steps',
+                                  style: AppTheme.displayTitleSmall(),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: AppTheme.spacing16),
-                          IngredientScaling(
-                            currentServings: servings,
-                            baseServings: recipe.baseServings,
-                            onChanged: (value) {
-                              if (mounted) {
-                                setState(() => _adjustedServings = value);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-
-                      if (isScaled) ...[
-                        const SizedBox(height: AppTheme.spacing8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacing12,
-                            vertical: AppTheme.spacing4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryLight,
-                            borderRadius: AppTheme.borderRadiusFull,
-                          ),
-                          child: Text(
-                            'Adjusted for $servings servings (original: ${recipe.baseServings})',
-                            style: context.textTheme.labelSmall?.copyWith(
-                              color: AppTheme.primaryDark,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-
-                      // Ingredients
-                      const SizedBox(height: AppTheme.spacing24),
-                      Text(
-                        'Ingredients',
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.3,
-                          color: AppTheme.gray900,
+                            const SizedBox(height: AppTheme.spacing16),
+                            _StepsList(steps: recipe.steps),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppTheme.spacing12),
-                      _IngredientsList(
-                        ingredients: recipe.ingredients,
-                        baseServings: recipe.baseServings,
-                        currentServings: servings,
-                      ),
+                    ),
 
-                      // Divider before steps
-                      const SizedBox(height: AppTheme.spacing24),
-                      Divider(color: AppTheme.gray100),
-                      const SizedBox(height: AppTheme.spacing24),
-
-                      // Steps
-                      Text(
-                        'Steps',
-                        style: context.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.3,
-                          color: AppTheme.gray900,
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.spacing12),
-                      _StepsList(steps: recipe.steps),
-
-                      const SizedBox(height: AppTheme.spacing40),
-                    ],
-                  ),
+                    const SizedBox(height: AppTheme.spacing32),
+                  ],
                 ),
               ),
             ],
@@ -551,17 +691,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppTheme.gray300,
-                        borderRadius: AppTheme.borderRadiusFull,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppTheme.spacing20),
+                  const SizedBox(height: AppTheme.spacing8),
                   Text(
                     'Add to schedule',
                     style: AppTheme.displayTitleSmall(),
@@ -933,93 +1063,136 @@ class _TagChips extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.recipe});
+class _QuickStatsCard extends StatelessWidget {
+  const _QuickStatsCard({required this.recipe});
 
   final Recipe recipe;
 
   @override
   Widget build(BuildContext context) {
-    final items = <Widget>[];
+    final stats = <_StatItem>[];
 
-    if (recipe.prepTime != null) {
-      items.add(_InfoChip(
-        icon: Icons.timer_outlined,
-        label: 'Prep: ${recipe.prepTime} min',
+    if (recipe.totalTime != null) {
+      stats.add(_StatItem(
+        icon: Icons.schedule_rounded,
+        value: '${recipe.totalTime}',
+        unit: 'min',
       ));
-    }
-    if (recipe.cookTime != null) {
-      items.add(_InfoChip(
-        icon: Icons.local_fire_department_outlined,
-        label: 'Cook: ${recipe.cookTime} min',
-      ));
+    } else {
+      if (recipe.prepTime != null) {
+        stats.add(_StatItem(
+          icon: Icons.timer_outlined,
+          value: '${recipe.prepTime}',
+          unit: 'prep',
+        ));
+      }
+      if (recipe.cookTime != null) {
+        stats.add(_StatItem(
+          icon: Icons.local_fire_department_outlined,
+          value: '${recipe.cookTime}',
+          unit: 'cook',
+        ));
+      }
     }
     if (recipe.difficulty != null) {
-      items.add(_InfoChip(
+      stats.add(_StatItem(
         icon: Icons.signal_cellular_alt,
-        label: recipe.difficulty!,
+        value: recipe.difficulty!,
+        unit: '',
       ));
     }
     if (recipe.calories != null) {
-      items.add(_InfoChip(
+      stats.add(_StatItem(
         icon: Icons.bolt_outlined,
-        label: '${recipe.calories} cal',
+        value: '${recipe.calories}',
+        unit: 'cal',
       ));
     }
     if (recipe.costEstimate != null) {
-      items.add(_InfoChip(
-        icon: Icons.attach_money,
-        label: recipe.costEstimate!,
+      stats.add(_StatItem(
+        icon: Icons.attach_money_rounded,
+        value: recipe.costEstimate!,
+        unit: '',
       ));
     }
 
-    if (items.isEmpty) return const SizedBox.shrink();
+    if (stats.isEmpty) return const SizedBox(height: AppTheme.spacing16);
 
-    return Wrap(
-      spacing: AppTheme.spacing8,
-      runSpacing: AppTheme.spacing8,
-      children: items,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        AppTheme.spacing20,
+        AppTheme.spacing16,
+        AppTheme.spacing16,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing8,
+          vertical: AppTheme.spacing16,
+        ),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceElevated,
+          borderRadius: AppTheme.borderRadiusXL,
+          boxShadow: AppTheme.shadowSubtle,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            for (var i = 0; i < stats.length; i++) ...[
+              if (i > 0)
+                Container(
+                  width: 1,
+                  height: 32,
+                  color: AppTheme.gray200,
+                ),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      stats[i].icon,
+                      size: 18,
+                      color: AppTheme.accentPlayful,
+                    ),
+                    const SizedBox(height: AppTheme.spacing6),
+                    Text(
+                      stats[i].value,
+                      style: context.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimaryDeep,
+                      ),
+                    ),
+                    if (stats[i].unit.isNotEmpty) ...[
+                      const SizedBox(height: AppTheme.spacing2),
+                      Text(
+                        stats[i].unit,
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: AppTheme.gray500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
+class _StatItem {
+  const _StatItem({
     required this.icon,
-    required this.label,
+    required this.value,
+    required this.unit,
   });
 
   final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTheme.spacing12,
-        vertical: AppTheme.spacing6,
-      ),
-      decoration: BoxDecoration(
-        color: AppTheme.gray50,
-        borderRadius: AppTheme.borderRadiusFull,
-        border: Border.all(color: AppTheme.gray200),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: AppTheme.gray500),
-          const SizedBox(width: AppTheme.spacing4),
-          Text(
-            label,
-            style: context.textTheme.bodySmall?.copyWith(
-              color: AppTheme.gray600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  final String value;
+  final String unit;
 }
 
 class _RecipeStatusChip extends StatelessWidget {
@@ -1062,182 +1235,7 @@ class _RecipeStatusChip extends StatelessWidget {
   }
 }
 
-class _OwnerActionPanel extends StatelessWidget {
-  const _OwnerActionPanel({
-    required this.isPrivate,
-    required this.isUpdatingPrivacy,
-    required this.onTogglePrivacy,
-    required this.onEdit,
-    required this.onDuplicate,
-    required this.onSchedule,
-    required this.onShare,
-    required this.onDelete,
-  });
-
-  final bool isPrivate;
-  final bool isUpdatingPrivacy;
-  final VoidCallback onTogglePrivacy;
-  final VoidCallback onEdit;
-  final VoidCallback onDuplicate;
-  final VoidCallback onSchedule;
-  final VoidCallback onShare;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacing16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWarm,
-        borderRadius: AppTheme.borderRadiusXL,
-        border: Border.all(color: AppTheme.gray200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Visibility',
-                      style: context.textTheme.titleSmall?.copyWith(
-                        color: AppTheme.textPrimaryDeep,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spacing4),
-                    Text(
-                      isPrivate
-                          ? 'Only you can access this recipe right now.'
-                          : 'This recipe can be discovered and shared.',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.gray500,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppTheme.spacing12),
-              Switch(
-                value: !isPrivate,
-                onChanged: isUpdatingPrivacy ? null : (_) => onTogglePrivacy(),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacing16),
-          Wrap(
-            spacing: AppTheme.spacing8,
-            runSpacing: AppTheme.spacing8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onDuplicate,
-                icon: const Icon(Icons.copy_outlined, size: 18),
-                label: const Text('Duplicate'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onSchedule,
-                icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                label: const Text('Schedule'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onShare,
-                icon: const Icon(Icons.share_outlined, size: 18),
-                label: const Text('Share'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                label: const Text('Delete'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.error,
-                  side: BorderSide(color: AppTheme.error.withValues(alpha: 0.25)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ViewerActionPanel extends StatelessWidget {
-  const _ViewerActionPanel({
-    required this.isLiked,
-    required this.likesCount,
-    required this.forksCount,
-    required this.onLike,
-    required this.onRemix,
-    required this.onSchedule,
-    required this.onShare,
-    required this.onReport,
-  });
-
-  final bool isLiked;
-  final int likesCount;
-  final int forksCount;
-  final VoidCallback onLike;
-  final VoidCallback onRemix;
-  final VoidCallback onSchedule;
-  final VoidCallback onShare;
-  final VoidCallback onReport;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacing16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWarm,
-        borderRadius: AppTheme.borderRadiusXL,
-        border: Border.all(color: AppTheme.gray200),
-      ),
-      child: Wrap(
-        spacing: AppTheme.spacing8,
-        runSpacing: AppTheme.spacing8,
-        children: [
-          FilledButton.tonalIcon(
-            onPressed: onLike,
-            icon: Icon(
-              isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-              size: 18,
-              color: isLiked ? AppTheme.likeColor : null,
-            ),
-            label: Text('$likesCount likes'),
-          ),
-          OutlinedButton.icon(
-            onPressed: onRemix,
-            icon: const Icon(Icons.autorenew_rounded, size: 18),
-            label: Text('$forksCount remix${forksCount == 1 ? '' : 'es'}'),
-          ),
-          OutlinedButton.icon(
-            onPressed: onSchedule,
-            icon: const Icon(Icons.calendar_today_outlined, size: 18),
-            label: const Text('Schedule'),
-          ),
-          OutlinedButton.icon(
-            onPressed: onShare,
-            icon: const Icon(Icons.share_outlined, size: 18),
-            label: const Text('Share'),
-          ),
-          TextButton.icon(
-            onPressed: onReport,
-            icon: const Icon(Icons.flag_outlined, size: 18),
-            label: const Text('Report'),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Owner/Viewer action panels removed — consolidated into _BottomBar.
 
 class _IngredientsList extends StatefulWidget {
   const _IngredientsList({
@@ -1430,45 +1428,37 @@ class _StepsListState extends State<_StepsList> {
             });
           },
           child: Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.spacing16),
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? AppTheme.success
-                        : AppTheme.primaryColor,
-                    shape: BoxShape.circle,
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: Checkbox(
+                    value: isDone,
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          _completed.add(step.order);
+                        } else {
+                          _completed.remove(step.order);
+                        }
+                      });
+                    },
+                    materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                   ),
-                  alignment: Alignment.center,
-                  child: isDone
-                      ? const Icon(
-                          Icons.check_rounded,
-                          size: 16,
-                          color: Colors.white,
-                        )
-                      : Text(
-                          '${step.order}',
-                          style: context.textTheme.labelMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                 ),
                 const SizedBox(width: AppTheme.spacing12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: AppTheme.spacing4),
-                      AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 200),
-                        style: (context.textTheme.bodyMedium ?? const TextStyle())
-                            .copyWith(
+                      Text(
+                        step.instruction,
+                        style: context.textTheme.bodyMedium?.copyWith(
                           decoration:
                               isDone ? TextDecoration.lineThrough : null,
                           color: isDone
@@ -1476,7 +1466,6 @@ class _StepsListState extends State<_StepsList> {
                               : AppTheme.gray800,
                           height: 1.5,
                         ),
-                        child: Text(step.instruction),
                       ),
                       if (step.photo != null) ...[
                         const SizedBox(height: AppTheme.spacing8),
@@ -1504,123 +1493,46 @@ class _StepsListState extends State<_StepsList> {
   }
 }
 
-class _ActionBar extends StatelessWidget {
-  const _ActionBar({
-    required this.recipe,
-    required this.isOwner,
-    required this.isLiked,
-    required this.likesCount,
-    required this.onLike,
-    required this.onForkOrDuplicate,
-    required this.onSchedule,
-    required this.onShare,
-  });
-
-  final Recipe recipe;
-  final bool isOwner;
-  final bool isLiked;
-  final int likesCount;
-  final VoidCallback onLike;
-  final VoidCallback onForkOrDuplicate;
-  final VoidCallback onSchedule;
-  final VoidCallback onShare;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(
-            color: AppTheme.gray200,
-          ),
-        ),
-      ),
-      padding: EdgeInsets.only(
-        left: AppTheme.spacing16,
-        right: AppTheme.spacing16,
-        top: AppTheme.spacing8,
-        bottom: MediaQuery.of(context).padding.bottom + AppTheme.spacing8,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _ActionButton(
-            icon: isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-            label: '$likesCount',
-            color: isLiked ? AppTheme.likeColor : null,
-            onTap: onLike,
-            tooltip: isLiked ? 'Unlike' : 'Like',
-          ),
-          _ActionButton(
-            icon: isOwner ? Icons.copy_outlined : Icons.autorenew_rounded,
-            label: isOwner ? 'Duplicate' : '${recipe.forksCount}',
-            onTap: onForkOrDuplicate,
-            tooltip: isOwner ? 'Duplicate recipe' : 'Remix recipe',
-          ),
-          _ActionButton(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            onTap: onShare,
-            tooltip: 'Share recipe',
-          ),
-          _ActionButton(
-            icon: Icons.calendar_today_outlined,
-            label: 'Schedule',
-            onTap: onSchedule,
-            tooltip: 'Add to schedule',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
+class _InlineAction extends StatelessWidget {
+  const _InlineAction({
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.tooltip,
     this.color,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final String tooltip;
   final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        borderRadius: AppTheme.borderRadiusSmall,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacing12,
-            vertical: AppTheme.spacing6,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: color ?? AppTheme.gray600,
+    return InkWell(
+      borderRadius: AppTheme.borderRadiusMedium,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacing8,
+          vertical: AppTheme.spacing8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 21,
+              color: color ?? AppTheme.gray500,
+            ),
+            const SizedBox(height: AppTheme.spacing4),
+            Text(
+              label,
+              style: context.textTheme.labelSmall?.copyWith(
+                color: color ?? AppTheme.gray500,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: AppTheme.spacing2),
-              Text(
-                label,
-                style: context.textTheme.labelSmall?.copyWith(
-                  color: color ?? AppTheme.gray500,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

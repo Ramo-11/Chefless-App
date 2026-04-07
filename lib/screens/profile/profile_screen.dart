@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/app_top_bar.dart';
 import '../../widgets/error_state.dart';
@@ -13,7 +14,7 @@ import '../../widgets/profile_header_card.dart';
 import '../../widgets/recipe_compact_row.dart';
 import '../../widgets/shimmer_loading.dart';
 
-/// The current user's own profile screen (Tab 5).
+/// The current user's own profile screen.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -46,6 +47,7 @@ class ProfileScreen extends ConsumerWidget {
               onPressed: () => context.push('/settings'),
               tooltip: 'Settings',
             ),
+            const MainTabMoreButton(topic: AppHelpTopic.profile),
           ],
           body: RefreshIndicator(
             color: AppTheme.accentPlayful,
@@ -64,8 +66,16 @@ class ProfileScreen extends ConsumerWidget {
                 ProfileHeaderCard(
                   user: user,
                   eyebrow: 'Your kitchen journal',
-                  onFollowersTap: () => context.push('/profile/followers'),
-                  onFollowingTap: () => context.push('/profile/following'),
+                  onFollowersTap: () {
+                    final loc =
+                        GoRouterState.of(context).matchedLocation;
+                    context.push('$loc/followers');
+                  },
+                  onFollowingTap: () {
+                    final loc =
+                        GoRouterState.of(context).matchedLocation;
+                    context.push('$loc/following');
+                  },
                   actionSection: Row(
                     children: [
                       Expanded(
@@ -82,7 +92,11 @@ class ProfileScreen extends ConsumerWidget {
                             backgroundColor: AppTheme.accentPlayful,
                             foregroundColor: Colors.white,
                           ),
-                          onPressed: () => context.push('/profile/edit'),
+                          onPressed: () {
+                            final loc =
+                                GoRouterState.of(context).matchedLocation;
+                            context.push('$loc/edit');
+                          },
                           icon: const Icon(Icons.edit_outlined, size: 18),
                           label: const Text('Edit Profile'),
                         ),
@@ -141,6 +155,103 @@ class _ProfileSnapshotSection extends ConsumerWidget {
 
   final int recipeCount;
 
+  static void _showFilteredRecipes(
+    BuildContext context,
+    String title,
+    List<Recipe> recipes,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.spacing12),
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.gray300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing20,
+                    vertical: AppTheme.spacing16,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: AppTheme.displayTitleSmall(),
+                        ),
+                      ),
+                      Text(
+                        '${recipes.length}',
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: AppTheme.gray500,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: recipes.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.restaurant_menu_rounded,
+                                size: 40,
+                                color: AppTheme.gray300,
+                              ),
+                              const SizedBox(height: AppTheme.spacing12),
+                              Text(
+                                'No recipes here yet',
+                                style: context.textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.gray500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacing4,
+                          ),
+                          itemCount: recipes.length,
+                          itemBuilder: (context, index) {
+                            return RecipeCompactRow(
+                              recipe: recipes[index],
+                              showAuthor: false,
+                              showChevron: true,
+                              showVisibilityBadge: true,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final myRecipes = ref.watch(myRecipesProvider);
@@ -182,6 +293,11 @@ class _ProfileSnapshotSection extends ConsumerWidget {
                       label: 'Created',
                       value: '$recipeCount',
                       icon: Icons.menu_book_rounded,
+                      onTap: () => _showFilteredRecipes(
+                        context,
+                        'Created Recipes',
+                        ownedRecipes,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppTheme.spacing12),
@@ -190,6 +306,13 @@ class _ProfileSnapshotSection extends ConsumerWidget {
                       label: 'Public',
                       value: '$publicCount',
                       icon: Icons.public_rounded,
+                      onTap: () => _showFilteredRecipes(
+                        context,
+                        'Public Recipes',
+                        ownedRecipes
+                            .where((r) => !r.isPrivate)
+                            .toList(),
+                      ),
                     ),
                   ),
                 ],
@@ -202,6 +325,13 @@ class _ProfileSnapshotSection extends ConsumerWidget {
                       label: 'Private',
                       value: '$privateCount',
                       icon: Icons.lock_outline_rounded,
+                      onTap: () => _showFilteredRecipes(
+                        context,
+                        'Private Recipes',
+                        ownedRecipes
+                            .where((r) => r.isPrivate)
+                            .toList(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppTheme.spacing12),
@@ -210,6 +340,11 @@ class _ProfileSnapshotSection extends ConsumerWidget {
                       label: 'Saved',
                       value: '$likedCount',
                       icon: Icons.favorite_outline_rounded,
+                      onTap: () => _showFilteredRecipes(
+                        context,
+                        'Saved Recipes',
+                        likedRecipes.valueOrNull ?? const [],
+                      ),
                     ),
                   ),
                 ],
@@ -318,45 +453,62 @@ class _ProfileInsightCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.onTap,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacing12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWarm,
+    return Material(
+      color: AppTheme.surfaceWarm,
+      borderRadius: AppTheme.borderRadiusLarge,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: AppTheme.borderRadiusLarge,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: AppTheme.accentPlayful,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacing12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: AppTheme.accentPlayful,
+                  ),
+                  const Spacer(),
+                  if (onTap != null)
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: AppTheme.gray400,
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacing12),
+              Text(
+                value,
+                style: context.textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textPrimaryDeep,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacing2),
+              Text(
+                label,
+                style: context.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.gray500,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppTheme.spacing12),
-          Text(
-            value,
-            style: context.textTheme.titleLarge?.copyWith(
-              color: AppTheme.textPrimaryDeep,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacing2),
-          Text(
-            label,
-            style: context.textTheme.bodySmall?.copyWith(
-              color: AppTheme.gray500,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

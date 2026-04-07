@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 
-import 'package:sqflite/sqflite.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 
 /// Manages the local SQLite database for offline caching and sync queue.
 ///
@@ -14,8 +17,9 @@ class DatabaseService {
 
   Database? _db;
 
-  static const String _dbName = 'chefless_cache.db';
+  static const String _dbName = 'chefless_cache_v2.db';
   static const int _dbVersion = 1;
+  static const String _dbKeyStorageKey = 'chefless_db_encryption_key';
 
   /// Returns the open database, initializing it on first access.
   Future<Database> get database async {
@@ -24,15 +28,47 @@ class DatabaseService {
     return _db!;
   }
 
+  /// Retrieves or generates the database encryption key.
+  Future<String> _getOrCreateDbKey() async {
+    const secure = FlutterSecureStorage();
+
+    var key = await secure.read(key: _dbKeyStorageKey);
+    if (key == null) {
+      // Generate a random 32-byte hex key
+      final random = Random.secure();
+      final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+      key = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      await secure.write(key: _dbKeyStorageKey, value: key);
+    }
+    return key;
+  }
+
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     final path = '$dbPath/$_dbName';
+    final password = await _getOrCreateDbKey();
+
+    // Clean up the old unencrypted database file if it exists.
+    _deleteOldDatabase(dbPath);
 
     return openDatabase(
       path,
       version: _dbVersion,
+      password: password,
       onCreate: _onCreate,
     );
+  }
+
+  /// Removes the legacy unencrypted database to avoid orphaned files.
+  void _deleteOldDatabase(String dbPath) {
+    try {
+      final oldFile = File('$dbPath/chefless_cache.db');
+      if (oldFile.existsSync()) {
+        oldFile.deleteSync();
+      }
+    } catch (_) {
+      // Best-effort cleanup — don't block app startup.
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {

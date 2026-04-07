@@ -251,7 +251,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated.')),
         );
-        context.pop();
+        context.go(_profileRouteForCurrentBranch(context));
       }
     } catch (e) {
       if (!mounted) return;
@@ -519,6 +519,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
     );
+  }
+
+  String _profileRouteForCurrentBranch(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    const branchRoots = [
+      '/home',
+      '/schedule',
+      '/recipes',
+      '/shopping',
+      '/kitchen',
+    ];
+
+    for (final root in branchRoots) {
+      if (location.startsWith('$root/profile')) {
+        return '$root/profile';
+      }
+    }
+
+    return '/home/profile';
   }
 }
 

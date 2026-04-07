@@ -32,6 +32,10 @@ class AppConstants {
 
   static const int maxImageSizeMb = 10;
   static const int maxRecipePhotos = 5;
+
+  /// Standard button heights for consistent sizing across the app.
+  static const double buttonHeightLarge = 52.0;
+  static const double buttonHeightMedium = 44.0;
 }
 
 /// RevenueCat configuration constants.

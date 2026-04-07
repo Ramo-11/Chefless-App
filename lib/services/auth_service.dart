@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -37,8 +38,8 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
 
   /// Returns a fresh ID token for API calls, or `null` if not signed in.
-  Future<String?> getIdToken() async {
-    return _auth.currentUser?.getIdToken();
+  Future<String?> getIdToken({bool forceRefresh = false}) async {
+    return _auth.currentUser?.getIdToken(forceRefresh);
   }
 
   // ── Email / Password ─────────────────────────────────────────────────────
@@ -169,6 +170,12 @@ class AuthService {
   // ── Sign Out ─────────────────────────────────────────────────────────────
 
   Future<void> signOut() async {
+    // Remove FCM token so push notifications stop after sign-out.
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {
+      // Best effort — don't block sign-out.
+    }
     await GoogleSignIn().signOut();
     await _auth.signOut();
   }

@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../models/recipe.dart';
 import '../../providers/search_provider.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/recipe_compact_row.dart';
@@ -37,6 +38,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -49,6 +51,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -114,14 +117,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     style: context.textTheme.bodyMedium,
                     textInputAction: TextInputAction.search,
                     onChanged: (value) {
-                      ref.read(searchQueryProvider.notifier).state = value;
+                      _debounce?.cancel();
+                      _debounce = Timer(
+                        const Duration(milliseconds: 300),
+                        () {
+                          if (mounted) {
+                            ref.read(searchQueryProvider.notifier).state =
+                                value;
+                          }
+                        },
+                      );
+                      // Rebuild immediately so the clear button appears/hides.
+                      setState(() {});
                     },
                     onSubmitted: _submitSearch,
                   ),
                 ),
-                if (query.isNotEmpty)
+                if (_controller.text.isNotEmpty)
                   GestureDetector(
                     onTap: () {
+                      _debounce?.cancel();
                       _controller.clear();
                       ref.read(searchQueryProvider.notifier).state = '';
                     },

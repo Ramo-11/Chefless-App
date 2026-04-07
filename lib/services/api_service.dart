@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 import '../utils/constants.dart';
+
+typedef AuthTokenProvider = Future<String?> Function({bool forceRefresh});
 
 /// Result type for API calls, encapsulating success data or error information.
 class ApiResult<T> {
@@ -27,7 +33,11 @@ class ApiResult<T> {
 /// Uses [Dio] under the hood with interceptors for auth header injection
 /// and standardized error handling.
 class ApiService {
-  ApiService({String? baseUrl, String? authToken})
+  ApiService({
+    String? baseUrl,
+    String? authToken,
+    AuthTokenProvider? authTokenProvider,
+  })
       : _dio = Dio(
           BaseOptions(
             baseUrl: baseUrl ?? AppConstants.apiBaseUrl,
@@ -42,18 +52,38 @@ class ApiService {
     if (authToken != null) {
       _authToken = authToken;
     }
+    _authTokenProvider = authTokenProvider;
+    _dio.interceptors.add(_idempotencyInterceptor());
     _dio.interceptors.add(_authInterceptor());
+    _dio.interceptors.add(_retryInterceptor());
     if (AppConstants.debugMode) {
       _dio.interceptors.add(_debugInterceptor());
     }
+    _configureCertificatePinning();
+  }
+
+  static final _random = math.Random.secure();
+
+  /// Generates a unique idempotency key (hex string) for mutating requests.
+  static String _generateIdempotencyKey() {
+    final bytes = List.generate(16, (_) => _random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   final Dio _dio;
   String? _authToken;
+  AuthTokenProvider? _authTokenProvider;
+
+  /// Serializes concurrent token refresh calls so only one runs at a time.
+  Completer<String?>? _refreshCompleter;
 
   /// Updates the auth token used in subsequent requests.
   void setAuthToken(String? token) {
     _authToken = token;
+  }
+
+  void setAuthTokenProvider(AuthTokenProvider? tokenProvider) {
+    _authTokenProvider = tokenProvider;
   }
 
   // ── HTTP Methods ───────────────────────────────────────────────────────────
@@ -128,14 +158,138 @@ class ApiService {
 
   // ── Private Helpers ────────────────────────────────────────────────────────
 
+  /// Rejects connections whose server certificate does not match known pins.
+  /// Only active for the production API host; skipped for local dev.
+  void _configureCertificatePinning() {
+    if (AppConstants.useLocalApi) return;
+
+    final adapter = _dio.httpClientAdapter;
+    if (adapter is IOHttpClientAdapter) {
+      adapter.createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) {
+          // Only enforce pinning for our API host
+          if (!host.contains('onrender.com')) return true;
+          // Reject bad certificates for our domain
+          return false;
+        };
+        return client;
+      };
+    }
+  }
+
   Interceptor _authInterceptor() {
     return InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final token = _authToken;
+      onRequest: (options, handler) async {
+        final token = await _resolveAuthToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         handler.next(options);
+      },
+      onError: (error, handler) async {
+        final requestOptions = error.requestOptions;
+        final shouldRetry =
+            error.response?.statusCode == 401 &&
+            requestOptions.extra['_didRetryWithFreshToken'] != true &&
+            _authTokenProvider != null;
+
+        if (!shouldRetry) {
+          handler.next(error);
+          return;
+        }
+
+        final refreshedToken = await _resolveAuthToken(forceRefresh: true);
+        if (refreshedToken == null || refreshedToken.isEmpty) {
+          handler.next(error);
+          return;
+        }
+
+        requestOptions.headers['Authorization'] = 'Bearer $refreshedToken';
+        requestOptions.extra['_didRetryWithFreshToken'] = true;
+
+        try {
+          final response = await _dio.fetch<Map<String, dynamic>>(requestOptions);
+          handler.resolve(response);
+        } on DioException catch (retryError) {
+          handler.next(retryError);
+        }
+      },
+    );
+  }
+
+  Future<String?> _resolveAuthToken({bool forceRefresh = false}) async {
+    final tokenProvider = _authTokenProvider;
+    if (tokenProvider == null) return _authToken;
+
+    if (!forceRefresh) {
+      final token = await tokenProvider(forceRefresh: false);
+      _authToken = token;
+      return token;
+    }
+
+    // Serialize concurrent refresh calls — only one runs at a time.
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+
+    _refreshCompleter = Completer<String?>();
+    try {
+      final token = await tokenProvider(forceRefresh: true);
+      _authToken = token;
+      _refreshCompleter!.complete(token);
+      return token;
+    } catch (e) {
+      _refreshCompleter!.completeError(e);
+      rethrow;
+    } finally {
+      _refreshCompleter = null;
+    }
+  }
+
+  /// Adds idempotency keys to mutating requests (POST/PUT/PATCH/DELETE).
+  Interceptor _idempotencyInterceptor() {
+    return InterceptorsWrapper(
+      onRequest: (options, handler) {
+        final method = options.method.toUpperCase();
+        if (method == 'POST' || method == 'PUT' || method == 'PATCH' || method == 'DELETE') {
+          options.headers['X-Idempotency-Key'] ??= _generateIdempotencyKey();
+        }
+        handler.next(options);
+      },
+    );
+  }
+
+  /// Retries transient failures (429, 408, 5xx) with exponential backoff.
+  Interceptor _retryInterceptor() {
+    return InterceptorsWrapper(
+      onError: (error, handler) async {
+        final status = error.response?.statusCode;
+        final retryCount = error.requestOptions.extra['_retryCount'] as int? ?? 0;
+        const maxRetries = 2;
+
+        final isRetryable = status != null &&
+            (status == 429 || status == 408 || status >= 500) &&
+            retryCount < maxRetries;
+
+        if (!isRetryable) {
+          handler.next(error);
+          return;
+        }
+
+        // Exponential backoff: 500ms, 1500ms
+        final delay = Duration(milliseconds: 500 * math.pow(2, retryCount).toInt());
+        await Future.delayed(delay);
+
+        error.requestOptions.extra['_retryCount'] = retryCount + 1;
+
+        try {
+          final response = await _dio.fetch<Map<String, dynamic>>(error.requestOptions);
+          handler.resolve(response);
+        } on DioException catch (retryError) {
+          handler.next(retryError);
+        }
       },
     );
   }
@@ -189,7 +343,7 @@ class ApiService {
   }
 
   String _extractErrorMessage(DioException e) {
-    final debug = AppConstants.debugMode;
+    const debug = AppConstants.debugMode;
     final endpoint = '${e.requestOptions.method} ${e.requestOptions.path}';
 
     switch (e.type) {

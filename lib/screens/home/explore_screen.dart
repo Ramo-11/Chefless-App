@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/feed_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/app_top_bar.dart';
 import '../../widgets/recipe_compact_row.dart';
@@ -99,7 +100,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           'Home',
           style: AppTheme.displayTitleMedium(),
         ),
-        actions: const [NotificationBellIcon()],
+        actions: const [
+          NotificationBellIcon(),
+          ProfileShortcutIcon(),
+          MainTabMoreButton(topic: AppHelpTopic.home),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Align(
@@ -231,22 +236,37 @@ class _FeedTabViewState extends ConsumerState<_FeedTabView>
           color: AppTheme.accentPlayful,
           child: ListView.builder(
             controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(
               top: AppTheme.spacing8,
               bottom: AppTheme.spacing24,
             ),
-            itemCount: recipes.length + (notifier.hasMore ? 1 : 0),
+            itemCount: recipes.length + 1,
             itemBuilder: (context, index) {
               if (index == recipes.length) {
+                if (notifier.hasMore) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing24),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppTheme.accentPlayful,
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing24),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: AppTheme.accentPlayful,
+                    child: Text(
+                      'You\'re all caught up',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
                       ),
                     ),
                   ),
@@ -363,6 +383,7 @@ class _FeedEmptyView extends StatelessWidget {
       onRefresh: onRefresh,
       color: AppTheme.accentPlayful,
       child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,

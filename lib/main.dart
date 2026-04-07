@@ -20,6 +20,7 @@ import 'screens/onboarding/dietary_preferences_screen.dart';
 import 'screens/onboarding/cuisine_preferences_screen.dart';
 import 'screens/onboarding/premium_pitch_screen.dart';
 import 'screens/onboarding/quick_tour_screen.dart';
+import 'screens/help/help_faq_screen.dart';
 import 'screens/profile/edit_profile_screen.dart';
 import 'screens/profile/follow_requests_screen.dart';
 import 'screens/profile/followers_screen.dart';
@@ -54,7 +55,7 @@ final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
 final _scheduleNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'schedule');
 final _recipesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'recipes');
 final _shoppingNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shopping');
-final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
+final _kitchenNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'kitchen');
 
 /// Dismisses the keyboard automatically on every route transition (push, pop,
 /// replace). Prevents the keyboard from getting stuck when navigating while
@@ -86,6 +87,33 @@ class _RouterNotifier extends ChangeNotifier {
     ref.listen(authStateProvider, (_, _) => notifyListeners());
     ref.listen(currentUserProvider, (_, _) => notifyListeners());
   }
+}
+
+List<RouteBase> _buildProfileRoutes() {
+  return [
+    GoRoute(
+      path: 'profile',
+      builder: (context, state) => const ProfileScreen(),
+      routes: [
+        GoRoute(
+          path: 'edit',
+          builder: (context, state) => const EditProfileScreen(),
+        ),
+        GoRoute(
+          path: 'followers',
+          builder: (context, state) => const FollowersScreen(),
+        ),
+        GoRoute(
+          path: 'following',
+          builder: (context, state) => const FollowingScreen(),
+        ),
+        GoRoute(
+          path: 'requests',
+          builder: (context, state) => const FollowRequestsScreen(),
+        ),
+      ],
+    ),
+  ];
 }
 
 /// Auth-aware router that redirects unauthenticated users to /login and
@@ -232,6 +260,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding/tour',
         builder: (context, state) => const QuickTourScreen(),
       ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/guide/onboarding',
+        builder: (context, state) => const QuickTourScreen(replayMode: true),
+      ),
 
       // Main app shell with 5-tab bottom navigation.
       StatefulShellRoute.indexedStack(
@@ -247,6 +280,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/home',
                 builder: (context, state) =>
                     const ExploreScreen(),
+                routes: _buildProfileRoutes(),
               ),
             ],
           ),
@@ -263,6 +297,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'suggestions',
                     builder: (context, state) => const SuggestionsScreen(),
                   ),
+                  ..._buildProfileRoutes(),
                 ],
               ),
             ],
@@ -276,6 +311,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/recipes',
                 builder: (context, state) => const RecipeBookScreen(),
                 routes: [
+                  ..._buildProfileRoutes(),
                   GoRoute(
                     path: 'create',
                     builder: (context, state) => const CreateRecipeScreen(),
@@ -309,6 +345,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/shopping',
                 builder: (context, state) => const ShoppingListScreen(),
                 routes: [
+                  ..._buildProfileRoutes(),
                   GoRoute(
                     path: ':id',
                     builder: (context, state) {
@@ -321,32 +358,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Tab 5: Profile
+          // Tab 5: Kitchen
           StatefulShellBranch(
-            navigatorKey: _profileNavigatorKey,
+            navigatorKey: _kitchenNavigatorKey,
             routes: [
               GoRoute(
-                path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'edit',
-                    builder: (context, state) => const EditProfileScreen(),
-                  ),
-                  GoRoute(
-                    path: 'followers',
-                    builder: (context, state) => const FollowersScreen(),
-                  ),
-                  GoRoute(
-                    path: 'following',
-                    builder: (context, state) => const FollowingScreen(),
-                  ),
-                  GoRoute(
-                    path: 'requests',
-                    builder: (context, state) =>
-                        const FollowRequestsScreen(),
-                  ),
-                ],
+                path: '/kitchen',
+                builder: (context, state) => const KitchenDetailScreen(),
+                routes: _buildProfileRoutes(),
               ),
             ],
           ),
@@ -361,11 +380,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final userId = state.pathParameters['id']!;
           return OtherUserProfileScreen(userId: userId);
         },
-      ),
-      GoRoute(
-        parentNavigatorKey: rootNavigatorKey,
-        path: '/kitchen',
-        builder: (context, state) => const KitchenDetailScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
@@ -431,6 +445,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings/notifications',
         builder: (context, state) =>
             const NotificationPreferencesScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/help/faqs',
+        builder: (context, state) => const HelpFaqScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,

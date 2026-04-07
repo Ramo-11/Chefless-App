@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
+import '../../utils/app_help_content.dart';
 import '../../utils/extensions.dart';
 import '../../widgets/app_top_bar.dart';
 import '../../widgets/error_state.dart';
@@ -114,39 +115,17 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
           tooltip: 'Search',
         ),
         title: Text(
-          'Recipe Book',
+          'Recipes',
           style: AppTheme.displayTitleMedium(),
         ),
         actions: [
           const NotificationBellIcon(),
-          IconButton(
-            icon: const Icon(Icons.download_outlined),
-            tooltip: 'Import recipe from URL',
-            onPressed: () => ImportRecipeSheet.show(context),
-          ),
-          PopupMenuButton<RecipeSortOption>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: 'Sort recipes',
-            onSelected: (option) {
-              if (mounted) setState(() => _sortOption = option);
-            },
-            itemBuilder: (context) => RecipeSortOption.values
-                .map((option) => PopupMenuItem(
-                      value: option,
-                      child: Row(
-                        children: [
-                          if (_sortOption == option)
-                            Icon(Icons.check_rounded,
-                                size: 18,
-                                color: AppTheme.primaryColor)
-                          else
-                            const SizedBox(width: 18),
-                          const SizedBox(width: AppTheme.spacing8),
-                          Text(option.label),
-                        ],
-                      ),
-                    ))
-                .toList(),
+          const ProfileShortcutIcon(),
+          MainTabMoreButton(
+            topic: AppHelpTopic.recipes,
+            primaryActionLabel: 'Import recipe',
+            primaryActionIcon: Icons.download_outlined,
+            onPrimaryAction: () => ImportRecipeSheet.show(context),
           ),
         ],
         bottom: PreferredSize(
@@ -172,7 +151,7 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
               labelColor: AppTheme.textPrimaryDeep,
               unselectedLabelColor: AppTheme.gray500,
               tabs: const [
-                Tab(text: 'All'),
+                Tab(text: 'My Recipes'),
                 Tab(text: 'Liked'),
                 Tab(text: 'Remixed'),
               ],
@@ -184,8 +163,9 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen>
         controller: _tabController,
         children: [
           _RecipeListTab(
-            title: 'Your recipe library',
-            subtitle: 'Everything you have created, whether it is public or private.',
+            title: 'My recipes',
+            subtitle:
+                'These are the recipes you created. Browse everyone else\'s recipes from Home or Search.',
             provider: myRecipesProvider,
             sortFn: _sortRecipes,
             filterFn: _filterByLabel,

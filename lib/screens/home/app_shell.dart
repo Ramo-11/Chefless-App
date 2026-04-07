@@ -78,9 +78,9 @@ class AppShell extends ConsumerWidget {
               label: 'Shopping',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
+              icon: Icon(Icons.kitchen_outlined),
+              selectedIcon: Icon(Icons.kitchen),
+              label: 'Kitchen',
             ),
           ],
         ),

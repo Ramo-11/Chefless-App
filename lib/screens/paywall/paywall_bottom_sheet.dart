@@ -91,22 +91,13 @@ class PaywallBottomSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag handle
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.gray300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacing24),
+            const SizedBox(height: AppTheme.spacing8),
 
             // Icon
             Container(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.primaryLight,
                 shape: BoxShape.circle,
               ),
@@ -157,7 +148,7 @@ class PaywallBottomSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                     vertical: AppTheme.spacing16,
                   ),
-                  shape: RoundedRectangleBorder(
+                  shape: const RoundedRectangleBorder(
                     borderRadius: AppTheme.borderRadiusMedium,
                   ),
                 ),

@@ -84,6 +84,25 @@ class SettingsScreen extends ConsumerWidget {
           const _SectionHeader(title: 'Kitchen'),
           _KitchenSettingsSection(),
 
+          const _SectionHeader(title: 'Help'),
+          _SettingsGroup(
+            children: [
+              _SettingsTile(
+                icon: Icons.play_circle_outline_rounded,
+                title: 'Replay Onboarding',
+                subtitle: 'Walk through the main app features again.',
+                onTap: () => context.push('/guide/onboarding'),
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.help_outline_rounded,
+                title: 'Help & FAQs',
+                subtitle: 'Quick answers and tab-by-tab guidance.',
+                onTap: () => context.push('/help/faqs'),
+              ),
+            ],
+          ),
+
           const _SectionHeader(title: 'About'),
           _SettingsGroup(
             children: [

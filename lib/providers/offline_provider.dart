@@ -7,6 +7,9 @@ import '../services/database_service.dart';
 import '../services/sync_service.dart';
 import 'auth_provider.dart';
 
+/// Holds the last sync error message for UI display (null = no error).
+final syncErrorProvider = StateProvider<String?>((ref) => null);
+
 /// Provides the singleton [DatabaseService].
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   return DatabaseService.instance;
@@ -54,6 +57,7 @@ final syncTriggerProvider = Provider<void>((ref) {
         );
         syncService.syncAll(user.id).catchError((Object e) {
           debugPrint('SyncTrigger: sync failed: $e');
+          ref.read(syncErrorProvider.notifier).state = e.toString();
         });
       }
     }

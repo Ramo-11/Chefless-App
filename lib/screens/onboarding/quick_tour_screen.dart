@@ -30,14 +30,15 @@ class _TourCard {
 
 const List<_TourCard> _tourCards = [
   _TourCard(
-    centerIcon: Icons.menu_book_rounded,
+    centerIcon: Icons.explore_rounded,
     color: AppTheme.primaryColor,
-    title: 'Recipe Book',
-    description: 'Organize all your recipes in one place.',
-    backdropColors: [AppTheme.primaryColor, AppTheme.neutralColor],
+    title: 'Home',
+    description:
+        'Discover recipes across For You, Trending, Friends, and Seasonal feeds.',
+    backdropColors: [AppTheme.primaryColor, AppTheme.tertiaryColor],
     satellites: [
       Satellite(
-        icon: Icons.bookmark_rounded,
+        icon: Icons.search_rounded,
         color: AppTheme.primaryColor,
         angle: -pi / 3,
         distance: 82,
@@ -47,8 +48,8 @@ const List<_TourCard> _tourCards = [
         bobAmplitude: 6,
       ),
       Satellite(
-        icon: Icons.favorite_rounded,
-        color: Color(0xFFE91E63),
+        icon: Icons.trending_up_rounded,
+        color: AppTheme.secondaryColor,
         angle: pi / 4,
         distance: 78,
         bobPhase: 0.35,
@@ -57,7 +58,7 @@ const List<_TourCard> _tourCards = [
         bobAmplitude: 7,
       ),
       Satellite(
-        icon: Icons.photo_camera_rounded,
+        icon: Icons.favorite_rounded,
         color: AppTheme.neutralColor,
         angle: 3 * pi / 4,
         distance: 76,
@@ -72,7 +73,8 @@ const List<_TourCard> _tourCards = [
     centerIcon: Icons.people_rounded,
     color: AppTheme.secondaryColor,
     title: 'Kitchen',
-    description: 'Share meals with family and roommates.',
+    description:
+        'Kitchen now has its own bottom tab so members, invites, and shared recipes are always easy to reach.',
     backdropColors: [AppTheme.secondaryColor, AppTheme.primaryColor],
     satellites: [
       Satellite(
@@ -111,7 +113,8 @@ const List<_TourCard> _tourCards = [
     centerIcon: Icons.calendar_month_rounded,
     color: AppTheme.tertiaryColor,
     title: 'Schedule',
-    description: 'Plan your week\'s meals together.',
+    description:
+        'Tap any meal slot to add your own recipe, a member recipe, or a freeform meal.',
     backdropColors: [AppTheme.tertiaryColor, AppTheme.secondaryColor],
     satellites: [
       Satellite(
@@ -147,14 +150,15 @@ const List<_TourCard> _tourCards = [
     ],
   ),
   _TourCard(
-    centerIcon: Icons.explore_rounded,
+    centerIcon: Icons.menu_book_rounded,
     color: AppTheme.neutralColor,
-    title: 'Explore',
-    description: 'Discover recipes from the community.',
+    title: 'Recipe Book',
+    description:
+        'Keep your personal library organized, and choose which recipes stay private or shared.',
     backdropColors: [AppTheme.neutralColor, AppTheme.primaryColor],
     satellites: [
       Satellite(
-        icon: Icons.search_rounded,
+        icon: Icons.bookmark_rounded,
         color: AppTheme.primaryColor,
         angle: -pi / 4,
         distance: 80,
@@ -164,7 +168,7 @@ const List<_TourCard> _tourCards = [
         bobAmplitude: 6,
       ),
       Satellite(
-        icon: Icons.trending_up_rounded,
+        icon: Icons.auto_awesome_rounded,
         color: AppTheme.secondaryColor,
         angle: 2 * pi / 3,
         distance: 76,
@@ -174,10 +178,50 @@ const List<_TourCard> _tourCards = [
         bobAmplitude: 5,
       ),
       Satellite(
-        icon: Icons.bookmark_add_rounded,
+        icon: Icons.lock_outline_rounded,
         color: AppTheme.tertiaryColor,
         angle: pi + pi / 5,
         distance: 74,
+        bobPhase: 0.8,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 7,
+      ),
+    ],
+  ),
+  _TourCard(
+    centerIcon: Icons.shopping_bag_rounded,
+    color: AppTheme.accentPlayful,
+    title: 'Shopping',
+    description:
+        'Create grocery lists by hand or generate them from your scheduled meals for the week.',
+    backdropColors: [AppTheme.accentPlayful, AppTheme.primaryColor],
+    satellites: [
+      Satellite(
+        icon: Icons.add_shopping_cart_rounded,
+        color: AppTheme.secondaryColor,
+        angle: -pi / 4,
+        distance: 78,
+        bobPhase: 0,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 5,
+      ),
+      Satellite(
+        icon: Icons.calendar_today_rounded,
+        color: AppTheme.primaryColor,
+        angle: pi / 3,
+        distance: 76,
+        bobPhase: 0.35,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.help_outline_rounded,
+        color: AppTheme.neutralColor,
+        angle: pi + pi / 4,
+        distance: 72,
         bobPhase: 0.8,
         containerSize: 32,
         iconSize: 16,
@@ -189,7 +233,12 @@ const List<_TourCard> _tourCards = [
 
 /// Final onboarding step: swipeable feature tour with dot indicators.
 class QuickTourScreen extends ConsumerStatefulWidget {
-  const QuickTourScreen({super.key});
+  const QuickTourScreen({
+    super.key,
+    this.replayMode = false,
+  });
+
+  final bool replayMode;
 
   @override
   ConsumerState<QuickTourScreen> createState() => _QuickTourScreenState();
@@ -208,6 +257,15 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
 
   Future<void> _completeOnboarding() async {
     if (_isCompleting) return;
+    if (widget.replayMode) {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/home');
+      }
+      return;
+    }
+
     setState(() => _isCompleting = true);
 
     try {
@@ -262,12 +320,22 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/onboarding/premium'),
+                    onPressed: () {
+                      if (widget.replayMode) {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/settings');
+                        }
+                        return;
+                      }
+                      context.go('/onboarding/premium');
+                    },
                     tooltip: 'Back',
                   ),
                   TextButton(
                     onPressed: _isCompleting ? null : _completeOnboarding,
-                    child: const Text('Skip'),
+                    child: Text(widget.replayMode ? 'Close' : 'Skip'),
                   ),
                 ],
               ),
@@ -346,9 +414,19 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(_isLastPage ? 'Get Started' : 'Next'),
+                      : Text(
+                          _isLastPage
+                              ? (widget.replayMode ? 'Done' : 'Get Started')
+                              : 'Next',
+                        ),
                 ),
               ),
+            ),
+            const SizedBox(height: AppTheme.spacing12),
+            TextButton.icon(
+              onPressed: () => context.push('/help/faqs'),
+              icon: const Icon(Icons.help_outline_rounded, size: 18),
+              label: const Text('Open Help & FAQs'),
             ),
 
             const SizedBox(height: AppTheme.spacing40),

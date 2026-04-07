@@ -255,7 +255,7 @@ final userRecipesProvider =
   final apiService = await ref.watch(apiServiceProvider.future);
   final result = await apiService.get(
     '/users/$userId/recipes',
-    queryParameters: {'page': 1, 'limit': 50},
+    queryParameters: {'page': 1, 'limit': 100},
   );
 
   if (result.isFailure || result.data == null) {

@@ -24,13 +24,15 @@ dependencies:
   crypto: ^3.0.6
   image_picker: ^1.1.2
   intl: ^0.20.2
-  sqflite: ^2.4.1
+  # sqflite replaced by sqflite_sqlcipher for encrypted local database
   path_provider: ^2.1.5
   connectivity_plus: ^6.1.1
   purchases_flutter: ^8.9.1
   url_launcher: ^6.3.2
   app_links: ^6.4.0
   google_fonts: ^6.2.1
+  flutter_secure_storage: ^10.0.0
+  sqflite_sqlcipher: ^3.4.0
 
 dev_dependencies:
   flutter_test:

@@ -10,6 +10,7 @@ class Kitchen extends Equatable {
     required this.leadId,
     required this.inviteCode,
     this.photo,
+    required this.isPublic,
     required this.membersWithScheduleEdit,
     required this.membersWithApprovalPower,
     required this.memberCount,
@@ -23,6 +24,7 @@ class Kitchen extends Equatable {
   final String leadId;
   final String inviteCode;
   final String? photo;
+  final bool isPublic;
   final List<String> membersWithScheduleEdit;
   final List<String> membersWithApprovalPower;
   final int memberCount;
@@ -38,6 +40,7 @@ class Kitchen extends Equatable {
       leadId: json['leadId'] as String,
       inviteCode: json['inviteCode'] as String,
       photo: json['photo'] as String?,
+      isPublic: json['isPublic'] as bool? ?? false,
       membersWithScheduleEdit:
           (json['membersWithScheduleEdit'] as List<dynamic>?)
                   ?.cast<String>() ??
@@ -50,8 +53,8 @@ class Kitchen extends Equatable {
       customMealSlots:
           (json['customMealSlots'] as List<dynamic>?)?.cast<String>() ??
               const [],
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 
@@ -62,6 +65,7 @@ class Kitchen extends Equatable {
       'leadId': leadId,
       'inviteCode': inviteCode,
       'photo': photo,
+      'isPublic': isPublic,
       'membersWithScheduleEdit': membersWithScheduleEdit,
       'membersWithApprovalPower': membersWithApprovalPower,
       'memberCount': memberCount,
@@ -77,6 +81,7 @@ class Kitchen extends Equatable {
     String? leadId,
     String? inviteCode,
     String? photo,
+    bool? isPublic,
     List<String>? membersWithScheduleEdit,
     List<String>? membersWithApprovalPower,
     int? memberCount,
@@ -90,6 +95,7 @@ class Kitchen extends Equatable {
       leadId: leadId ?? this.leadId,
       inviteCode: inviteCode ?? this.inviteCode,
       photo: photo ?? this.photo,
+      isPublic: isPublic ?? this.isPublic,
       membersWithScheduleEdit:
           membersWithScheduleEdit ?? this.membersWithScheduleEdit,
       membersWithApprovalPower:
@@ -108,6 +114,7 @@ class Kitchen extends Equatable {
         leadId,
         inviteCode,
         photo,
+        isPublic,
         membersWithScheduleEdit,
         membersWithApprovalPower,
         memberCount,
