@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -76,9 +77,9 @@ class _KitchenRecipesScreenState extends ConsumerState<KitchenRecipesScreen> {
                   color: AppTheme.accentPlayful,
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacing16,
                       AppTheme.spacing8,
-                      AppTheme.spacing8,
-                      AppTheme.spacing8,
+                      AppTheme.spacing16,
                       AppTheme.spacing24,
                     ),
                     itemCount: recipes.length,
@@ -299,8 +300,13 @@ class _MemberPill extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         borderRadius: AppTheme.borderRadiusFull,
+        splashColor: AppTheme.accentPlayful.withValues(alpha: 0.10),
+        highlightColor: AppTheme.accentPlayful.withValues(alpha: 0.05),
         child: Ink(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.spacing12,
@@ -393,11 +399,11 @@ class _KitchenRecipesErrorView extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.errorLight,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.error_outline_rounded,
                 size: 32,
                 color: AppTheme.error,

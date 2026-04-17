@@ -477,7 +477,7 @@ class _KitchenSettingsSection extends ConsumerWidget {
               title: detail.kitchen.name,
               subtitle:
                   '${detail.kitchen.memberCount} member${detail.kitchen.memberCount == 1 ? '' : 's'}',
-              onTap: () => context.push('/kitchen'),
+              onTap: () => context.go('/kitchen'),
             ),
           ],
         );
@@ -516,7 +516,7 @@ class _KitchenSettingsSection extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.kitchen_outlined,
             title: 'Kitchen',
-            onTap: () => context.push('/kitchen'),
+            onTap: () => context.go('/kitchen'),
           ),
         ],
       ),

@@ -34,12 +34,9 @@ void refreshNotificationProviders(
 
 /// Total unread notification count for the bell badge in [AppTopBar].
 ///
-/// Re-fetches automatically when:
-/// - A foreground push arrives (via [foregroundNotificationStream]).
-/// - The provider is explicitly invalidated (e.g. after markAsRead).
+/// Re-fetches when explicitly invalidated (e.g. after markAsRead or
+/// via [refreshNotificationProviders] called by the notification banner).
 final unreadCountProvider = FutureProvider<int>((ref) async {
-  // Re-evaluate whenever a foreground notification arrives.
-  ref.watch(foregroundNotificationStream);
   final override = ref.watch(_unreadCountOverrideProvider);
   if (override != null) return override;
 
@@ -76,10 +73,6 @@ class NotificationListNotifier extends AsyncNotifier<List<AppNotification>> {
 
   @override
   Future<List<AppNotification>> build() async {
-    // Watch the foreground stream — re-runs build() (fetches page 1) whenever
-    // a new push arrives, keeping the list fresh.
-    ref.watch(foregroundNotificationStream);
-
     _currentPage = 1;
     _hasMore = true;
     return _fetchPage(1);

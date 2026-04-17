@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
@@ -22,6 +24,57 @@ class PaywallScreen extends ConsumerStatefulWidget {
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isLoading = false;
   bool _isRestoring = false;
+  bool _showPromoInput = false;
+  bool _isRedeeming = false;
+  String? _promoError;
+  final _promoController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _redeemPromoCode() async {
+    final code = _promoController.text.trim();
+    if (code.isEmpty) {
+      setState(() => _promoError = 'Please enter a promo code');
+      return;
+    }
+    if (_isRedeeming) return;
+    setState(() {
+      _isRedeeming = true;
+      _promoError = null;
+    });
+    try {
+      final apiService = await ref.read(apiServiceProvider.future);
+      final result = await apiService.post(
+        '/promo-codes/redeem',
+        data: {'code': code},
+      );
+      if (!mounted) return;
+      if (result.isSuccess) {
+        ref.invalidate(isPremiumProvider);
+        ref.invalidate(currentUserProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Premium activated!')),
+        );
+        Navigator.of(context).pop(true);
+      } else {
+        setState(() {
+          _promoError = result.error ?? 'Failed to redeem code';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _promoError = 'Something went wrong. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isRedeeming = false);
+    }
+  }
 
   Future<void> _purchase(Package package) async {
     if (_isLoading) return;
@@ -70,6 +123,125 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     } finally {
       if (mounted) setState(() => _isRestoring = false);
     }
+  }
+
+  Widget _buildPromoCodeSection(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _showPromoInput = !_showPromoInput),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Have a promo code?',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.gray500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  _showPromoInput
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: AppTheme.gray400,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_showPromoInput) ...[
+          const SizedBox(height: AppTheme.spacing12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _promoController,
+                  textCapitalization: TextCapitalization.characters,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(20),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    _UpperCaseFormatter(),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'Enter code',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing12,
+                      vertical: AppTheme.spacing12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderSide: const BorderSide(color: AppTheme.gray200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderSide: const BorderSide(color: AppTheme.gray200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderSide: const BorderSide(color: _accentColor),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: AppTheme.borderRadiusSmall,
+                      borderSide: BorderSide(color: AppTheme.error),
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacing8),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: _isRedeeming ? null : _redeemPromoCode,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accentColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing16,
+                    ),
+                  ),
+                  child: _isRedeeming
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Apply',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                ),
+              ),
+            ],
+          ),
+          if (_promoError != null) ...[
+            const SizedBox(height: AppTheme.spacing8),
+            Text(
+              _promoError!,
+              style: context.textTheme.bodySmall?.copyWith(
+                color: AppTheme.error,
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
   }
 
   @override
@@ -278,6 +450,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                           ),
 
                         const SizedBox(height: AppTheme.spacing16),
+
+                        // Promo code section
+                        _buildPromoCodeSection(context),
+
+                        const SizedBox(height: AppTheme.spacing8),
 
                         // Restore
                         TextButton(
@@ -534,6 +711,21 @@ class _PlanCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Upper Case Input Formatter ───────────────────────────────────────────────
+
+class _UpperCaseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

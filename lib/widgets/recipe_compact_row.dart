@@ -107,14 +107,32 @@ class RecipeCompactRow extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            recipe.title,
-                            style: context.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimaryDeep,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (recipe.difficulty != null) ...[
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: difficultyLabelColor(recipe.difficulty!),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacing6),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  recipe.title,
+                                  style: context.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimaryDeep,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                           if (showAuthor && recipe.authorName != null) ...[
                             const SizedBox(height: 2),
@@ -172,6 +190,41 @@ class RecipeCompactRow extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                       fontSize: 10,
                                     ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacing8),
+                              ],
+                              if (recipe.servings != null &&
+                                  recipe.servings! > 0) ...[
+                                const Icon(
+                                  Icons.restaurant_rounded,
+                                  size: 13,
+                                  color: AppTheme.gray400,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${recipe.servings}',
+                                  style:
+                                      context.textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.gray500,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacing8),
+                              ],
+                              if (recipe.likesCount > 0) ...[
+                                const Icon(
+                                  Icons.favorite_rounded,
+                                  size: 12,
+                                  color: AppTheme.gray400,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${recipe.likesCount}',
+                                  style:
+                                      context.textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.gray500,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(width: AppTheme.spacing8),

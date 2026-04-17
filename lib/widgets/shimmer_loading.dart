@@ -320,18 +320,24 @@ class RecipeFeaturedHeroShimmer extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spacing16,
-        0,
+        AppTheme.spacing4,
         AppTheme.spacing16,
-        AppTheme.spacing16,
+        AppTheme.spacing20,
       ),
-      child: ClipRRect(
-        borderRadius: AppTheme.borderRadiusXL,
-        child: AspectRatio(
-          aspectRatio: 16 / 10,
-          child: ShimmerBox(
-            baseColor: baseColor,
-            highlightColor: highlightColor,
-            gradientValue: gradientValue,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: AppTheme.borderRadiusXL,
+          boxShadow: AppTheme.shadowHero,
+        ),
+        child: ClipRRect(
+          borderRadius: AppTheme.borderRadiusXL,
+          child: AspectRatio(
+            aspectRatio: 16 / 10,
+            child: ShimmerBox(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              gradientValue: gradientValue,
+            ),
           ),
         ),
       ),
@@ -339,14 +345,14 @@ class RecipeFeaturedHeroShimmer extends StatelessWidget {
   }
 }
 
-/// Home feed loading: one hero + compact rows.
+/// Home feed loading: one hero + full-width feed cards that mirror real layout.
 class ExploreFeedShimmerList extends StatelessWidget {
   const ExploreFeedShimmerList({
     super.key,
-    this.compactCount = 6,
+    this.cardCount = 3,
   });
 
-  final int compactCount;
+  final int cardCount;
 
   @override
   Widget build(BuildContext context) {
@@ -354,16 +360,166 @@ class ExploreFeedShimmerList extends StatelessWidget {
       builder: (context, gradientValue) {
         return ListView(
           physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(top: AppTheme.spacing8),
+          padding: const EdgeInsets.only(top: AppTheme.spacing16),
           children: [
             RecipeFeaturedHeroShimmer(gradientValue: gradientValue),
+            const SizedBox(height: AppTheme.spacing24),
+            _ShimmerSectionHeader(gradientValue: gradientValue),
+            const SizedBox(height: AppTheme.spacing8),
             ...List.generate(
-              compactCount,
-              (i) => RecipeCompactRowShimmer(gradientValue: gradientValue),
+              cardCount,
+              (i) => RecipeFeedCardShimmer(gradientValue: gradientValue),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class _ShimmerSectionHeader extends StatelessWidget {
+  const _ShimmerSectionHeader({required this.gradientValue});
+
+  final double gradientValue;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseColor = AppTheme.gray100;
+    const highlightColor = Color(0xFFF0EDE8);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        AppTheme.spacing8,
+        AppTheme.spacing16,
+        AppTheme.spacing12,
+      ),
+      child: Row(
+        children: [
+          ShimmerBox(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            gradientValue: gradientValue,
+            width: 4,
+            height: 18,
+            borderRadius: BorderRadius.circular(2),
+          ),
+          const SizedBox(width: AppTheme.spacing8),
+          ShimmerBox(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            gradientValue: gradientValue,
+            height: 16,
+            width: 180,
+            borderRadius: AppTheme.borderRadiusSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shimmer matching [RecipeFeedCard] — image, title, author, metadata row.
+class RecipeFeedCardShimmer extends StatelessWidget {
+  const RecipeFeedCardShimmer({
+    super.key,
+    required this.gradientValue,
+  });
+
+  final double gradientValue;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseColor = AppTheme.gray100;
+    const highlightColor = Color(0xFFF0EDE8);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacing16,
+        0,
+        AppTheme.spacing16,
+        AppTheme.spacing16,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: AppTheme.surfaceElevated,
+          boxShadow: AppTheme.shadowCard,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 11,
+                child: ShimmerBox(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  gradientValue: gradientValue,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerBox(
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                      gradientValue: gradientValue,
+                      height: 18,
+                      width: 240,
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    const SizedBox(height: AppTheme.spacing6),
+                    ShimmerBox(
+                      baseColor: baseColor,
+                      highlightColor: highlightColor,
+                      gradientValue: gradientValue,
+                      height: 12,
+                      width: 120,
+                      borderRadius: AppTheme.borderRadiusSmall,
+                    ),
+                    const SizedBox(height: AppTheme.spacing12),
+                    Row(
+                      children: [
+                        ShimmerBox(
+                          baseColor: baseColor,
+                          highlightColor: highlightColor,
+                          gradientValue: gradientValue,
+                          height: 14,
+                          width: 46,
+                          borderRadius: AppTheme.borderRadiusSmall,
+                        ),
+                        const SizedBox(width: AppTheme.spacing12),
+                        ShimmerBox(
+                          baseColor: baseColor,
+                          highlightColor: highlightColor,
+                          gradientValue: gradientValue,
+                          height: 14,
+                          width: 52,
+                          borderRadius: AppTheme.borderRadiusSmall,
+                        ),
+                        const Spacer(),
+                        ShimmerBox(
+                          baseColor: baseColor,
+                          highlightColor: highlightColor,
+                          gradientValue: gradientValue,
+                          height: 26,
+                          width: 78,
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusFull,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

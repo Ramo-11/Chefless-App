@@ -1,13 +1,15 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/extensions.dart';
+import '../../widgets/animated_selectable_chip.dart';
 import '../../widgets/onboarding_illustration.dart';
+import '../../widgets/onboarding_progress_bar.dart';
 
 /// Available dietary preference options.
 const List<String> _dietaryOptions = [
@@ -35,6 +37,7 @@ class _DietaryPreferencesScreenState
   bool _isSaving = false;
 
   Future<void> _saveAndContinue() async {
+    HapticFeedback.lightImpact();
     setState(() => _isSaving = true);
 
     try {
@@ -72,6 +75,7 @@ class _DietaryPreferencesScreenState
   }
 
   void _skip() {
+    HapticFeedback.selectionClick();
     context.go('/onboarding/cuisine');
   }
 
@@ -79,7 +83,6 @@ class _DietaryPreferencesScreenState
     if (!mounted) return;
     setState(() {
       if (option == 'None') {
-        // Selecting "None" clears all others.
         _selected.clear();
         _selected.add('None');
       } else {
@@ -96,11 +99,11 @@ class _DietaryPreferencesScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceWarm,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/onboarding/profile'),
           tooltip: 'Back',
         ),
@@ -113,125 +116,117 @@ class _DietaryPreferencesScreenState
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacing32,
-            vertical: AppTheme.spacing24,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Illustration
-              const Center(
-                child: OnboardingIllustration(
-                  size: 200,
-                  centerIcon: Icons.set_meal_rounded,
-                  centerColor: AppTheme.primaryColor,
-                  centerIconSize: 40,
-                  centerCircleSize: 80,
-                  backdropColors: [
-                    AppTheme.primaryColor,
-                    Color(0xFF43A047),
-                  ],
-                  satellites: [
-                    Satellite(
-                      icon: Icons.eco_rounded,
-                      color: Color(0xFF43A047),
-                      angle: -pi / 3,
-                      distance: 72,
-                      bobPhase: 0,
-                      containerSize: 36,
-                      iconSize: 18,
-                      bobAmplitude: 6,
-                    ),
-                    Satellite(
-                      icon: Icons.grain_rounded,
-                      color: AppTheme.secondaryColor,
-                      angle: pi / 4,
-                      distance: 75,
-                      bobPhase: 0.35,
-                      containerSize: 34,
-                      iconSize: 18,
-                      bobAmplitude: 5,
-                    ),
-                    Satellite(
-                      icon: Icons.water_drop_rounded,
-                      color: Color(0xFF42A5F5),
-                      angle: 3 * pi / 4,
-                      distance: 70,
-                      bobPhase: 0.7,
-                      containerSize: 34,
-                      iconSize: 18,
-                      bobAmplitude: 7,
-                    ),
-                  ],
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const OnboardingProgressBar(current: 2),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing32,
               ),
-
-              const SizedBox(height: AppTheme.spacing16),
-
-              Text(
-                'Any dietary needs?',
-                style: context.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  color: AppTheme.gray900,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppTheme.spacing8),
-              Text(
-                'This helps us suggest recipes you\'ll love.',
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.gray500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: AppTheme.spacing32),
-
-              // Chips
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: AppTheme.spacing12,
-                    runSpacing: AppTheme.spacing12,
-                    children: _dietaryOptions.map((option) {
-                      final isSelected = _selected.contains(option);
-                      return FilterChip(
-                        label: Text(option),
-                        selected: isSelected,
-                        showCheckmark: true,
-                        checkmarkColor: AppTheme.primaryColor,
-                        selectedColor: AppTheme.primaryLight,
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppTheme.primaryColor
-                              : AppTheme.gray200,
+              child: Column(
+                children: [
+                  const Center(
+                    child: OnboardingIllustration(
+                      size: 200,
+                      centerIcon: Icons.set_meal_rounded,
+                      centerColor: AppTheme.primaryColor,
+                      centerIconSize: 40,
+                      centerCircleSize: 80,
+                      backdropColors: [
+                        AppTheme.primaryColor,
+                        Color(0xFF43A047),
+                      ],
+                      satellites: [
+                        Satellite(
+                          icon: Icons.eco_rounded,
+                          color: Color(0xFF43A047),
+                          angle: -pi / 3,
+                          distance: 72,
+                          bobPhase: 0,
+                          containerSize: 36,
+                          iconSize: 18,
+                          bobAmplitude: 6,
                         ),
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? AppTheme.primaryDark
-                              : AppTheme.gray700,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                        Satellite(
+                          icon: Icons.grain_rounded,
+                          color: AppTheme.accentPlayful,
+                          angle: pi / 4,
+                          distance: 75,
+                          bobPhase: 0.35,
+                          containerSize: 34,
+                          iconSize: 18,
+                          bobAmplitude: 5,
                         ),
-                        onSelected: (_) => _toggleOption(option),
-                      );
-                    }).toList(),
+                        Satellite(
+                          icon: Icons.water_drop_rounded,
+                          color: Color(0xFF42A5F5),
+                          angle: 3 * pi / 4,
+                          distance: 70,
+                          bobPhase: 0.7,
+                          containerSize: 34,
+                          iconSize: 18,
+                          bobAmplitude: 7,
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Text(
+                    'Any dietary needs?',
+                    style: AppTheme.displayTitleMedium(),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppTheme.spacing10),
+                  const Text(
+                    'We\'ll tailor recipe suggestions to fit how you eat.',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w400,
+                      height: 1.5,
+                      color: AppTheme.gray600,
+                      letterSpacing: -0.1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppTheme.spacing24),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing32,
+                ),
+                child: Wrap(
+                  spacing: AppTheme.spacing10,
+                  runSpacing: AppTheme.spacing10,
+                  children: _dietaryOptions.map((option) {
+                    return AnimatedSelectableChip(
+                      label: option,
+                      selected: _selected.contains(option),
+                      onTap: () => _toggleOption(option),
+                    );
+                  }).toList(),
                 ),
               ),
+            ),
 
-              const SizedBox(height: AppTheme.spacing20),
+            const SizedBox(height: AppTheme.spacing16),
 
-              // Continue button
-              SizedBox(
-                height: 52,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing32,
+              ),
+              child: SizedBox(
+                height: 54,
                 child: FilledButton(
                   onPressed: _isSaving ? null : _saveAndContinue,
                   style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusMedium,
                     ),
                   ),
@@ -247,8 +242,9 @@ class _DietaryPreferencesScreenState
                       : const Text('Continue'),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: AppTheme.spacing24),
+          ],
         ),
       ),
     );

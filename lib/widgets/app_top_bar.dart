@@ -6,6 +6,20 @@ import '../core/theme/app_theme.dart';
 import '../providers/notification_provider.dart';
 import '../utils/app_help_content.dart';
 
+/// Icon button that navigates to the shared recipes inbox.
+class SharedRecipesIcon extends StatelessWidget {
+  const SharedRecipesIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.send_rounded, size: 20),
+      onPressed: () => context.push('/shared-recipes'),
+      tooltip: 'Shared with you',
+    );
+  }
+}
+
 /// Notification bell icon button with an unread-count badge.
 ///
 /// Drop this into any AppBar's `actions` list to give users access
@@ -19,21 +33,66 @@ class NotificationBellIcon extends ConsumerWidget {
 
     return IconButton(
       icon: unreadCount > 0
-          ? Badge(
-              label: Text(
-                unreadCount > 99 ? '99+' : '$unreadCount',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              backgroundColor: AppTheme.likeColor,
+          ? _CountBadge(
+              count: unreadCount,
               child: const Icon(Icons.notifications_outlined),
             )
           : const Icon(Icons.notifications_outlined),
       onPressed: () => context.push('/notifications'),
       tooltip: 'Notifications',
+    );
+  }
+}
+
+/// Premium-feel count badge: terracotta pill, tight padding, white border for
+/// contrast against warm backgrounds.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count, required this.child});
+
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          top: -4,
+          right: -6,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+            padding: EdgeInsets.symmetric(
+              horizontal: count > 9 ? 5 : 0,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.accentPlayful,
+              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+              border: Border.all(color: AppTheme.surfaceWarm, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accentPlayful.withValues(alpha: 0.4),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.1,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -61,10 +120,10 @@ String _profileRouteForCurrentBranch(BuildContext context) {
   final location = GoRouterState.of(context).uri.toString();
   const branchRoots = [
     '/home',
-    '/schedule',
-    '/recipes',
-    '/shopping',
     '/kitchen',
+    '/recipes',
+    '/schedule',
+    '/shopping',
   ];
 
   for (final root in branchRoots) {

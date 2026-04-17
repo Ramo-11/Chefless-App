@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/recipe.dart';
@@ -249,21 +250,139 @@ final followRequestActionProvider = StateNotifierProvider<
   return FollowRequestActionNotifier(ref);
 });
 
-/// Fetches another user's public recipes.
-final userRecipesProvider =
-    FutureProvider.family<List<Recipe>, String>((ref, userId) async {
-  final apiService = await ref.watch(apiServiceProvider.future);
-  final result = await apiService.get(
-    '/users/$userId/recipes',
-    queryParameters: {'page': 1, 'limit': 100},
-  );
+int _intFromApi(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return fallback;
+}
 
-  if (result.isFailure || result.data == null) {
-    throw Exception(result.error ?? 'Failed to load recipes.');
-  }
-
-  final recipes = result.data!['data'] as List<dynamic>? ?? [];
-  return recipes
+List<Recipe> _parseUserRecipesPayload(Map<String, dynamic> data) {
+  final raw = data['data'] as List<dynamic>? ?? [];
+  return raw
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
       .toList();
-});
+}
+
+/// One page of another user's shared recipes (see [userRecipesPagedProvider]).
+@immutable
+class UserRecipesPagedState {
+  const UserRecipesPagedState({
+    required this.recipes,
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalCount,
+    this.isLoadingMore = false,
+  });
+
+  final List<Recipe> recipes;
+  final int currentPage;
+  final int totalPages;
+  final int totalCount;
+  final bool isLoadingMore;
+
+  bool get hasMore => currentPage < totalPages;
+
+  UserRecipesPagedState copyWith({
+    List<Recipe>? recipes,
+    int? currentPage,
+    int? totalPages,
+    int? totalCount,
+    bool? isLoadingMore,
+  }) {
+    return UserRecipesPagedState(
+      recipes: recipes ?? this.recipes,
+      currentPage: currentPage ?? this.currentPage,
+      totalPages: totalPages ?? this.totalPages,
+      totalCount: totalCount ?? this.totalCount,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
+}
+
+/// Loads `/users/:id/recipes` page-by-page (API limit max 50 per request).
+class UserRecipesPagedNotifier
+    extends StateNotifier<AsyncValue<UserRecipesPagedState>> {
+  UserRecipesPagedNotifier(this._ref, this.userId) : super(const AsyncLoading()) {
+    Future.microtask(loadInitial);
+  }
+
+  final Ref _ref;
+  final String userId;
+
+  static const int _pageSize = 20;
+
+  Future<void> refresh() => loadInitial();
+
+  Future<void> loadInitial() async {
+    state = const AsyncLoading();
+    try {
+      await _fetchAndSetPage(1, append: false);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
+  Future<void> loadMore() async {
+    final current = state.asData?.value;
+    if (current == null || !current.hasMore || current.isLoadingMore) {
+      return;
+    }
+
+    final snapshot = current;
+    state = AsyncData(snapshot.copyWith(isLoadingMore: true));
+    try {
+      await _fetchAndSetPage(snapshot.currentPage + 1, append: true);
+    } catch (_) {
+      state = AsyncData(snapshot.copyWith(isLoadingMore: false));
+    }
+  }
+
+  Future<void> _fetchAndSetPage(int page, {required bool append}) async {
+    final apiService = await _ref.read(apiServiceProvider.future);
+    final result = await apiService.get(
+      '/users/$userId/recipes',
+      queryParameters: {'page': page, 'limit': _pageSize},
+    );
+
+    if (result.isFailure || result.data == null) {
+      throw Exception(result.error ?? 'Failed to load recipes.');
+    }
+
+    final data = result.data!;
+    final batch = _parseUserRecipesPayload(data);
+    final totalCount = _intFromApi(data['total'], fallback: batch.length);
+    var totalPages = _intFromApi(data['totalPages'], fallback: -1);
+    if (totalPages < 0) {
+      totalPages = totalCount == 0
+          ? 0
+          : (totalCount + _pageSize - 1) ~/ _pageSize;
+    }
+
+    if (append) {
+      final previous = state.asData!.value;
+      state = AsyncData(
+        UserRecipesPagedState(
+          recipes: [...previous.recipes, ...batch],
+          currentPage: page,
+          totalPages: totalPages,
+          totalCount: totalCount,
+        ),
+      );
+    } else {
+      state = AsyncData(
+        UserRecipesPagedState(
+          recipes: batch,
+          currentPage: page,
+          totalPages: totalPages,
+          totalCount: totalCount,
+        ),
+      );
+    }
+  }
+}
+
+final userRecipesPagedProvider = StateNotifierProvider.autoDispose
+    .family<UserRecipesPagedNotifier, AsyncValue<UserRecipesPagedState>, String>(
+  (ref, userId) => UserRecipesPagedNotifier(ref, userId),
+);

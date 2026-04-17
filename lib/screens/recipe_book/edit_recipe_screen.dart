@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/recipe.dart';
@@ -13,6 +11,10 @@ import '../../providers/auth_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/extensions.dart';
+import '../../utils/image_picker_helper.dart';
+import '../../utils/json_helpers.dart';
+import '../../widgets/cuisine_selector.dart';
+import 'ai_recipe_helper_sheet.dart';
 
 const _systemLabels = [
   'Breakfast',
@@ -34,20 +36,7 @@ const _dietaryOptions = [
   'Paleo',
 ];
 
-const _cuisineOptions = [
-  'Middle Eastern',
-  'Italian',
-  'Mexican',
-  'Indian',
-  'Chinese',
-  'Japanese',
-  'Thai',
-  'Korean',
-  'French',
-  'Mediterranean',
-  'American',
-  'African',
-];
+// Cuisine tags now use the shared CuisineSelector widget.
 
 const _difficultyOptions = ['easy', 'medium', 'hard'];
 const _costOptions = ['budget', 'moderate', 'expensive'];
@@ -83,6 +72,8 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
   final Set<String> _selectedLabels = {};
   final Set<String> _selectedDietaryTags = {};
   final Set<String> _selectedCuisineTags = {};
+  final Set<String> _customTags = {};
+  final _customTagController = TextEditingController();
   String? _selectedDifficulty;
   String? _selectedCostEstimate;
   bool _isPrivate = false;
@@ -97,6 +88,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     _descriptionController.dispose();
     _storyController.dispose();
     _customLabelController.dispose();
+    _customTagController.dispose();
     _prepTimeController.dispose();
     _cookTimeController.dispose();
     _servingsController.dispose();
@@ -111,6 +103,74 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     super.dispose();
   }
 
+  void _mergeAiImportData(Map<String, dynamic> data) {
+    setState(() {
+      _titleController.text = safeString(data['title']);
+      _descriptionController.text = safeString(data['description']);
+
+      if (data['prepTime'] != null) {
+        _prepTimeController.text = '${data['prepTime']}';
+      }
+      if (data['cookTime'] != null) {
+        _cookTimeController.text = '${data['cookTime']}';
+      }
+      if (data['servings'] != null) {
+        final s = '${data['servings']}';
+        _servingsController.text = s;
+        _baseServingsController.text = s;
+      }
+
+      final rawIngredients =
+          (data['ingredients'] as List<dynamic>?)
+                  ?.cast<Map<String, dynamic>>() ??
+              const [];
+      if (rawIngredients.isNotEmpty) {
+        for (final e in _ingredients) {
+          e.dispose();
+        }
+        _ingredients.clear();
+        for (final ing in rawIngredients) {
+          final entry = _IngredientEntry();
+          entry.nameController.text = safeString(ing['name']);
+          final qty = ing['quantity'];
+          entry.quantityController.text = qty != null ? '$qty' : '1';
+          entry.unitController.text = safeString(ing['unit']);
+          entry.groupController.text = safeString(ing['group']);
+          _ingredients.add(entry);
+        }
+      }
+
+      final rawSteps =
+          (data['steps'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+              const [];
+      if (rawSteps.isNotEmpty) {
+        for (final e in _steps) {
+          e.dispose();
+        }
+        _steps.clear();
+        for (final step in rawSteps) {
+          final entry = _StepEntry();
+          entry.instructionController.text = safeString(step['instruction']);
+          _steps.add(entry);
+        }
+      }
+
+      final dietaryTags =
+          (data['dietaryTags'] as List<dynamic>?)?.cast<String>() ??
+              const [];
+      _selectedDietaryTags
+        ..clear()
+        ..addAll(dietaryTags);
+
+      final cuisineTags =
+          (data['cuisineTags'] as List<dynamic>?)?.cast<String>() ??
+              const [];
+      _selectedCuisineTags
+        ..clear()
+        ..addAll(cuisineTags);
+    });
+  }
+
   void _populateFields(Recipe recipe) {
     if (_isInitialized) return;
     _isInitialized = true;
@@ -122,6 +182,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     _selectedLabels.addAll(recipe.labels);
     _selectedDietaryTags.addAll(recipe.dietaryTags);
     _selectedCuisineTags.addAll(recipe.cuisineTags);
+    _customTags.addAll(recipe.tags);
     _selectedDifficulty = recipe.difficulty;
     _selectedCostEstimate = recipe.costEstimate;
     _isPrivate = recipe.isPrivate;
@@ -175,12 +236,11 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       return;
     }
 
-    final picker = ImagePicker();
-    final images = await picker.pickMultiImage(
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
+    final images = await pickAndCropMultipleImages(
+      aspect: CropAspect.recipe,
       limit: remaining,
+      maxSize: 1920,
+      quality: 88,
     );
 
     if (images.isEmpty || !mounted) return;
@@ -193,7 +253,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       if (!mounted) return;
 
       try {
-        final bytes = await File(image.path).readAsBytes();
+        final bytes = await image.readAsBytes();
         final fileSizeMb = bytes.length / (1024 * 1024);
 
         if (fileSizeMb > 25) {
@@ -299,6 +359,17 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
     }
   }
 
+  void _addCustomTag() {
+    final tag = _customTagController.text.trim();
+    if (tag.isEmpty) return;
+    if (mounted) {
+      setState(() {
+        _customTags.add(tag);
+        _customTagController.clear();
+      });
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -353,6 +424,7 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
       'labels': _selectedLabels.map((l) => l.toLowerCase()).toList(),
       'dietaryTags': _selectedDietaryTags.toList(),
       'cuisineTags': _selectedCuisineTags.toList(),
+      'tags': _customTags.map((t) => t.toLowerCase()).toList(),
       if (_selectedDifficulty != null) 'difficulty': _selectedDifficulty,
       'ingredients': ingredients,
       'steps': steps,
@@ -402,6 +474,16 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Map<String, dynamic>?>(importedRecipeDataProvider, (prev, next) {
+      if (next != null && _isInitialized) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _mergeAiImportData(next);
+          ref.read(importedRecipeDataProvider.notifier).state = null;
+        });
+      }
+    });
+
     final recipeAsync = ref.watch(recipeDetailProvider(widget.recipeId));
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
     final hasSignature =
@@ -444,6 +526,21 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
           appBar: AppBar(
             title: const Text('Edit Recipe'),
             actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: TextButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () => AiRecipeHelperSheet.show(context, ref),
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('AI'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ),
               TextButton(
                 onPressed: _isSaving ? null : _save,
                 child: _isSaving
@@ -645,28 +742,68 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
                 // Cuisine tags
                 const _SectionHeader(title: 'Cuisine Tags'),
                 const SizedBox(height: AppTheme.spacingSm),
-                Wrap(
-                  spacing: AppTheme.spacingSm,
-                  runSpacing: AppTheme.spacingSm,
-                  children: _cuisineOptions.map((tag) {
-                    final isSelected = _selectedCuisineTags.contains(tag);
-                    return FilterChip(
-                      label: Text(tag),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (mounted) {
-                          setState(() {
-                            if (selected) {
-                              _selectedCuisineTags.add(tag);
-                            } else {
-                              _selectedCuisineTags.remove(tag);
-                            }
-                          });
-                        }
-                      },
-                    );
-                  }).toList(),
+                CuisineSelector(
+                  selected: _selectedCuisineTags,
+                  onChanged: (updated) {
+                    if (mounted) {
+                      setState(() {
+                        _selectedCuisineTags
+                          ..clear()
+                          ..addAll(updated);
+                      });
+                    }
+                  },
                 ),
+                const SizedBox(height: AppTheme.spacingLg),
+
+                // Custom Tags
+                const _SectionHeader(title: 'Custom Tags'),
+                const SizedBox(height: AppTheme.spacing4),
+                Text(
+                  'Add your own tags to help organize and find recipes',
+                  style: context.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.gray500,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _customTagController,
+                        decoration: const InputDecoration(
+                          hintText: 'e.g. meal-prep, quick, comfort-food',
+                          isDense: true,
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                        onFieldSubmitted: (_) => _addCustomTag(),
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacing8),
+                    IconButton(
+                      onPressed: _addCustomTag,
+                      icon: const Icon(Icons.add_circle_outline),
+                      tooltip: 'Add tag',
+                    ),
+                  ],
+                ),
+                if (_customTags.isNotEmpty) ...[
+                  const SizedBox(height: AppTheme.spacing8),
+                  Wrap(
+                    spacing: AppTheme.spacing8,
+                    runSpacing: AppTheme.spacing8,
+                    children: _customTags
+                        .map((tag) => Chip(
+                              label: Text(tag),
+                              onDeleted: () {
+                                if (mounted) {
+                                  setState(() => _customTags.remove(tag));
+                                }
+                              },
+                            ))
+                        .toList(),
+                  ),
+                ],
                 const SizedBox(height: AppTheme.spacingLg),
 
                 // Difficulty
@@ -676,10 +813,24 @@ class _EditRecipeScreenState extends ConsumerState<EditRecipeScreen> {
                   spacing: AppTheme.spacingSm,
                   children: _difficultyOptions.map((d) {
                     final isSelected = _selectedDifficulty == d;
+                    final diffColor = switch (d) {
+                      'easy' => AppTheme.success,
+                      'medium' => AppTheme.warning,
+                      'hard' => AppTheme.error,
+                      _ => AppTheme.gray400,
+                    };
                     return ChoiceChip(
                       label:
                           Text(d[0].toUpperCase() + d.substring(1)),
                       selected: isSelected,
+                      selectedColor: diffColor.withValues(alpha: 0.15),
+                      side: BorderSide(
+                        color: isSelected ? diffColor : AppTheme.gray200,
+                      ),
+                      labelStyle: TextStyle(
+                        color: isSelected ? diffColor : AppTheme.gray700,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      ),
                       onSelected: (selected) {
                         if (mounted) {
                           setState(() {

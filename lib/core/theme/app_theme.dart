@@ -15,7 +15,9 @@ class AppTheme {
   static const double spacing4 = 4;
   static const double spacing6 = 6;
   static const double spacing8 = 8;
+  static const double spacing10 = 10;
   static const double spacing12 = 12;
+  static const double spacing14 = 14;
   static const double spacing16 = 16;
   static const double spacing20 = 20;
   static const double spacing24 = 24;
@@ -156,16 +158,33 @@ class AppTheme {
       ];
 
   /// Soft lift for featured cards on warm backgrounds.
-  static List<BoxShadow> get shadowFeatured => [
+  static List<BoxShadow> get shadowFeatured => shadowCard;
+
+  /// Borderless card lift for feed / glance cards on warm backgrounds.
+  static List<BoxShadow> get shadowCard => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.06),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
+          color: const Color(0xFF1F1A12).withValues(alpha: 0.05),
+          blurRadius: 18,
+          offset: const Offset(0, 6),
         ),
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.03),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
+          color: const Color(0xFF1F1A12).withValues(alpha: 0.03),
+          blurRadius: 4,
+          offset: const Offset(0, 1),
+        ),
+      ];
+
+  /// Editorial hero shadow — stronger, softer, warmer.
+  static List<BoxShadow> get shadowHero => [
+        BoxShadow(
+          color: const Color(0xFF1F1A12).withValues(alpha: 0.10),
+          blurRadius: 32,
+          offset: const Offset(0, 14),
+        ),
+        BoxShadow(
+          color: const Color(0xFF1F1A12).withValues(alpha: 0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
         ),
       ];
 

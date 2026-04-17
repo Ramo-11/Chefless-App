@@ -168,7 +168,7 @@ class SyncService {
             entry.id,
             entry.toJson(),
             extraColumns: {
-              'kitchenId': entry.kitchenId,
+              'kitchenId': entry.kitchenId ?? '',
               'date': entry.date.toIso8601String(),
             },
           );

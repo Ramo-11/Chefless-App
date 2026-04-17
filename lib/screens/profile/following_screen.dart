@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/shimmer_loading.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Displays the list of users the current user is following.
@@ -18,7 +20,7 @@ class FollowingScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Following')),
       body: followingAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const UserListShimmer(),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
@@ -46,7 +48,11 @@ class FollowingScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacing20),
-                ElevatedButton(
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () => ref.invalidate(followingProvider(1)),
                   child: const Text('Retry'),
                 ),
@@ -86,6 +92,7 @@ class FollowingScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
+            color: AppTheme.accentPlayful,
             onRefresh: () async {
               ref.invalidate(followingProvider(1));
               await ref.read(followingProvider(1).future);
@@ -120,7 +127,10 @@ class FollowingScreen extends ConsumerWidget {
                     ),
                   ),
                   trailing: OutlinedButton(
-                    onPressed: () => _confirmUnfollow(context, ref, user),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _confirmUnfollow(context, ref, user);
+                    },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppTheme.spacingMd,

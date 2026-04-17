@@ -203,6 +203,7 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				A1B2C3D4E5F60718091A2B3C /* Generate Missing dSYMs */,
 				055499FD7A4562285559419C /* [CP] Copy Pods Resources */,
 				5A73B5AD21415044A0451FCA /* [CP] Embed Pods Frameworks */,
 			);
@@ -309,6 +310,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		A1B2C3D4E5F60718091A2B3C /* Generate Missing dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Generate Missing dSYMs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Generate dSYMs for embedded frameworks that ship without them\n# (e.g. objective_c.framework from Flutter SDK) to suppress\n# \"Upload Symbols Failed\" warning on App Store Connect.\nif [ \"${CONFIGURATION}\" = \"Release\" ] || [ \"${CONFIGURATION}\" = \"Profile\" ]; then\n  FRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\n  DSYM_DIR=\"${DWARF_DSYM_FOLDER_PATH}\"\n  for fw in \"${FRAMEWORKS_DIR}\"/*.framework; do\n    [ -d \"$fw\" ] || continue\n    FW_NAME=$(basename \"$fw\" .framework)\n    DSYM_PATH=\"${DSYM_DIR}/${FW_NAME}.framework.dSYM\"\n    if [ ! -d \"${DSYM_PATH}\" ] && [ -f \"${fw}/${FW_NAME}\" ]; then\n      dsymutil \"${fw}/${FW_NAME}\" -o \"${DSYM_PATH}\" 2>/dev/null || true\n    fi\n  done\nfi\n";
 		};
 		5A73B5AD21415044A0451FCA /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/kitchen.dart';
+import '../models/kitchen_invite.dart';
 import '../models/recipe.dart';
 import 'auth_provider.dart';
 
@@ -69,6 +70,26 @@ final kitchenRecipesProvider = FutureProvider.family<List<Recipe>,
       [];
   return recipes
       .map((r) => Recipe.fromJson(r as Map<String, dynamic>))
+      .toList();
+});
+
+/// Pending in-app kitchen invites addressed to the current user.
+///
+/// Used by the Notifications screen as an authoritative source-of-truth
+/// for the Accept/Decline buttons. Invalidated by [KitchenActionNotifier]
+/// whenever an invite is sent, accepted, declined, or cancelled.
+final pendingKitchenInvitesProvider =
+    FutureProvider<List<KitchenInvite>>((ref) async {
+  final apiService = await ref.watch(apiServiceProvider.future);
+  final result = await apiService.get('/kitchens/invites');
+
+  if (result.isFailure || result.data == null) {
+    throw Exception(result.error ?? 'Failed to load kitchen invites.');
+  }
+
+  final invites = (result.data!['invites'] as List<dynamic>?) ?? const [];
+  return invites
+      .map((i) => KitchenInvite.fromJson(i as Map<String, dynamic>))
       .toList();
 });
 
@@ -275,6 +296,115 @@ class KitchenActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to update kitchen privacy.');
       }
       _ref.invalidate(myKitchenProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Updates the kitchen-wide policy controlling who can add schedule entries
+  /// directly (lead only) or freely (all members). Lead only.
+  ///
+  /// [policy] must be `"lead_only"` or `"all"`. Invalidates
+  /// [myKitchenProvider] on success so the kitchen detail screen re-renders.
+  Future<bool> updateScheduleAddPolicy(String policy) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.patch(
+        '/kitchens/me',
+        data: {'scheduleAddPolicy': policy},
+      );
+      if (result.isFailure) {
+        throw Exception(
+            result.error ?? 'Failed to update schedule add policy.');
+      }
+      _ref.invalidate(myKitchenProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Sends an in-app invite from the current lead to [userId].
+  ///
+  /// The recipient receives a `kitchen_invite_received` notification with
+  /// inline Accept/Decline buttons. Returns `false` if the request fails —
+  /// inspect [state] for the error.
+  Future<bool> sendKitchenInvite(String userId) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.post(
+        '/kitchens/invites',
+        data: {'recipientUserId': userId},
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to send invite.');
+      }
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Accepts a pending kitchen invite. Moves the recipient into the kitchen
+  /// and notifies the sender.
+  Future<bool> acceptKitchenInvite(String inviteId) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result =
+          await apiService.post('/kitchens/invites/$inviteId/accept');
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to accept invite.');
+      }
+      _ref.invalidate(myKitchenProvider);
+      _ref.invalidate(pendingKitchenInvitesProvider);
+      _ref.invalidate(currentUserProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Declines a pending kitchen invite. Notifies the sender.
+  Future<bool> declineKitchenInvite(String inviteId) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result =
+          await apiService.post('/kitchens/invites/$inviteId/decline');
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to decline invite.');
+      }
+      _ref.invalidate(pendingKitchenInvitesProvider);
+      state = const AsyncData<void>(null);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Cancels a pending invite the current user sent.
+  Future<bool> cancelKitchenInvite(String inviteId) async {
+    state = const AsyncLoading<void>();
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.delete('/kitchens/invites/$inviteId');
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to cancel invite.');
+      }
+      _ref.invalidate(pendingKitchenInvitesProvider);
       state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {

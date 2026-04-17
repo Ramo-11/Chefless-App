@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_theme.dart';
 import '../providers/notification_provider.dart';
+import '../utils/app_icons.dart';
 import '../utils/navigator_keys.dart';
 
 /// Wraps the app's root widget and shows an animated in-app banner whenever
@@ -292,10 +293,12 @@ IconData _iconForType(String type) {
       return Icons.how_to_reg_rounded;
     case 'recipe_liked':
       return Icons.favorite_rounded;
+    case 'recipe_saved':
+      return Icons.bookmark_rounded;
     case 'recipe_forked':
       return Icons.autorenew_rounded;
     case 'recipe_shared':
-      return Icons.share_rounded;
+      return AppIcons.share;
     case 'schedule_suggestion':
       return Icons.restaurant_menu_rounded;
     case 'suggestion_approved':
@@ -304,8 +307,18 @@ IconData _iconForType(String type) {
       return Icons.cancel_rounded;
     case 'kitchen_joined':
       return Icons.group_add_rounded;
+    case 'kitchen_invite':
+      return Icons.celebration_rounded;
+    case 'kitchen_invite_received':
+      return Icons.mail_outline_rounded;
+    case 'kitchen_invite_accepted':
+      return Icons.how_to_reg_rounded;
+    case 'kitchen_invite_declined':
+      return Icons.block_rounded;
     case 'kitchen_removed':
       return Icons.group_remove_rounded;
+    case 'system':
+      return Icons.info_outline_rounded;
     default:
       return Icons.notifications_rounded;
   }
@@ -319,6 +332,8 @@ Color _colorForType(String type) {
       return AppTheme.primaryColor;
     case 'recipe_liked':
       return AppTheme.likeColor;
+    case 'recipe_saved':
+      return AppTheme.accentPlayful;
     case 'recipe_forked':
       return AppTheme.primaryDark;
     case 'recipe_shared':
@@ -331,8 +346,18 @@ Color _colorForType(String type) {
       return AppTheme.error;
     case 'kitchen_joined':
       return AppTheme.info;
+    case 'kitchen_invite':
+      return AppTheme.success;
+    case 'kitchen_invite_received':
+      return AppTheme.primaryColor;
+    case 'kitchen_invite_accepted':
+      return AppTheme.success;
+    case 'kitchen_invite_declined':
+      return AppTheme.gray500;
     case 'kitchen_removed':
       return AppTheme.error;
+    case 'system':
+      return AppTheme.gray500;
     default:
       return AppTheme.gray500;
   }

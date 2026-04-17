@@ -55,10 +55,10 @@ class _ImportRecipeSheetState extends ConsumerState<ImportRecipeSheet> {
       return;
     }
 
-    // Check free tier recipe limit before bothering the API.
     final currentUser = ref.read(currentUserProvider).valueOrNull;
-    final myRecipes = ref.read(myRecipesProvider).valueOrNull ?? [];
-    if (currentUser != null && !currentUser.isPremium && myRecipes.length >= 10) {
+    if (currentUser != null &&
+        !currentUser.isPremiumActive &&
+        currentUser.originalRecipesCount >= 10) {
       if (mounted) Navigator.of(context).pop();
       if (mounted) {
         PaywallBottomSheet.show(

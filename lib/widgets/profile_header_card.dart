@@ -37,7 +37,7 @@ class ProfileHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge = computeSpatulaBadge(user.recipesCount);
+    final badge = computeSpatulaBadge(user.originalRecipesCount);
     final memberSince = DateFormat('MMM yyyy').format(user.createdAt);
     final chips = <_ProfileChipData>[
       _ProfileChipData(
@@ -181,6 +181,59 @@ class ProfileHeaderCard extends StatelessWidget {
                   ),
                 ),
               ],
+              if (user.signature != null && user.signature!.trim().isNotEmpty) ...[
+                const SizedBox(height: AppTheme.spacing16),
+                Center(
+                  child: Text(
+                    'RECIPE SIGNATURE',
+                    style: context.textTheme.labelMedium?.copyWith(
+                      color: AppTheme.gray500,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.9,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing8),
+                Center(
+                  child: Container(
+                    height: 72,
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing16,
+                      vertical: AppTheme.spacing8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: AppTheme.borderRadiusMedium,
+                      boxShadow: AppTheme.shadowSubtle,
+                    ),
+                    child: Image.network(
+                      user.signature!.trim(),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.draw_rounded,
+                        size: 32,
+                        color: AppTheme.gray400,
+                      ),
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppTheme.accentPlayful,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
               if (chips.isNotEmpty) ...[
                 const SizedBox(height: AppTheme.spacing16),
                 Center(
@@ -283,10 +336,9 @@ class _ProfileMetricStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacing8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.82),
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceWarm,
         borderRadius: AppTheme.borderRadiusLarge,
-        border: Border.all(color: AppTheme.gray200.withValues(alpha: 0.8)),
       ),
       child: Row(
         children: [
@@ -324,8 +376,8 @@ class _MetricDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 36,
-      color: AppTheme.gray200,
+      height: 32,
+      color: AppTheme.gray200.withValues(alpha: 0.6),
     );
   }
 }
@@ -378,6 +430,8 @@ class _ProfileMetricCell extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: AppTheme.borderRadiusMedium,
+      splashColor: AppTheme.accentPlayful.withValues(alpha: 0.12),
+      highlightColor: AppTheme.accentPlayful.withValues(alpha: 0.06),
       child: child,
     );
   }

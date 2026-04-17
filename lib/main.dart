@@ -27,6 +27,9 @@ import 'screens/profile/followers_screen.dart';
 import 'screens/profile/following_screen.dart';
 import 'screens/profile/other_user_profile_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/profile/signature_screen.dart';
+import 'screens/recipe_book/cookbook_detail_screen.dart';
+import 'screens/recipe_book/cookbook_form_screen.dart';
 import 'screens/recipe_book/create_recipe_screen.dart';
 import 'screens/recipe_book/edit_recipe_screen.dart';
 import 'screens/recipe_book/recipe_book_screen.dart';
@@ -36,10 +39,12 @@ import 'screens/kitchen/join_kitchen_screen.dart';
 import 'screens/kitchen/kitchen_detail_screen.dart';
 import 'screens/kitchen/kitchen_recipes_screen.dart';
 import 'screens/kitchen/manage_permissions_screen.dart';
+import 'screens/home/globe_screen.dart';
 import 'screens/schedule/schedule_screen.dart';
 import 'screens/schedule/suggestions_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
+import 'screens/shared_recipes/shared_recipes_screen.dart';
 import 'widgets/notification_banner.dart';
 import 'screens/settings/account_settings_screen.dart';
 import 'screens/settings/notification_preferences_screen.dart';
@@ -50,12 +55,12 @@ import 'screens/shopping/shopping_list_screen.dart';
 import 'screens/splash_screen.dart';
 import 'utils/navigator_keys.dart';
 
-// Navigator keys for each tab branch.
+// Navigator keys for each tab branch (order matches [StatefulShellRoute] branches).
 final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
-final _scheduleNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'schedule');
-final _recipesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'recipes');
-final _shoppingNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shopping');
 final _kitchenNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'kitchen');
+final _recipesNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'recipes');
+final _scheduleNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'schedule');
+final _shoppingNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shopping');
 
 /// Dismisses the keyboard automatically on every route transition (push, pop,
 /// replace). Prevents the keyboard from getting stuck when navigating while
@@ -98,6 +103,10 @@ List<RouteBase> _buildProfileRoutes() {
         GoRoute(
           path: 'edit',
           builder: (context, state) => const EditProfileScreen(),
+        ),
+        GoRoute(
+          path: 'signature',
+          builder: (context, state) => const SignatureScreen(),
         ),
         GoRoute(
           path: 'followers',
@@ -160,9 +169,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ── Logged in ──────────────────────────────────────────────────
 
-      // Still loading user profile for the first time — stay on splash.
+      // Profile fetch in progress (initial or after refresh). Never send the
+      // user to splash from an in-app route — that destroyed nested stacks
+      // (e.g. signature save + invalidate felt like looping back to signature).
       if (currentUser.isLoading && !currentUser.hasValue) {
-        return isSplash ? null : '/';
+        return null;
       }
 
       // Connection error — stay on splash (it shows the error UI).
@@ -285,20 +296,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Tab 2: Schedule
+          // Tab 2: Kitchen
           StatefulShellBranch(
-            navigatorKey: _scheduleNavigatorKey,
+            navigatorKey: _kitchenNavigatorKey,
             routes: [
               GoRoute(
-                path: '/schedule',
-                builder: (context, state) => const ScheduleScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'suggestions',
-                    builder: (context, state) => const SuggestionsScreen(),
-                  ),
-                  ..._buildProfileRoutes(),
-                ],
+                path: '/kitchen',
+                builder: (context, state) => const KitchenDetailScreen(),
+                routes: _buildProfileRoutes(),
               ),
             ],
           ),
@@ -337,7 +342,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Tab 4: Shopping
+          // Tab 4: Schedule
+          StatefulShellBranch(
+            navigatorKey: _scheduleNavigatorKey,
+            routes: [
+              GoRoute(
+                path: '/schedule',
+                builder: (context, state) => const ScheduleScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'suggestions',
+                    builder: (context, state) => const SuggestionsScreen(),
+                  ),
+                  ..._buildProfileRoutes(),
+                ],
+              ),
+            ],
+          ),
+
+          // Tab 5: Shopping
           StatefulShellBranch(
             navigatorKey: _shoppingNavigatorKey,
             routes: [
@@ -354,18 +377,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                     },
                   ),
                 ],
-              ),
-            ],
-          ),
-
-          // Tab 5: Kitchen
-          StatefulShellBranch(
-            navigatorKey: _kitchenNavigatorKey,
-            routes: [
-              GoRoute(
-                path: '/kitchen',
-                builder: (context, state) => const KitchenDetailScreen(),
-                routes: _buildProfileRoutes(),
               ),
             ],
           ),
@@ -406,6 +417,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/globe',
+        builder: (context, state) => const GlobeScreen(),
+      ),
       // Root-level recipe detail for navigation from search, notifications, etc.
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
@@ -427,8 +443,36 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,
+        path: '/cookbook/new',
+        builder: (context, state) => const CookbookFormScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/cookbook/:id',
+        builder: (context, state) {
+          final cookbookId = state.pathParameters['id']!;
+          return CookbookDetailScreen(cookbookId: cookbookId);
+        },
+        routes: [
+          GoRoute(
+            parentNavigatorKey: rootNavigatorKey,
+            path: 'edit',
+            builder: (context, state) {
+              final cookbookId = state.pathParameters['id']!;
+              return CookbookFormScreen(cookbookId: cookbookId);
+            },
+          ),
+        ],
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/shared-recipes',
+        builder: (context, state) => const SharedRecipesScreen(),
       ),
       GoRoute(
         parentNavigatorKey: rootNavigatorKey,

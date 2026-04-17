@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/kitchen_provider.dart';
-import '../../utils/extensions.dart';
 
 /// Screen for creating a new Kitchen group.
 class CreateKitchenScreen extends ConsumerStatefulWidget {
@@ -29,16 +29,19 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
   Future<void> _handleCreate() async {
     if (!_formKey.currentState!.validate()) return;
 
+    HapticFeedback.lightImpact();
     setState(() => _isSubmitting = true);
 
-    final success = await ref.read(kitchenActionProvider.notifier).createKitchen(
-          name: _nameController.text.trim(),
-        );
+    final success =
+        await ref.read(kitchenActionProvider.notifier).createKitchen(
+              name: _nameController.text.trim(),
+            );
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
     if (success) {
+      HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kitchen created!')),
       );
@@ -59,7 +62,11 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Kitchen')),
+      backgroundColor: AppTheme.surfaceWarm,
+      appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWarm,
+        title: Text('Create Kitchen', style: AppTheme.displayTitleMedium()),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -69,48 +76,32 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppTheme.spacing20),
-
-                // Header illustration
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.spacing24),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.kitchen,
-                    size: 48,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacing20),
+                const Center(child: _HeaderArt(icon: Icons.kitchen_rounded)),
+                const SizedBox(height: AppTheme.spacing24),
                 Text(
-                  'Start Your Kitchen',
-                  style: context.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.gray900,
-                    letterSpacing: -0.3,
-                  ),
+                  'Start your kitchen',
+                  style: AppTheme.displayTitleMedium().copyWith(fontSize: 24),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
-                Text(
-                  'Create a shared space for your family or friends '
-                  'to plan meals together.',
-                  style: context.textTheme.bodyMedium?.copyWith(
+                const SizedBox(height: AppTheme.spacing8),
+                const Text(
+                  'A shared space for your family or friends to plan meals, '
+                  'share recipes, and shop together.',
+                  style: TextStyle(
+                    fontSize: 14,
                     color: AppTheme.gray500,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacing40),
-
-                // Kitchen name
-                Text(
-                  'Kitchen Name',
-                  style: context.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: AppTheme.spacing32),
+                const Text(
+                  'Kitchen name',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
                     color: AppTheme.gray700,
+                    letterSpacing: -0.1,
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
@@ -136,19 +127,28 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
                   },
                 ),
                 const Spacer(),
-
-                // Create button
                 SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
+                  height: 54,
+                  child: FilledButton(
                     onPressed: _isSubmitting ? null : _handleCreate,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.accentPlayful,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppTheme.accentPlayful.withValues(alpha: 0.4),
+                      disabledForegroundColor: Colors.white,
+                    ),
                     child: _isSubmitting
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor:
+                                  AlwaysStoppedAnimation(Colors.white),
+                            ),
                           )
-                        : const Text('Create Kitchen'),
+                        : const Text('Create kitchen'),
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
@@ -156,6 +156,39 @@ class _CreateKitchenScreenState extends ConsumerState<CreateKitchenScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HeaderArt extends StatelessWidget {
+  const _HeaderArt({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 96,
+      height: 96,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppTheme.accentPlayfulLight,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.accentPlayful.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+          color: AppTheme.accentPlayfulLight,
+        ),
+        child: Icon(icon, size: 42, color: AppTheme.accentPlayful),
       ),
     );
   }

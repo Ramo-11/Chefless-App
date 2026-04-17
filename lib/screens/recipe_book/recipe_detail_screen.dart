@@ -9,14 +9,16 @@ import '../../providers/auth_provider.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/schedule_provider.dart';
+import '../../utils/app_icons.dart';
 import '../../utils/extensions.dart';
 import '../../utils/fraction_utils.dart';
 import '../../widgets/ingredient_scaling.dart';
+import '../../widgets/add_to_cookbook_sheet.dart';
 import '../../widgets/photo_carousel.dart';
 import '../../widgets/report_sheet.dart';
-import '../../widgets/signature_overlay.dart';
+import '../../widgets/signature_credit.dart';
 import '../../widgets/user_avatar.dart';
-import 'share_recipe_sheet.dart';
+import '../../widgets/recipe_share_options_sheet.dart';
 
 const _scheduleRecipeDefaultSlots = ['breakfast', 'lunch', 'dinner', 'snack'];
 
@@ -39,6 +41,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   int? _adjustedServings;
   bool? _localIsLiked;
   int? _localLikesCount;
+  bool? _localIsSaved;
   bool? _localIsPrivate;
   bool _isUpdatingPrivacy = false;
 
@@ -105,16 +108,21 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         final isOwner = currentUser?.id == recipe.authorId;
         final isLiked = _localIsLiked ?? (recipe.isLiked ?? false);
         final likesCount = _localLikesCount ?? recipe.likesCount;
+        final isSaved = _localIsSaved ?? (recipe.isSaved ?? false);
         final isPrivate = _localIsPrivate ?? recipe.isPrivate;
         final isScaled = _adjustedServings != null &&
             _adjustedServings != recipe.baseServings;
 
-        // Build the signature overlay if applicable.
-        Widget? signatureOverlay;
-        if (recipe.showSignature && currentUser?.signature != null) {
-          signatureOverlay =
-              SignatureOverlay(signatureUrl: currentUser!.signature!);
+        String? signatureUrl;
+        if (recipe.showSignature) {
+          final sigUrl = isOwner
+              ? currentUser?.signature
+              : recipe.authorSignatureUrl;
+          if (sigUrl != null && sigUrl.isNotEmpty) {
+            signatureUrl = sigUrl;
+          }
         }
+        final signatureAuthorName = recipe.authorName ?? currentUser?.fullName;
 
         void onLikeToggle() {
           final currentCount = _localLikesCount ?? recipe.likesCount;
@@ -128,6 +136,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             ref.read(recipeActionProvider.notifier).unlike(recipe.id);
           } else {
             ref.read(recipeActionProvider.notifier).like(recipe.id);
+          }
+        }
+
+        void onSaveToggle() {
+          if (mounted) {
+            setState(() => _localIsSaved = !isSaved);
+          }
+          if (isSaved) {
+            ref.read(recipeActionProvider.notifier).unsave(recipe.id);
+          } else {
+            ref.read(recipeActionProvider.notifier).save(recipe.id);
           }
         }
 
@@ -180,7 +199,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   background: PhotoCarousel(
                     photos: recipe.photos,
                     height: 410,
-                    overlayWidget: signatureOverlay,
                   ),
                 ),
               ),
@@ -251,7 +269,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               ),
                             ),
 
-                          // Fork source
+                          // Remix source (API: forkedFrom)
                           if (recipe.forkedFrom != null)
                             Padding(
                               padding: const EdgeInsets.only(top: AppTheme.spacing4),
@@ -398,6 +416,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                   color: isLiked ? AppTheme.likeColor : null,
                                   onTap: onLikeToggle,
                                 ),
+                                if (!isOwner)
+                                  _InlineAction(
+                                    icon: isSaved
+                                        ? Icons.bookmark_rounded
+                                        : Icons.bookmark_outline_rounded,
+                                    label: isSaved ? 'Saved' : 'Save',
+                                    color: isSaved
+                                        ? AppTheme.accentPlayful
+                                        : null,
+                                    onTap: onSaveToggle,
+                                  ),
                                 _InlineAction(
                                   icon: isOwner
                                       ? Icons.copy_outlined
@@ -407,15 +436,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                                       : '${recipe.forksCount}',
                                   onTap: isOwner
                                       ? () => _onDuplicate(recipe)
-                                      : () => _onFork(recipe),
+                                      : () => _onRemix(recipe),
                                 ),
                                 _InlineAction(
                                   icon: Icons.calendar_today_outlined,
                                   label: 'Plan',
                                   onTap: () => _showScheduleSheet(recipe),
                                 ),
+                                if (isOwner)
+                                  _InlineAction(
+                                    icon: Icons.menu_book_outlined,
+                                    label: 'Cookbook',
+                                    onTap: () => AddToCookbookSheet.show(
+                                      context,
+                                      recipeId: recipe.id,
+                                      recipeTitle: recipe.title,
+                                    ),
+                                  ),
                                 _InlineAction(
-                                  icon: Icons.share_outlined,
+                                  icon: AppIcons.share,
                                   label: 'Share',
                                   onTap: () => _onShare(recipe),
                                 ),
@@ -552,6 +591,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       ),
                     ),
 
+                    if (signatureUrl != null &&
+                        signatureAuthorName != null) ...[
+                      const SizedBox(height: AppTheme.spacing16),
+                      SignatureCredit(
+                        authorName: signatureAuthorName,
+                        signatureUrl: signatureUrl,
+                      ),
+                    ],
+
                     const SizedBox(height: AppTheme.spacing32),
                   ],
                 ),
@@ -587,12 +635,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              // Capture messengers/navigators before any async gap so we
+              // never touch a stale BuildContext.
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.of(dialogContext).pop();
+              // Optimistic: pop the detail screen immediately. The list
+              // already removed the recipe locally, so the user sees an
+              // instant result. Server confirmation runs in the background.
               context.pop();
-              ref
+              final ok = await ref
                   .read(recipeActionProvider.notifier)
                   .deleteRecipe(recipe.id);
+              if (!ok) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Couldn\'t delete "${recipe.title}". Restored.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             child: Text(
               'Delete',
@@ -604,24 +668,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     );
   }
 
-  Future<void> _onFork(Recipe recipe) async {
-    final forked =
-        await ref.read(recipeActionProvider.notifier).fork(recipe.id);
-    if (forked != null && mounted) {
-      context.push('/recipe/${forked.id}');
+  Future<void> _onRemix(Recipe recipe) async {
+    final remixed =
+        await ref.read(recipeActionProvider.notifier).remix(recipe.id);
+    if (remixed != null && mounted) {
+      context.push('/recipe/${remixed.id}');
     }
   }
 
   Future<void> _onDuplicate(Recipe recipe) async {
-    final forked =
-        await ref.read(recipeActionProvider.notifier).fork(recipe.id);
-    if (forked != null && mounted) {
+    final copy = await ref
+        .read(recipeActionProvider.notifier)
+        .duplicateOwn(recipe.id);
+    if (copy != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Duplicated "${recipe.title}"'),
           action: SnackBarAction(
             label: 'View',
-            onPressed: () => context.push('/recipe/${forked.id}'),
+            onPressed: () => context.push('/recipe/${copy.id}'),
           ),
         ),
       );
@@ -629,11 +694,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   }
 
   void _onShare(Recipe recipe) {
-    showModalBottomSheet<void>(
+    showRecipeShareOptions(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => ShareRecipeSheet(recipeId: recipe.id),
+      recipeId: recipe.id,
+      recipeTitle: recipe.title,
     );
   }
 

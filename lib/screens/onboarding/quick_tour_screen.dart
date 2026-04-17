@@ -1,12 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/extensions.dart';
 import '../../widgets/onboarding_illustration.dart';
 
 /// Tour card data for each swipeable page.
@@ -49,7 +49,7 @@ const List<_TourCard> _tourCards = [
       ),
       Satellite(
         icon: Icons.trending_up_rounded,
-        color: AppTheme.secondaryColor,
+        color: AppTheme.accentPlayful,
         angle: pi / 4,
         distance: 78,
         bobPhase: 0.35,
@@ -71,11 +71,11 @@ const List<_TourCard> _tourCards = [
   ),
   _TourCard(
     centerIcon: Icons.people_rounded,
-    color: AppTheme.secondaryColor,
+    color: AppTheme.accentPlayful,
     title: 'Kitchen',
     description:
-        'Kitchen now has its own bottom tab so members, invites, and shared recipes are always easy to reach.',
-    backdropColors: [AppTheme.secondaryColor, AppTheme.primaryColor],
+        'Kitchen is the second tab after Home so members, invites, and shared recipes stay one tap away.',
+    backdropColors: [AppTheme.accentPlayful, AppTheme.primaryColor],
     satellites: [
       Satellite(
         icon: Icons.restaurant_rounded,
@@ -110,12 +110,52 @@ const List<_TourCard> _tourCards = [
     ],
   ),
   _TourCard(
+    centerIcon: Icons.menu_book_rounded,
+    color: AppTheme.neutralColor,
+    title: 'Recipe Book',
+    description:
+        'Keep your personal library organized, and choose which recipes stay private or shared.',
+    backdropColors: [AppTheme.neutralColor, AppTheme.primaryColor],
+    satellites: [
+      Satellite(
+        icon: Icons.bookmark_rounded,
+        color: AppTheme.primaryColor,
+        angle: -pi / 4,
+        distance: 80,
+        bobPhase: 0.15,
+        containerSize: 36,
+        iconSize: 18,
+        bobAmplitude: 6,
+      ),
+      Satellite(
+        icon: Icons.auto_awesome_rounded,
+        color: AppTheme.accentPlayful,
+        angle: 2 * pi / 3,
+        distance: 76,
+        bobPhase: 0.5,
+        containerSize: 34,
+        iconSize: 18,
+        bobAmplitude: 5,
+      ),
+      Satellite(
+        icon: Icons.lock_outline_rounded,
+        color: AppTheme.tertiaryColor,
+        angle: pi + pi / 5,
+        distance: 74,
+        bobPhase: 0.8,
+        containerSize: 32,
+        iconSize: 16,
+        bobAmplitude: 7,
+      ),
+    ],
+  ),
+  _TourCard(
     centerIcon: Icons.calendar_month_rounded,
     color: AppTheme.tertiaryColor,
     title: 'Schedule',
     description:
         'Tap any meal slot to add your own recipe, a member recipe, or a freeform meal.',
-    backdropColors: [AppTheme.tertiaryColor, AppTheme.secondaryColor],
+    backdropColors: [AppTheme.tertiaryColor, AppTheme.accentPlayful],
     satellites: [
       Satellite(
         icon: Icons.dinner_dining_rounded,
@@ -150,46 +190,6 @@ const List<_TourCard> _tourCards = [
     ],
   ),
   _TourCard(
-    centerIcon: Icons.menu_book_rounded,
-    color: AppTheme.neutralColor,
-    title: 'Recipe Book',
-    description:
-        'Keep your personal library organized, and choose which recipes stay private or shared.',
-    backdropColors: [AppTheme.neutralColor, AppTheme.primaryColor],
-    satellites: [
-      Satellite(
-        icon: Icons.bookmark_rounded,
-        color: AppTheme.primaryColor,
-        angle: -pi / 4,
-        distance: 80,
-        bobPhase: 0.15,
-        containerSize: 36,
-        iconSize: 18,
-        bobAmplitude: 6,
-      ),
-      Satellite(
-        icon: Icons.auto_awesome_rounded,
-        color: AppTheme.secondaryColor,
-        angle: 2 * pi / 3,
-        distance: 76,
-        bobPhase: 0.5,
-        containerSize: 34,
-        iconSize: 18,
-        bobAmplitude: 5,
-      ),
-      Satellite(
-        icon: Icons.lock_outline_rounded,
-        color: AppTheme.tertiaryColor,
-        angle: pi + pi / 5,
-        distance: 74,
-        bobPhase: 0.8,
-        containerSize: 32,
-        iconSize: 16,
-        bobAmplitude: 7,
-      ),
-    ],
-  ),
-  _TourCard(
     centerIcon: Icons.shopping_bag_rounded,
     color: AppTheme.accentPlayful,
     title: 'Shopping',
@@ -199,7 +199,7 @@ const List<_TourCard> _tourCards = [
     satellites: [
       Satellite(
         icon: Icons.add_shopping_cart_rounded,
-        color: AppTheme.secondaryColor,
+        color: AppTheme.tertiaryColor,
         angle: -pi / 4,
         distance: 78,
         bobPhase: 0,
@@ -257,6 +257,7 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
 
   Future<void> _completeOnboarding() async {
     if (_isCompleting) return;
+    HapticFeedback.mediumImpact();
     if (widget.replayMode) {
       if (context.canPop()) {
         context.pop();
@@ -299,28 +300,38 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
     }
   }
 
+  void _goNext() {
+    HapticFeedback.selectionClick();
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   bool get _isLastPage => _currentPage == _tourCards.length - 1;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceWarm,
       body: SafeArea(
         child: Column(
           children: [
             // Navigation row
             Padding(
-              padding: const EdgeInsets.only(
-                top: AppTheme.spacing8,
-                left: AppTheme.spacing4,
-                right: AppTheme.spacing16,
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing8,
+                AppTheme.spacing8,
+                AppTheme.spacing16,
+                0,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back_rounded),
                     onPressed: () {
+                      HapticFeedback.selectionClick();
                       if (widget.replayMode) {
                         if (context.canPop()) {
                           context.pop();
@@ -333,12 +344,50 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                     },
                     tooltip: 'Back',
                   ),
-                  TextButton(
-                    onPressed: _isCompleting ? null : _completeOnboarding,
-                    child: Text(widget.replayMode ? 'Close' : 'Skip'),
-                  ),
+                  if (!widget.replayMode)
+                    TextButton(
+                      onPressed: _isCompleting ? null : _completeOnboarding,
+                      child: const Text('Skip'),
+                    )
+                  else
+                    const SizedBox(width: 48),
                 ],
               ),
+            ),
+
+            // Label above dots for orientation
+            Padding(
+              padding: const EdgeInsets.only(top: AppTheme.spacing4),
+              child: Text(
+                '${_currentPage + 1} of ${_tourCards.length}',
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.gray500,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacing4),
+            // Dot indicators (moved to top, tighter with header context)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_tourCards.length, (index) {
+                final isActive = index == _currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 26 : 8,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppTheme.primaryColor
+                        : AppTheme.gray200,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
             ),
 
             // PageView
@@ -347,37 +396,15 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                 controller: _pageController,
                 itemCount: _tourCards.length,
                 onPageChanged: (index) {
-                  if (mounted) setState(() => _currentPage = index);
+                  if (mounted) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _currentPage = index);
+                  }
                 },
                 itemBuilder: (context, index) {
                   final card = _tourCards[index];
                   return _TourPage(card: card);
                 },
-              ),
-            ),
-
-            // Dot indicators
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppTheme.spacing20,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_tourCards.length, (index) {
-                  final isActive = index == _currentPage;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 28 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? AppTheme.primaryColor
-                          : AppTheme.gray200,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  );
-                }),
               ),
             ),
 
@@ -394,14 +421,9 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                       ? null
                       : _isLastPage
                           ? _completeOnboarding
-                          : () {
-                              _pageController.nextPage(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            },
+                          : _goNext,
                   style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusMedium,
                     ),
                   ),
@@ -422,14 +444,7 @@ class _QuickTourScreenState extends ConsumerState<QuickTourScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: AppTheme.spacing12),
-            TextButton.icon(
-              onPressed: () => context.push('/help/faqs'),
-              icon: const Icon(Icons.help_outline_rounded, size: 18),
-              label: const Text('Open Help & FAQs'),
-            ),
-
-            const SizedBox(height: AppTheme.spacing40),
+            const SizedBox(height: AppTheme.spacing24),
           ],
         ),
       ),
@@ -458,22 +473,21 @@ class _TourPage extends StatelessWidget {
             backdropColors: card.backdropColors,
             satellites: card.satellites,
           ),
-          const SizedBox(height: AppTheme.spacing40),
+          const SizedBox(height: AppTheme.spacing32),
           Text(
             card.title,
-            style: context.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-              color: AppTheme.gray900,
-            ),
+            style: AppTheme.displayTitleMedium(),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppTheme.spacing12),
           Text(
             card.description,
-            style: context.textTheme.bodyLarge?.copyWith(
-              color: AppTheme.gray500,
-              height: 1.5,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              height: 1.55,
+              color: AppTheme.gray600,
+              letterSpacing: -0.1,
             ),
             textAlign: TextAlign.center,
           ),

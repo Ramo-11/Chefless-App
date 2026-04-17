@@ -9,6 +9,7 @@ enum PaywallReason {
   recipeLimitReached,
   scheduleLimitReached,
   kitchenCapacityReached,
+  premiumFeature,
 }
 
 /// A non-aggressive bottom sheet shown when a user hits a free tier limit.
@@ -31,20 +32,25 @@ class PaywallBottomSheet extends StatelessWidget {
         return 'Schedule Limit Reached';
       case PaywallReason.kitchenCapacityReached:
         return 'Kitchen Full';
+      case PaywallReason.premiumFeature:
+        return 'Chefless Premium';
     }
   }
 
   String get _description {
     switch (reason) {
       case PaywallReason.recipeLimitReached:
-        return 'Free accounts are limited to 10 recipes. '
+        return 'Free accounts are limited to 10 original recipes (remixes are free). '
             'Upgrade to Premium for unlimited recipes and more.';
       case PaywallReason.scheduleLimitReached:
-        return 'Free accounts can only schedule up to 2 weeks ahead. '
-            'Upgrade to Premium to plan your full year.';
+        return 'Free accounts can plan through the end of next week. '
+            'Upgrade to Premium for a full monthly calendar view.';
       case PaywallReason.kitchenCapacityReached:
         return 'Free kitchens are limited to 4 members. '
             'Upgrade to Premium for unlimited kitchen members.';
+      case PaywallReason.premiumFeature:
+        return 'This tool is part of Chefless Premium — unlimited originals, '
+            'monthly schedule, AI recipe helper, and more.';
     }
   }
 
@@ -56,6 +62,8 @@ class PaywallBottomSheet extends StatelessWidget {
         return Icons.calendar_month_rounded;
       case PaywallReason.kitchenCapacityReached:
         return Icons.group_rounded;
+      case PaywallReason.premiumFeature:
+        return Icons.auto_awesome_rounded;
     }
   }
 

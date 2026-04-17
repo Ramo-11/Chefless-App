@@ -17,6 +17,7 @@ class CheflessUser extends Equatable {
     required this.followersCount,
     required this.followingCount,
     required this.recipesCount,
+    required this.originalRecipesCount,
     this.kitchenId,
     required this.isPremium,
     this.premiumPlan,
@@ -41,6 +42,8 @@ class CheflessUser extends Equatable {
   final int followersCount;
   final int followingCount;
   final int recipesCount;
+  /// Original recipes only (excludes remixes). Used for free-tier cap and spatula badges.
+  final int originalRecipesCount;
   final String? kitchenId;
   final bool isPremium;
   final String? premiumPlan;
@@ -51,6 +54,13 @@ class CheflessUser extends Equatable {
   final DateTime lastActiveAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// True when subscription is active, including unexpired premium.
+  bool get isPremiumActive {
+    if (!isPremium) return false;
+    if (premiumExpiresAt == null) return true;
+    return premiumExpiresAt!.isAfter(DateTime.now());
+  }
 
   factory CheflessUser.fromJson(Map<String, dynamic> json) {
     return CheflessUser(
@@ -66,6 +76,9 @@ class CheflessUser extends Equatable {
       followersCount: json['followersCount'] as int? ?? 0,
       followingCount: json['followingCount'] as int? ?? 0,
       recipesCount: json['recipesCount'] as int? ?? 0,
+      originalRecipesCount: json['originalRecipesCount'] as int? ??
+          json['recipesCount'] as int? ??
+          0,
       kitchenId: asIdOrNull(json['kitchenId']),
       isPremium: json['isPremium'] as bool? ?? false,
       premiumPlan: json['premiumPlan'] as String?,
@@ -99,6 +112,7 @@ class CheflessUser extends Equatable {
       'followersCount': followersCount,
       'followingCount': followingCount,
       'recipesCount': recipesCount,
+      'originalRecipesCount': originalRecipesCount,
       'kitchenId': kitchenId,
       'isPremium': isPremium,
       'premiumPlan': premiumPlan,
@@ -125,6 +139,7 @@ class CheflessUser extends Equatable {
     int? followersCount,
     int? followingCount,
     int? recipesCount,
+    int? originalRecipesCount,
     String? kitchenId,
     bool? isPremium,
     String? premiumPlan,
@@ -149,6 +164,8 @@ class CheflessUser extends Equatable {
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
       recipesCount: recipesCount ?? this.recipesCount,
+      originalRecipesCount:
+          originalRecipesCount ?? this.originalRecipesCount,
       kitchenId: kitchenId ?? this.kitchenId,
       isPremium: isPremium ?? this.isPremium,
       premiumPlan: premiumPlan ?? this.premiumPlan,
@@ -176,6 +193,7 @@ class CheflessUser extends Equatable {
         followersCount,
         followingCount,
         recipesCount,
+        originalRecipesCount,
         kitchenId,
         isPremium,
         premiumPlan,

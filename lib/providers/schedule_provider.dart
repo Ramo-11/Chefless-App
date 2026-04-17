@@ -49,6 +49,51 @@ final weekScheduleProvider = FutureProvider.family<List<ScheduleEntry>,
       .toList();
 });
 
+/// Schedule entries for a full calendar month (premium month view).
+class MonthScheduleParams {
+  const MonthScheduleParams({required this.year, required this.month});
+
+  final int year;
+  final int month;
+
+  DateTime get start => DateTime.utc(year, month, 1);
+
+  DateTime get end => DateTime.utc(year, month + 1, 0);
+
+  @override
+  bool operator ==(Object other) =>
+      other is MonthScheduleParams &&
+      other.year == year &&
+      other.month == month;
+
+  @override
+  int get hashCode => Object.hash(year, month);
+}
+
+final monthScheduleProvider = FutureProvider.family<List<ScheduleEntry>,
+    MonthScheduleParams>((ref, params) async {
+  final apiService = await ref.watch(apiServiceProvider.future);
+
+  final result = await apiService.get(
+    '/schedule',
+    queryParameters: {
+      'start': params.start.toIso8601String().split('T').first,
+      'end': params.end.toIso8601String().split('T').first,
+    },
+  );
+
+  if (result.isFailure || result.data == null) {
+    throw Exception(result.error ?? 'Failed to load schedule.');
+  }
+
+  final entries = (result.data!['suggestions'] ??
+          result.data!['entries']) as List<dynamic>? ??
+      [];
+  return entries
+      .map((e) => ScheduleEntry.fromJson(e as Map<String, dynamic>))
+      .toList();
+});
+
 /// Fetches pending suggestions for the current kitchen (lead/approvers only).
 final suggestionsProvider =
     FutureProvider<List<ScheduleEntry>>((ref) async {
@@ -77,8 +122,8 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
     required String mealSlot,
     String? recipeId,
     String? freeformText,
+    String? scheduledTime,
   }) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final data = <String, dynamic>{
@@ -91,13 +136,15 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
       if (freeformText != null) {
         data['freeformText'] = freeformText;
       }
+      if (scheduledTime != null) {
+        data['scheduledTime'] = scheduledTime;
+      }
 
       final result = await apiService.post('/schedule', data: data);
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to add schedule entry.');
       }
       _invalidateSchedule();
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -109,7 +156,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
     String entryId,
     Map<String, dynamic> data,
   ) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.put('/schedule/$entryId', data: data);
@@ -117,7 +163,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to update schedule entry.');
       }
       _invalidateSchedule();
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -126,7 +171,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> deleteEntry(String entryId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.delete('/schedule/$entryId');
@@ -134,7 +178,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to delete schedule entry.');
       }
       _invalidateSchedule();
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -143,7 +186,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> approveSuggestion(String entryId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.post(
@@ -154,7 +196,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _invalidateSchedule();
       _ref.invalidate(suggestionsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -163,7 +204,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> denySuggestion(String entryId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.post(
@@ -173,7 +213,6 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to deny suggestion.');
       }
       _ref.invalidate(suggestionsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -192,6 +231,14 @@ class ScheduleActionNotifier extends StateNotifier<AsyncValue<void>> {
       final normalized = DateTime(weekStart.year, weekStart.month, weekStart.day);
       _ref.invalidate(
         weekScheduleProvider(WeekScheduleParams(weekStart: normalized)),
+      );
+    }
+    for (var m = -1; m <= 3; m++) {
+      final d = DateTime(now.year, now.month + m, 1);
+      _ref.invalidate(
+        monthScheduleProvider(
+          MonthScheduleParams(year: d.year, month: d.month),
+        ),
       );
     }
   }

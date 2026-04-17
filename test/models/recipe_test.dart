@@ -43,6 +43,7 @@ void main() {
         'forksCount': 5,
         'authorName': 'Test Chef',
         'authorPhoto': 'https://example.com/avatar.jpg',
+        'authorSignatureUrl': 'https://example.com/signature.png',
         'isLiked': true,
         'createdAt': now.toIso8601String(),
         'updatedAt': later.toIso8601String(),
@@ -170,6 +171,7 @@ void main() {
       expect(recipe.forksCount, 5);
       expect(recipe.authorName, 'Test Chef');
       expect(recipe.authorPhoto, 'https://example.com/avatar.jpg');
+      expect(recipe.authorSignatureUrl, 'https://example.com/signature.png');
       expect(recipe.isLiked, true);
       expect(recipe.createdAt, now);
       expect(recipe.updatedAt, later);
@@ -231,6 +233,7 @@ void main() {
       expect(recipe.likesCount, 0);
       expect(recipe.forksCount, 0);
       expect(recipe.forkedFrom, isNull);
+      expect(recipe.authorSignatureUrl, isNull);
       expect(recipe.difficulty, isNull);
       expect(recipe.description, isNull);
     });

@@ -2,8 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_theme.dart';
-
 /// A floating satellite element that orbits around the center of the illustration.
 class Satellite {
   const Satellite({

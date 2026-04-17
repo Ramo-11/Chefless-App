@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/shimmer_loading.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Displays the current user's followers as a paginated list with pull-to-
@@ -85,8 +86,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Followers')),
       body: initialLoad.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const UserListShimmer(),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
@@ -122,7 +122,11 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacing20),
-                ElevatedButton(
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () =>
                       ref.invalidate(followersProvider(1)),
                   child: const Text('Retry'),
@@ -169,6 +173,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
           }
 
           return RefreshIndicator(
+            color: AppTheme.accentPlayful,
             onRefresh: _refresh,
             child: ListView.separated(
               controller: _scrollController,
@@ -185,7 +190,18 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                 if (index >= _followers.length) {
                   return const Padding(
                     padding: EdgeInsets.all(AppTheme.spacingMd),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.accentPlayful,
+                          ),
+                        ),
+                      ),
+                    ),
                   );
                 }
 

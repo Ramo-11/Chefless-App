@@ -217,6 +217,7 @@ class DeepLinkService {
     switch (type) {
       case 'recipe_liked':
       case 'recipe_forked':
+      case 'recipe_saved':
       case 'recipe_shared':
         if (recipeId != null && recipeId.isNotEmpty) {
           return '/recipe/$recipeId';
@@ -233,7 +234,12 @@ class DeepLinkService {
         return '/schedule';
       case 'kitchen_joined':
       case 'kitchen_removed':
+      case 'kitchen_invite':
+      case 'kitchen_invite_accepted':
         return '/kitchen';
+      case 'kitchen_invite_received':
+      case 'kitchen_invite_declined':
+        return '/notifications';
     }
 
     return null;

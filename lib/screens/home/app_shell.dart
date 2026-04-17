@@ -63,9 +63,9 @@ class AppShell extends ConsumerWidget {
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today),
-              label: 'Schedule',
+              icon: Icon(Icons.kitchen_outlined),
+              selectedIcon: Icon(Icons.kitchen),
+              label: 'Kitchen',
             ),
             NavigationDestination(
               icon: Icon(Icons.menu_book_outlined),
@@ -73,14 +73,14 @@ class AppShell extends ConsumerWidget {
               label: 'Recipes',
             ),
             NavigationDestination(
+              icon: Icon(Icons.calendar_today_outlined),
+              selectedIcon: Icon(Icons.calendar_today),
+              label: 'Schedule',
+            ),
+            NavigationDestination(
               icon: Icon(Icons.shopping_bag_outlined),
               selectedIcon: Icon(Icons.shopping_bag),
               label: 'Shopping',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.kitchen_outlined),
-              selectedIcon: Icon(Icons.kitchen),
-              label: 'Kitchen',
             ),
           ],
         ),

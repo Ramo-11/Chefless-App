@@ -28,7 +28,10 @@ class AppConstants {
   static set apiBaseUrl(String url) => _apiBaseUrlOverride = url;
 
   static const Duration connectionTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  // 30s is too long for mobile — users abandon way before that. Long enough
+  // for image uploads on slow networks, short enough that errors surface
+  // before frustration sets in.
+  static const Duration receiveTimeout = Duration(seconds: 20);
 
   static const int maxImageSizeMb = 10;
   static const int maxRecipePhotos = 5;
@@ -56,4 +59,8 @@ class StorageKeys {
   static const String darkMode = 'dark_mode';
   static const String onboardingComplete = 'onboarding_complete';
   static const String authToken = 'auth_token';
+
+  /// Home glance: user dismissed the “set up your kitchen” prompt while kitchen-less.
+  static const String homeNoKitchenPromptDismissed =
+      'home_no_kitchen_prompt_dismissed';
 }

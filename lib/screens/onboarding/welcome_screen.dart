@@ -1,10 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../utils/extensions.dart';
 import '../../widgets/onboarding_illustration.dart';
 
 /// Landing screen for unauthenticated users. Directs to signup or login.
@@ -14,7 +15,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceWarm,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing32),
@@ -32,7 +33,7 @@ class WelcomeScreen extends StatelessWidget {
                 centerCircleSize: 110,
                 backdropColors: [
                   AppTheme.primaryColor,
-                  AppTheme.secondaryColor,
+                  AppTheme.accentPlayful,
                   AppTheme.tertiaryColor,
                 ],
                 satellites: [
@@ -65,7 +66,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   Satellite(
                     icon: Icons.auto_awesome,
-                    color: AppTheme.secondaryColor,
+                    color: AppTheme.accentPlayful,
                     angle: pi + pi / 6,
                     distance: 110,
                     bobPhase: 0.65,
@@ -87,44 +88,51 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: AppTheme.spacing32),
 
-              // App name
+              // Editorial brand wordmark
               Text(
                 'Chefless',
-                style: context.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryColor,
-                  letterSpacing: -0.5,
+                style: GoogleFonts.fraunces(
+                  fontSize: 38,
+                  fontWeight: FontWeight.w700,
+                  height: 1.0,
+                  letterSpacing: -1.2,
+                  color: AppTheme.textPrimaryDeep,
                 ),
               ),
 
               const SizedBox(height: AppTheme.spacing12),
 
-              // Tagline
               Text(
                 'Your kitchen, your recipes, your way.',
-                style: context.textTheme.titleMedium?.copyWith(
-                  color: AppTheme.gray500,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
                   fontWeight: FontWeight.w400,
-                  letterSpacing: -0.2,
+                  color: AppTheme.gray600,
+                  letterSpacing: -0.1,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
 
               const Spacer(flex: 3),
 
-              // Get Started → Signup
+              // Primary CTA
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: FilledButton(
-                  onPressed: () => context.go('/signup'),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    context.go('/signup');
+                  },
                   style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusMedium,
                     ),
-                    textStyle: const TextStyle(
+                    textStyle: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   child: const Text('Get Started'),
@@ -133,21 +141,26 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: AppTheme.spacing12),
 
-              // Log in
+              // Secondary CTA
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: OutlinedButton(
-                  onPressed: () => context.go('/login'),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    context.go('/login');
+                  },
                   style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
+                    backgroundColor: AppTheme.surfaceElevated,
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppTheme.borderRadiusMedium,
                     ),
-                    side: BorderSide(color: AppTheme.gray200),
+                    side: const BorderSide(color: AppTheme.gray200),
                     foregroundColor: AppTheme.gray800,
-                    textStyle: const TextStyle(
+                    textStyle: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
                     ),
                   ),
                   child: const Text('I already have an account'),

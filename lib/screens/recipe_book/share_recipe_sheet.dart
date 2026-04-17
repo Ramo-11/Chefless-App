@@ -59,80 +59,80 @@ class _ShareRecipeSheetState extends ConsumerState<ShareRecipeSheet> {
 
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
         expand: false,
         builder: (context, scrollController) {
-          return Column(
-            children: [
-              const SizedBox(height: AppTheme.spacing12),
-
-              // Title
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                  vertical: AppTheme.spacing16,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Share Recipe',
-                    style: context.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      color: AppTheme.gray900,
+          // Single scrollable avoids Column + Expanded overflow when the keyboard
+          // reduces available height (e.g. search field focused on Home).
+          return CustomScrollView(
+            controller: scrollController,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: AppTheme.spacing12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing20,
+                        vertical: AppTheme.spacing16,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Share Recipe',
+                          style: context.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                            color: AppTheme.gray900,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing20,
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search users...',
+                          prefixIcon: Icon(Icons.search_rounded),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          if (mounted) setState(() => _query = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacing8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing20,
+                      ),
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: const InputDecoration(
+                          hintText: 'Add a message (optional)',
+                          isDense: true,
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
+                        maxLines: 2,
+                        minLines: 1,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacing12),
+                  ],
                 ),
               ),
-
-              // Search bar
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search users...',
-                    prefixIcon: Icon(Icons.search_rounded),
-                    isDense: true,
-                  ),
-                  onChanged: (value) {
-                    if (mounted) setState(() => _query = value);
-                  },
-                ),
-              ),
-
-              const SizedBox(height: AppTheme.spacing8),
-
-              // Message field
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                ),
-                child: TextField(
-                  controller: _messageController,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a message (optional)',
-                    isDense: true,
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
-                  maxLines: 2,
-                  minLines: 1,
-                ),
-              ),
-
-              const SizedBox(height: AppTheme.spacing12),
-
-              // Results
-              Expanded(
-                child: _buildResults(usersAsync, scrollController),
-              ),
+              ..._resultSlivers(context, usersAsync),
             ],
           );
         },
@@ -140,178 +140,196 @@ class _ShareRecipeSheetState extends ConsumerState<ShareRecipeSheet> {
     );
   }
 
-  Widget _buildResults(
+  List<Widget> _resultSlivers(
+    BuildContext context,
     AsyncValue<dynamic>? usersAsync,
-    ScrollController scrollController,
   ) {
     if (_query.trim().length < 2) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacing32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(
-                  color: AppTheme.gray50,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_search_rounded,
-                  size: 28,
-                  color: AppTheme.gray300,
-                ),
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.spacing32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.gray50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_search_rounded,
+                      size: 28,
+                      color: AppTheme.gray300,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacing12),
+                  Text(
+                    'Search for users to share this recipe with',
+                    style: context.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.gray500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTheme.spacing12),
-              Text(
-                'Search for users to share this recipe with',
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.gray500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
-      );
+      ];
     }
 
     if (usersAsync == null) {
-      return const SizedBox.shrink();
+      return [const SliverToBoxAdapter(child: SizedBox.shrink())];
     }
 
     return usersAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(strokeWidth: 2.5),
-      ),
-      error: (error, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: const BoxDecoration(
-                color: AppTheme.errorLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.error_outline_rounded,
-                size: 24,
-                color: AppTheme.error,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacing8),
-            Text(
-              'Failed to search users',
-              style: context.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.gray900,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+      loading: () => [
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          ),
         ),
-      ),
-      data: (users) {
-        final userList = users as List<dynamic>;
-        if (userList.isEmpty) {
-          return Center(
+      ],
+      error: (error, _) => [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 48,
+                  height: 48,
                   decoration: const BoxDecoration(
-                    color: AppTheme.gray100,
+                    color: AppTheme.errorLight,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.person_off_rounded,
-                    size: 28,
-                    color: AppTheme.gray300,
+                    Icons.error_outline_rounded,
+                    size: 24,
+                    color: AppTheme.error,
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacing12),
+                const SizedBox(height: AppTheme.spacing8),
                 Text(
-                  'No users found',
+                  'Failed to search users',
                   style: context.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.gray500,
+                    color: AppTheme.gray900,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-          );
-        }
-
-        return ListView.separated(
-          controller: scrollController,
-          padding: const EdgeInsets.symmetric(
-            vertical: AppTheme.spacing4,
           ),
-          itemCount: userList.length,
-          separatorBuilder: (_, __) => Divider(
-            height: 1,
-            indent: AppTheme.spacing20 + 44 + AppTheme.spacing12,
-            color: AppTheme.gray100,
-          ),
-          itemBuilder: (context, index) {
-            final user = userList[index];
-            return InkWell(
-              onTap: _isSending ? null : () => _share(user.id as String),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing20,
-                  vertical: AppTheme.spacing8,
-                ),
-                child: Row(
+        ),
+      ],
+      data: (users) {
+        final userList = users as List<dynamic>;
+        if (userList.isEmpty) {
+          return [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    UserAvatar(
-                      fullName: user.fullName as String,
-                      profilePictureUrl: user.profilePicture as String?,
-                      size: 44,
-                    ),
-                    const SizedBox(width: AppTheme.spacing12),
-                    Expanded(
-                      child: Text(
-                        user.fullName as String,
-                        style: context.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.gray900,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.gray100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_off_rounded,
+                        size: 28,
+                        color: AppTheme.gray300,
                       ),
                     ),
-                    if (_isSending)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primaryLight,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.send_rounded,
-                          size: 18,
-                          color: AppTheme.primaryColor,
-                        ),
+                    const SizedBox(height: AppTheme.spacing12),
+                    Text(
+                      'No users found',
+                      style: context.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.gray500,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
                   ],
                 ),
               ),
-            );
-          },
-        );
+            ),
+          ];
+        }
+
+        return [
+          SliverList.separated(
+            itemCount: userList.length,
+            itemBuilder: (context, index) {
+              final user = userList[index];
+              return InkWell(
+                onTap: _isSending ? null : () => _share(user.id as String),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacing20,
+                    vertical: AppTheme.spacing8,
+                  ),
+                  child: Row(
+                    children: [
+                      UserAvatar(
+                        fullName: user.fullName as String,
+                        profilePictureUrl: user.profilePicture as String?,
+                        size: 44,
+                      ),
+                      const SizedBox(width: AppTheme.spacing12),
+                      Expanded(
+                        child: Text(
+                          user.fullName as String,
+                          style: context.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.gray900,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_isSending)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primaryLight,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            size: 18,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            separatorBuilder: (context, _) => const Divider(
+              height: 1,
+              indent: AppTheme.spacing20 + 44 + AppTheme.spacing12,
+              color: AppTheme.gray100,
+            ),
+          ),
+        ];
       },
     );
   }

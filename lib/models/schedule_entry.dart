@@ -1,10 +1,11 @@
 import 'package:equatable/equatable.dart';
 
-/// A single meal slot in a kitchen's weekly schedule.
+/// A single meal slot in a schedule (kitchen or personal).
 class ScheduleEntry extends Equatable {
   const ScheduleEntry({
     required this.id,
-    required this.kitchenId,
+    this.kitchenId,
+    this.userId,
     required this.date,
     required this.mealSlot,
     this.recipeId,
@@ -13,6 +14,8 @@ class ScheduleEntry extends Equatable {
     this.recipeAuthorId,
     this.recipeAuthorName,
     this.freeformText,
+    this.scheduledTime,
+    this.prepTime,
     required this.status,
     this.suggestedBy,
     this.confirmedBy,
@@ -21,7 +24,8 @@ class ScheduleEntry extends Equatable {
   });
 
   final String id;
-  final String kitchenId;
+  final String? kitchenId;
+  final String? userId;
   final DateTime date;
   final String mealSlot;
   final String? recipeId;
@@ -30,6 +34,8 @@ class ScheduleEntry extends Equatable {
   final String? recipeAuthorId;
   final String? recipeAuthorName;
   final String? freeformText;
+  final String? scheduledTime; // HH:mm format, optional
+  final int? prepTime; // minutes, optional
   final String status;
   final String? suggestedBy;
   final String? confirmedBy;
@@ -43,10 +49,14 @@ class ScheduleEntry extends Equatable {
   String get displayLabel =>
       recipeTitle ?? freeformText ?? 'Untitled';
 
+  /// Whether this is a personal entry (not tied to a kitchen).
+  bool get isPersonal => kitchenId == null;
+
   factory ScheduleEntry.fromJson(Map<String, dynamic> json) {
     return ScheduleEntry(
       id: json['_id'] as String,
-      kitchenId: json['kitchenId'] as String,
+      kitchenId: json['kitchenId'] as String?,
+      userId: json['userId'] as String?,
       date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
       mealSlot: json['mealSlot'] as String,
       recipeId: json['recipeId'] as String?,
@@ -55,6 +65,8 @@ class ScheduleEntry extends Equatable {
       recipeAuthorId: json['recipeAuthorId'] as String?,
       recipeAuthorName: json['recipeAuthorName'] as String?,
       freeformText: json['freeformText'] as String?,
+      scheduledTime: json['scheduledTime'] as String?,
+      prepTime: (json['prepTime'] as num?)?.toInt(),
       status: json['status'] as String? ?? 'confirmed',
       suggestedBy: json['suggestedBy'] as String?,
       confirmedBy: json['confirmedBy'] as String?,
@@ -66,7 +78,8 @@ class ScheduleEntry extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
-      'kitchenId': kitchenId,
+      if (kitchenId != null) 'kitchenId': kitchenId,
+      if (userId != null) 'userId': userId,
       'date': date.toIso8601String(),
       'mealSlot': mealSlot,
       'recipeId': recipeId,
@@ -75,6 +88,8 @@ class ScheduleEntry extends Equatable {
       'recipeAuthorId': recipeAuthorId,
       'recipeAuthorName': recipeAuthorName,
       'freeformText': freeformText,
+      if (scheduledTime != null) 'scheduledTime': scheduledTime,
+      if (prepTime != null) 'prepTime': prepTime,
       'status': status,
       'suggestedBy': suggestedBy,
       'confirmedBy': confirmedBy,
@@ -86,6 +101,7 @@ class ScheduleEntry extends Equatable {
   ScheduleEntry copyWith({
     String? id,
     String? kitchenId,
+    String? userId,
     DateTime? date,
     String? mealSlot,
     String? recipeId,
@@ -94,6 +110,8 @@ class ScheduleEntry extends Equatable {
     String? recipeAuthorId,
     String? recipeAuthorName,
     String? freeformText,
+    String? scheduledTime,
+    int? prepTime,
     String? status,
     String? suggestedBy,
     String? confirmedBy,
@@ -103,6 +121,7 @@ class ScheduleEntry extends Equatable {
     return ScheduleEntry(
       id: id ?? this.id,
       kitchenId: kitchenId ?? this.kitchenId,
+      userId: userId ?? this.userId,
       date: date ?? this.date,
       mealSlot: mealSlot ?? this.mealSlot,
       recipeId: recipeId ?? this.recipeId,
@@ -111,6 +130,8 @@ class ScheduleEntry extends Equatable {
       recipeAuthorId: recipeAuthorId ?? this.recipeAuthorId,
       recipeAuthorName: recipeAuthorName ?? this.recipeAuthorName,
       freeformText: freeformText ?? this.freeformText,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
+      prepTime: prepTime ?? this.prepTime,
       status: status ?? this.status,
       suggestedBy: suggestedBy ?? this.suggestedBy,
       confirmedBy: confirmedBy ?? this.confirmedBy,
@@ -123,6 +144,7 @@ class ScheduleEntry extends Equatable {
   List<Object?> get props => [
         id,
         kitchenId,
+        userId,
         date,
         mealSlot,
         recipeId,
@@ -131,6 +153,8 @@ class ScheduleEntry extends Equatable {
         recipeAuthorId,
         recipeAuthorName,
         freeformText,
+        scheduledTime,
+        prepTime,
         status,
         suggestedBy,
         confirmedBy,

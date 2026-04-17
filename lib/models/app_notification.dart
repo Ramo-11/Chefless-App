@@ -16,7 +16,9 @@ class AppNotification extends Equatable {
     this.recipeTitle,
     this.shareMessage,
     this.kitchenId,
+    this.kitchenName,
     this.scheduleEntryId,
+    this.inviteId,
     required this.isRead,
     required this.createdAt,
   });
@@ -31,7 +33,10 @@ class AppNotification extends Equatable {
   final String? recipeTitle;
   final String? shareMessage;
   final String? kitchenId;
+  final String? kitchenName;
   final String? scheduleEntryId;
+  /// Set on `kitchen_invite_received` so the tile can render Accept/Decline.
+  final String? inviteId;
   final bool isRead;
   final DateTime createdAt;
 
@@ -39,6 +44,7 @@ class AppNotification extends Equatable {
   String get displayMessage {
     final actor = actorName ?? 'Someone';
     final recipe = recipeTitle ?? 'a recipe';
+    final kitchen = kitchenName ?? 'the kitchen';
 
     switch (type) {
       case 'new_follower':
@@ -50,7 +56,9 @@ class AppNotification extends Equatable {
       case 'recipe_liked':
         return '$actor liked your recipe "$recipe".';
       case 'recipe_forked':
-        return '$actor forked your recipe "$recipe".';
+        return '$actor remixed your recipe "$recipe".';
+      case 'recipe_saved':
+        return '$actor saved your recipe "$recipe".';
       case 'recipe_shared':
         return '$actor shared a recipe with you: "$recipe".';
       case 'schedule_suggestion':
@@ -58,11 +66,21 @@ class AppNotification extends Equatable {
       case 'suggestion_approved':
         return 'Your suggestion "$recipe" was approved.';
       case 'suggestion_denied':
-        return 'Your suggestion "$recipe" was denied.';
+        return 'Your suggestion "$recipe" was declined.';
       case 'kitchen_joined':
         return '$actor joined the kitchen.';
+      case 'kitchen_invite':
+        return 'Welcome to the kitchen.';
+      case 'kitchen_invite_received':
+        return '$actor invited you to join $kitchen.';
+      case 'kitchen_invite_accepted':
+        return '$actor joined $kitchen.';
+      case 'kitchen_invite_declined':
+        return '$actor declined your kitchen invite.';
       case 'kitchen_removed':
         return 'You were removed from the kitchen.';
+      case 'system':
+        return 'Chefless update.';
       default:
         return 'You have a new notification.';
     }
@@ -80,7 +98,9 @@ class AppNotification extends Equatable {
       recipeTitle: json['recipeTitle'] as String?,
       shareMessage: json['shareMessage'] as String?,
       kitchenId: json['kitchenId'] as String?,
+      kitchenName: json['kitchenName'] as String?,
       scheduleEntryId: json['scheduleEntryId'] as String?,
+      inviteId: json['inviteId'] as String?,
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
@@ -98,7 +118,9 @@ class AppNotification extends Equatable {
       'recipeTitle': recipeTitle,
       'shareMessage': shareMessage,
       'kitchenId': kitchenId,
+      'kitchenName': kitchenName,
       'scheduleEntryId': scheduleEntryId,
+      'inviteId': inviteId,
       'isRead': isRead,
       'createdAt': createdAt.toIso8601String(),
     };
@@ -115,7 +137,9 @@ class AppNotification extends Equatable {
     String? recipeTitle,
     String? shareMessage,
     String? kitchenId,
+    String? kitchenName,
     String? scheduleEntryId,
+    String? inviteId,
     bool? isRead,
     DateTime? createdAt,
   }) {
@@ -130,7 +154,9 @@ class AppNotification extends Equatable {
       recipeTitle: recipeTitle ?? this.recipeTitle,
       shareMessage: shareMessage ?? this.shareMessage,
       kitchenId: kitchenId ?? this.kitchenId,
+      kitchenName: kitchenName ?? this.kitchenName,
       scheduleEntryId: scheduleEntryId ?? this.scheduleEntryId,
+      inviteId: inviteId ?? this.inviteId,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -148,7 +174,9 @@ class AppNotification extends Equatable {
         recipeTitle,
         shareMessage,
         kitchenId,
+        kitchenName,
         scheduleEntryId,
+        inviteId,
         isRead,
         createdAt,
       ];

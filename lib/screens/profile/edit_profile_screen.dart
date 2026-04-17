@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/extensions.dart';
+import '../../utils/image_picker_helper.dart';
 import '../../widgets/user_avatar.dart';
 
 /// All available dietary preference options.
@@ -132,7 +132,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -154,23 +153,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
     if (source == null) return;
 
-    final pickedFile = await picker.pickImage(
+    final cropped = await pickAndCropImage(
+      aspect: CropAspect.square,
       source: source,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 85,
+      maxSize: 1200,
+      quality: 88,
     );
-    if (pickedFile == null || !mounted) return;
+    if (cropped == null || !mounted) return;
 
-    // Show the local preview immediately while uploading
     setState(() {
-      _profilePictureUrl = pickedFile.path;
+      _profilePictureUrl = cropped.path;
       _isSaving = true;
     });
 
     try {
-      final bytes = await File(pickedFile.path).readAsBytes();
-      final ext = pickedFile.path.split('.').last.toLowerCase();
+      final bytes = await cropped.readAsBytes();
+      final ext = cropped.path.split('.').last.toLowerCase();
       final mime = ext == 'png' ? 'image/png' : 'image/jpeg';
       final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
 
@@ -416,6 +414,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     keyboardType: TextInputType.phone,
                   ),
 
+                  const SizedBox(height: AppTheme.spacingMd),
+
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: _SignatureListTileLeading(signatureUrl: user.signature),
+                    title: const Text('Recipe signature'),
+                    subtitle: Text(
+                      (user.signature != null &&
+                              user.signature!.trim().isNotEmpty)
+                          ? 'Saved — appears as a light watermark when you enable it on a recipe.'
+                          : 'Draw a mark for optional watermarks on shared recipes.',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.gray500,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () {
+                      final base = _profileRouteForCurrentBranch(context);
+                      context.push('$base/signature');
+                    },
+                  ),
+
                   const SizedBox(height: AppTheme.spacingLg),
 
                   // Privacy toggle
@@ -525,10 +545,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final location = GoRouterState.of(context).uri.toString();
     const branchRoots = [
       '/home',
-      '/schedule',
-      '/recipes',
-      '/shopping',
       '/kitchen',
+      '/recipes',
+      '/schedule',
+      '/shopping',
     ];
 
     for (final root in branchRoots) {
@@ -538,6 +558,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
 
     return '/home/profile';
+  }
+}
+
+class _SignatureListTileLeading extends StatelessWidget {
+  const _SignatureListTileLeading({this.signatureUrl});
+
+  final String? signatureUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = signatureUrl?.trim();
+    if (url == null || url.isEmpty) {
+      return const Icon(Icons.draw_rounded);
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.network(
+        url,
+        width: 40,
+        height: 32,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.draw_rounded),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const SizedBox(
+            width: 40,
+            height: 32,
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

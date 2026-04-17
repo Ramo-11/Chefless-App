@@ -43,12 +43,14 @@ AppHelpContent appHelpForTopic(AppHelpTopic topic) {
       return const AppHelpContent(
         topic: AppHelpTopic.home,
         title: 'Home',
-        subtitle: 'Your discovery feed for recipes from the community.',
+        subtitle:
+            'Discover recipes from the community, with a quick look at your kitchen and today’s schedule.',
         icon: Icons.explore_rounded,
         bullets: [
-          'Use the tabs at the top to switch between For You, Trending, Friends, and Seasonal.',
-          'Tap any recipe card to see the full recipe, like it, fork it, or share it.',
-          'Use search to find specific people, recipes, ingredients, and cuisines faster.',
+          'The strip under the header shows your kitchen name and what is on the calendar today when you are in a kitchen. If you are not in a kitchen yet, you can hide the setup prompt with the X — it stays hidden on this device until you reinstall the app or clear app data.',
+          'Use the tabs to switch between For You, Trending, Friends, and Seasonal.',
+          'Tap any recipe to open it; on list rows, use the ••• menu for share and remix.',
+          'Use search to find people, recipes, ingredients, and cuisines faster.',
         ],
         faqs: [
           HelpFaqItem(
@@ -94,7 +96,7 @@ AppHelpContent appHelpForTopic(AppHelpTopic topic) {
         subtitle: 'Your personal library for everything you cook and save.',
         icon: Icons.menu_book_rounded,
         bullets: [
-          'All shows your own recipes, Liked shows saved recipes, and Remixed shows forks you made.',
+          'My Recipes shows your originals and duplicates; Liked shows saved recipes; Remixed shows recipes you remixed from others.',
           'Private recipes stay just for you; shared recipes can appear in your kitchen and social surfaces.',
           'Use the import button to bring in recipes from supported links.',
         ],
@@ -102,7 +104,7 @@ AppHelpContent appHelpForTopic(AppHelpTopic topic) {
           HelpFaqItem(
             question: 'What is a remixed recipe?',
             answer:
-                'A remixed recipe is your own forked copy of someone else’s recipe, which you can edit independently.',
+                'A remixed recipe is your own editable copy of someone else’s recipe, with attribution to the original.',
           ),
           HelpFaqItem(
             question: 'Why can’t someone else schedule one of my recipes?',

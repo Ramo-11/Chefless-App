@@ -45,13 +45,15 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
 
   /// Creates a new shopping list.
-  Future<String?> createList({required String name}) async {
-    state = const AsyncLoading<void>();
+  Future<String?> createList({
+    required String name,
+    bool? isPrivate,
+  }) async {
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.post('/shopping-lists', data: {
-        'name': name,
-      });
+      final data = <String, dynamic>{'name': name};
+      if (isPrivate != null) data['isPrivate'] = isPrivate;
+      final result = await apiService.post('/shopping-lists', data: data);
       if (result.isFailure) {
         throw Exception(result.error ?? 'Failed to create shopping list.');
       }
@@ -70,7 +72,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Deletes a shopping list by ID.
   Future<bool> deleteList(String listId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.delete('/shopping-lists/$listId');
@@ -78,7 +79,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
         throw Exception(result.error ?? 'Failed to delete shopping list.');
       }
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -88,10 +88,9 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Updates the name of a shopping list.
   Future<bool> updateListName(String listId, String name) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.put('/shopping-lists/$listId', data: {
+      final result = await apiService.patch('/shopping-lists/$listId', data: {
         'name': name,
       });
       if (result.isFailure) {
@@ -99,7 +98,74 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListsProvider);
       _ref.invalidate(shoppingListDetailProvider(listId));
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Duplicates a shopping list (all items, unchecked).
+  Future<String?> duplicateList(String listId, {String? name}) async {
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final data = <String, dynamic>{};
+      if (name != null) data['name'] = name;
+      final result = await apiService.post(
+        '/shopping-lists/$listId/duplicate',
+        data: data,
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to duplicate shopping list.');
+      }
+      _ref.invalidate(shoppingListsProvider);
       state = const AsyncData<void>(null);
+      final listData = result.data!['list'];
+      if (listData == null) {
+        throw Exception('Failed to duplicate shopping list: no data returned.');
+      }
+      return (listData as Map<String, dynamic>)['_id'] as String;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return null;
+    }
+  }
+
+  /// Unchecks all items in a shopping list.
+  Future<bool> uncheckAll(String listId) async {
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.post(
+        '/shopping-lists/$listId/uncheck-all',
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to uncheck all items.');
+      }
+      _ref.invalidate(shoppingListDetailProvider(listId));
+      _ref.invalidate(shoppingListsProvider);
+      return true;
+    } catch (e, st) {
+      state = AsyncError<void>(e, st);
+      return false;
+    }
+  }
+
+  /// Toggles a list between shared (kitchen) and private (personal).
+  Future<bool> updateListVisibility(
+    String listId, {
+    required bool isPrivate,
+  }) async {
+    try {
+      final apiService = await _ref.read(apiServiceProvider.future);
+      final result = await apiService.patch(
+        '/shopping-lists/$listId',
+        data: {'isPrivate': isPrivate},
+      );
+      if (result.isFailure) {
+        throw Exception(result.error ?? 'Failed to update list visibility.');
+      }
+      _ref.invalidate(shoppingListsProvider);
+      _ref.invalidate(shoppingListDetailProvider(listId));
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -117,7 +183,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
     String? notes,
     String? imageUrl,
   }) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final data = <String, dynamic>{'name': name};
@@ -136,7 +201,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListDetailProvider(listId));
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -160,7 +224,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
     bool clearNotes = false,
     bool clearImageUrl = false,
   }) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final data = <String, dynamic>{};
@@ -200,7 +263,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListDetailProvider(listId));
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -210,7 +272,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Removes an item from a shopping list.
   Future<bool> removeItem(String listId, String itemId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.delete(
@@ -221,7 +282,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListDetailProvider(listId));
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -231,10 +291,9 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Toggles the checked state of an item.
   Future<bool> toggleItem(String listId, String itemId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
-      final result = await apiService.post(
+      final result = await apiService.patch(
         '/shopping-lists/$listId/items/$itemId/toggle',
       );
       if (result.isFailure) {
@@ -242,7 +301,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListDetailProvider(listId));
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -252,7 +310,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
 
   /// Clears all completed (checked) items from a shopping list.
   Future<bool> clearCompleted(String listId) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.post(
@@ -263,7 +320,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
       }
       _ref.invalidate(shoppingListDetailProvider(listId));
       _ref.invalidate(shoppingListsProvider);
-      state = const AsyncData<void>(null);
       return true;
     } catch (e, st) {
       state = AsyncError<void>(e, st);
@@ -276,7 +332,6 @@ class ShoppingListActionNotifier extends StateNotifier<AsyncValue<void>> {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    state = const AsyncLoading<void>();
     try {
       final apiService = await _ref.read(apiServiceProvider.future);
       final result = await apiService.post(

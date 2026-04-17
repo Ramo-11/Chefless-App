@@ -123,6 +123,9 @@ class ShoppingList extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Whether this list is shared with the kitchen (vs personal/private).
+  bool get isShared => kitchenId != null;
+
   /// Number of items that have been checked off.
   int get checkedCount => items.where((i) => i.isChecked).length;
 

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/user_provider.dart';
 import '../../utils/extensions.dart';
+import '../../widgets/shimmer_loading.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Shows pending follow requests with accept / deny actions.
@@ -23,11 +25,13 @@ class _FollowRequestsScreenState extends ConsumerState<FollowRequestsScreen> {
   final Set<String> _processedIds = {};
 
   void _accept(String requestId) {
+    HapticFeedback.lightImpact();
     if (mounted) setState(() => _processedIds.add(requestId));
     ref.read(followRequestActionProvider.notifier).accept(requestId);
   }
 
   void _deny(String requestId) {
+    HapticFeedback.selectionClick();
     if (mounted) setState(() => _processedIds.add(requestId));
     ref.read(followRequestActionProvider.notifier).deny(requestId);
   }
@@ -39,8 +43,7 @@ class _FollowRequestsScreenState extends ConsumerState<FollowRequestsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Follow Requests')),
       body: requestsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const UserListShimmer(),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
@@ -76,7 +79,11 @@ class _FollowRequestsScreenState extends ConsumerState<FollowRequestsScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacing20),
-                ElevatedButton(
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accentPlayful,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: () {
                     _processedIds.clear();
                     ref.invalidate(pendingRequestsProvider);
@@ -123,6 +130,7 @@ class _FollowRequestsScreenState extends ConsumerState<FollowRequestsScreen> {
           }
 
           return RefreshIndicator(
+            color: AppTheme.accentPlayful,
             onRefresh: () async {
               _processedIds.clear();
               ref.invalidate(pendingRequestsProvider);
@@ -172,9 +180,11 @@ class _FollowRequestsScreenState extends ConsumerState<FollowRequestsScreen> {
                       const SizedBox(width: AppTheme.spacingSm),
                       SizedBox(
                         height: 34,
-                        child: ElevatedButton(
+                        child: FilledButton(
                           onPressed: () => _accept(request.id),
-                          style: ElevatedButton.styleFrom(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.accentPlayful,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppTheme.spacingMd,
                             ),

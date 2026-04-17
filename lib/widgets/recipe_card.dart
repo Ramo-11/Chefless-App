@@ -6,6 +6,7 @@ import '../core/theme/app_theme.dart';
 import '../models/recipe.dart';
 import '../utils/cloudinary_url.dart';
 import '../utils/extensions.dart';
+import 'recipe_compact_row.dart' show difficultyLabelColor;
 import 'recipe_image_placeholder.dart';
 import 'recipe_like_button.dart';
 
@@ -107,16 +108,34 @@ class RecipeCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  Text(
-                    recipe.title,
-                    style: context.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.gray900,
-                      letterSpacing: -0.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // Title with difficulty dot
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (recipe.difficulty != null) ...[
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: difficultyLabelColor(recipe.difficulty!),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: AppTheme.spacing6),
+                      ],
+                      Expanded(
+                        child: Text(
+                          recipe.title,
+                          style: context.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.gray900,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Author
@@ -210,6 +229,7 @@ class _TagsRow extends StatelessWidget {
     final allTags = <String>[
       ...recipe.labels.take(2),
       ...recipe.dietaryTags.take(2),
+      ...recipe.tags.take(2),
     ];
 
     if (allTags.isEmpty) return const SizedBox.shrink();

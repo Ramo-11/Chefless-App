@@ -261,12 +261,19 @@ class ApiService {
     );
   }
 
-  /// Retries transient failures (429, 408, 5xx) with exponential backoff.
+  /// Maximum time to wait for a single retry. If the server asks for longer
+  /// (via Retry-After / RateLimit-Reset), we surface the error rather than
+  /// freezing the UI for many seconds.
+  static const Duration _maxRetryDelay = Duration(seconds: 4);
+
+  /// Retries transient failures (429, 408, 5xx) using server-supplied backoff
+  /// hints when available, with random jitter to avoid thundering herds.
   Interceptor _retryInterceptor() {
     return InterceptorsWrapper(
       onError: (error, handler) async {
         final status = error.response?.statusCode;
-        final retryCount = error.requestOptions.extra['_retryCount'] as int? ?? 0;
+        final retryCount =
+            error.requestOptions.extra['_retryCount'] as int? ?? 0;
         const maxRetries = 2;
 
         final isRetryable = status != null &&
@@ -278,20 +285,82 @@ class ApiService {
           return;
         }
 
-        // Exponential backoff: 500ms, 1500ms
-        final delay = Duration(milliseconds: 500 * math.pow(2, retryCount).toInt());
-        await Future.delayed(delay);
+        final delay = _computeRetryDelay(error.response, retryCount);
+        if (delay == null) {
+          // Server told us to wait longer than _maxRetryDelay — let the caller
+          // see the 429 immediately so the UI can show a clear message instead
+          // of a long spinner.
+          handler.next(error);
+          return;
+        }
 
+        await Future<void>.delayed(delay);
         error.requestOptions.extra['_retryCount'] = retryCount + 1;
 
         try {
-          final response = await _dio.fetch<Map<String, dynamic>>(error.requestOptions);
+          final response =
+              await _dio.fetch<Map<String, dynamic>>(error.requestOptions);
           handler.resolve(response);
         } on DioException catch (retryError) {
           handler.next(retryError);
         }
       },
     );
+  }
+
+  /// Returns the duration to wait before the next retry, or `null` if the
+  /// recommended wait exceeds [_maxRetryDelay].
+  ///
+  /// Honors RFC 9110 `Retry-After` (seconds or HTTP date) and the
+  /// `RateLimit-Reset` draft header. Falls back to exponential backoff
+  /// (500ms × 2^retry) plus 0–250ms of jitter.
+  Duration? _computeRetryDelay(Response<dynamic>? response, int retryCount) {
+    final serverWait = _readServerWait(response);
+    if (serverWait != null) {
+      if (serverWait > _maxRetryDelay) return null;
+      // Add tiny jitter so concurrent retries don't all fire on the same tick.
+      final jitterMs = _random.nextInt(250);
+      return serverWait + Duration(milliseconds: jitterMs);
+    }
+
+    final base = 500 * math.pow(2, retryCount).toInt();
+    final jitter = _random.nextInt(250);
+    return Duration(milliseconds: base + jitter);
+  }
+
+  /// Parses Retry-After (seconds or HTTP-date) and RateLimit-Reset (seconds).
+  Duration? _readServerWait(Response<dynamic>? response) {
+    if (response == null) return null;
+    final headers = response.headers;
+
+    final retryAfter = headers.value('retry-after');
+    if (retryAfter != null) {
+      final seconds = int.tryParse(retryAfter.trim());
+      if (seconds != null && seconds >= 0) {
+        return Duration(seconds: seconds);
+      }
+      // HTTP-date format: best-effort parse.
+      try {
+        final date = HttpDate.parse(retryAfter);
+        final diff = date.difference(DateTime.now());
+        if (diff.inMilliseconds > 0) return diff;
+      } on FormatException {
+        // Unparseable — fall through to RateLimit-Reset / backoff.
+      } on HttpException {
+        // Some Dart versions throw HttpException for bad dates. Same handling.
+      }
+    }
+
+    // draft-7 standard header from express-rate-limit.
+    final reset = headers.value('ratelimit-reset');
+    if (reset != null) {
+      final seconds = int.tryParse(reset.trim());
+      if (seconds != null && seconds >= 0) {
+        return Duration(seconds: seconds);
+      }
+    }
+
+    return null;
   }
 
   Interceptor _debugInterceptor() {
@@ -361,6 +430,28 @@ class ApiService {
         final status = e.response?.statusCode;
         final data = e.response?.data;
         if (data is Map<String, dynamic>) {
+          // Extract detailed validation messages when available
+          final details = data['details'];
+          if (details is List && details.isNotEmpty) {
+            final messages = <String>[];
+            for (final detail in details) {
+              if (detail is Map<String, dynamic>) {
+                final issues = detail['issues'];
+                if (issues is List) {
+                  for (final issue in issues) {
+                    if (issue is Map<String, dynamic>) {
+                      final msg = issue['message'] as String?;
+                      if (msg != null) messages.add(msg);
+                    }
+                  }
+                }
+              }
+            }
+            if (messages.isNotEmpty) {
+              final joined = messages.join('. ');
+              return debug ? '[$status] $endpoint: $joined' : joined;
+            }
+          }
           final serverMsg =
               data['message'] as String? ?? data['error'] as String?;
           if (serverMsg != null) {

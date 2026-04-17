@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/extensions.dart';
+import '../../widgets/onboarding_progress_bar.dart';
 import '../../widgets/user_avatar.dart';
 
 /// Onboarding step: set up display name and optional profile picture.
@@ -61,6 +62,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _pickImage() async {
+    HapticFeedback.lightImpact();
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -98,6 +100,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   Future<void> _saveAndContinue() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     setState(() => _isSaving = true);
 
@@ -196,6 +199,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _skip() async {
+    HapticFeedback.selectionClick();
     // Must register the user in MongoDB even when skipping, otherwise
     // PATCH /users/me calls later in onboarding will 404.
     final existingUser = ref.read(currentUserProvider).valueOrNull;
@@ -256,9 +260,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         _nameController.text.isEmpty ? 'You' : _nameController.text;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceWarm,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceWarm,
         title: const Text('Your Profile'),
         actions: [
           TextButton(
@@ -271,116 +275,162 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacing32,
-              vertical: AppTheme.spacing24,
-            ),
+            padding: EdgeInsets.zero,
             children: [
-              const SizedBox(height: AppTheme.spacing16),
+              const OnboardingProgressBar(current: 1),
 
-              // Heading
-              Text(
-                'Let\'s set up your profile',
-                style: context.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                  color: AppTheme.gray900,
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacing32,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppTheme.spacing8),
-              Text(
-                'Tell us your name and add a photo so others can recognize you.',
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.gray500,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppTheme.spacing8),
 
-              const SizedBox(height: AppTheme.spacing40),
-
-              // Avatar picker
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Stack(
-                    children: [
-                      UserAvatar(
-                        fullName: displayName,
-                        profilePictureUrl: _pickedImagePath,
-                        size: 110,
+                    Text(
+                      'Let\'s set up your profile',
+                      style: AppTheme.displayTitleMedium(),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppTheme.spacing10),
+                    const Text(
+                      'Add your name and a photo so others in shared kitchens can recognize you.',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w400,
+                        height: 1.5,
+                        color: AppTheme.gray600,
+                        letterSpacing: -0.1,
                       ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(AppTheme.spacing8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 3,
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: AppTheme.spacing40),
+
+                    // Avatar picker with ripple feedback
+                    Center(
+                      child: SizedBox(
+                        width: 124,
+                        height: 124,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Material(
+                              color: Colors.transparent,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: _pickImage,
+                                splashColor:
+                                    AppTheme.primaryColor.withValues(alpha: 0.12),
+                                highlightColor:
+                                    AppTheme.primaryColor.withValues(alpha: 0.05),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: UserAvatar(
+                                    fullName: displayName,
+                                    profilePictureUrl: _pickedImagePath,
+                                    size: 112,
+                                  ),
+                                ),
+                              ),
                             ),
-                            boxShadow: AppTheme.shadowSm,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 18,
-                            color: Colors.white,
-                          ),
+                            Positioned(
+                              right: 2,
+                              bottom: 2,
+                              child: GestureDetector(
+                                onTap: _pickImage,
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.all(AppTheme.spacing8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppTheme.surfaceWarm,
+                                      width: 3,
+                                    ),
+                                    boxShadow: AppTheme.shadowSm,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppTheme.spacing40),
-
-              // Name field
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.done,
-                onChanged: (_) {
-                  if (mounted) setState(() {});
-                },
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your name.';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: AppTheme.spacing40),
-
-              // Continue button
-              SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: _isSaving ? null : _saveAndContinue,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AppTheme.borderRadiusMedium,
                     ),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+
+                    const SizedBox(height: AppTheme.spacing12),
+
+                    Text(
+                      _pickedImagePath == null
+                          ? 'Tap to add a photo'
+                          : 'Tap to change',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.gray500,
+                        letterSpacing: -0.1,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    const SizedBox(height: AppTheme.spacing32),
+
+                    // Name field
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (mounted) setState(() {});
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your name.';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: AppTheme.spacing32),
+
+                    // Continue button
+                    SizedBox(
+                      height: 54,
+                      child: FilledButton(
+                        onPressed: _isSaving ? null : _saveAndContinue,
+                        style: FilledButton.styleFrom(
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppTheme.borderRadiusMedium,
                           ),
-                        )
-                      : const Text('Continue'),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Continue'),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacing24),
+                  ],
                 ),
               ),
             ],

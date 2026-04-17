@@ -23,6 +23,7 @@ dependencies:
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.6
   image_picker: ^1.1.2
+  image_cropper: ^9.1.0
   intl: ^0.20.2
   # sqflite replaced by sqflite_sqlcipher for encrypted local database
   path_provider: ^2.1.5
@@ -33,6 +34,9 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_secure_storage: ^10.0.0
   sqflite_sqlcipher: ^3.4.0
+  signature: ^5.5.0
+  share_plus: ^12.0.2
+  flutter_earth_globe: ^2.2.1
 
 dev_dependencies:
   flutter_test:

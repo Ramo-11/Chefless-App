@@ -18,6 +18,7 @@ void main() {
         'followersCount': 100,
         'followingCount': 50,
         'recipesCount': 25,
+        'originalRecipesCount': 18,
         'kitchenId': 'kitchen-456',
         'isPremium': true,
         'premiumPlan': 'annual',
@@ -46,6 +47,7 @@ void main() {
       expect(user.followersCount, 100);
       expect(user.followingCount, 50);
       expect(user.recipesCount, 25);
+      expect(user.originalRecipesCount, 18);
       expect(user.kitchenId, 'kitchen-456');
       expect(user.isPremium, true);
       expect(user.premiumPlan, 'annual');
@@ -79,6 +81,7 @@ void main() {
       expect(user.followersCount, 0);
       expect(user.followingCount, 0);
       expect(user.recipesCount, 0);
+      expect(user.originalRecipesCount, 0);
       expect(user.kitchenId, isNull);
       expect(user.isPremium, false);
       expect(user.premiumPlan, isNull);
@@ -106,6 +109,8 @@ void main() {
       expect(json['fullName'], 'John Doe');
       expect(json['phone'], '+1234567890');
       expect(json['profilePicture'], 'https://example.com/avatar.jpg');
+      expect(json['recipesCount'], 25);
+      expect(json['originalRecipesCount'], 18);
       expect(json['isPremium'], true);
       expect(json['premiumPlan'], 'annual');
       expect(json['dietaryPreferences'], ['vegan', 'gluten-free']);

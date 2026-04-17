@@ -141,6 +141,7 @@ class Recipe extends Equatable {
     required this.labels,
     required this.dietaryTags,
     required this.cuisineTags,
+    required this.tags,
     this.difficulty,
     required this.ingredients,
     required this.steps,
@@ -158,7 +159,9 @@ class Recipe extends Equatable {
     required this.forksCount,
     this.authorName,
     this.authorPhoto,
+    this.authorSignatureUrl,
     this.isLiked,
+    this.isSaved,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -173,6 +176,7 @@ class Recipe extends Equatable {
   final List<String> labels;
   final List<String> dietaryTags;
   final List<String> cuisineTags;
+  final List<String> tags;
   final String? difficulty;
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
@@ -190,9 +194,14 @@ class Recipe extends Equatable {
   final int forksCount;
   final String? authorName;
   final String? authorPhoto;
+  /// Author's signature image when [showSignature] is true (for viewers).
+  final String? authorSignatureUrl;
 
   /// Whether the current user has liked this recipe. `null` if unknown.
   final bool? isLiked;
+
+  /// Whether the current user has saved this recipe. `null` if unknown.
+  final bool? isSaved;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -212,6 +221,8 @@ class Recipe extends Equatable {
           (json['dietaryTags'] as List<dynamic>?)?.cast<String>() ?? const [],
       cuisineTags:
           (json['cuisineTags'] as List<dynamic>?)?.cast<String>() ?? const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
       difficulty: json['difficulty'] as String?,
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map((e) => Ingredient.fromJson(e as Map<String, dynamic>))
@@ -237,7 +248,9 @@ class Recipe extends Equatable {
       forksCount: json['forksCount'] as int? ?? 0,
       authorName: json['authorName'] as String?,
       authorPhoto: json['authorPhoto'] as String?,
+      authorSignatureUrl: json['authorSignatureUrl'] as String?,
       isLiked: json['isLiked'] as bool?,
+      isSaved: json['isSaved'] as bool?,
       createdAt: asDateTime(json['createdAt'], fallback: DateTime.now()),
       updatedAt: asDateTime(json['updatedAt'], fallback: DateTime.now()),
     );
@@ -255,6 +268,7 @@ class Recipe extends Equatable {
       'labels': labels,
       'dietaryTags': dietaryTags,
       'cuisineTags': cuisineTags,
+      'tags': tags,
       'difficulty': difficulty,
       'ingredients': ingredients.map((e) => e.toJson()).toList(),
       'steps': steps.map((e) => e.toJson()).toList(),
@@ -272,7 +286,9 @@ class Recipe extends Equatable {
       'forksCount': forksCount,
       'authorName': authorName,
       'authorPhoto': authorPhoto,
+      'authorSignatureUrl': authorSignatureUrl,
       'isLiked': isLiked,
+      'isSaved': isSaved,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -289,6 +305,7 @@ class Recipe extends Equatable {
     List<String>? labels,
     List<String>? dietaryTags,
     List<String>? cuisineTags,
+    List<String>? tags,
     String? difficulty,
     List<Ingredient>? ingredients,
     List<RecipeStep>? steps,
@@ -306,7 +323,9 @@ class Recipe extends Equatable {
     int? forksCount,
     String? authorName,
     String? authorPhoto,
+    String? authorSignatureUrl,
     bool? isLiked,
+    bool? isSaved,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -321,6 +340,7 @@ class Recipe extends Equatable {
       labels: labels ?? this.labels,
       dietaryTags: dietaryTags ?? this.dietaryTags,
       cuisineTags: cuisineTags ?? this.cuisineTags,
+      tags: tags ?? this.tags,
       difficulty: difficulty ?? this.difficulty,
       ingredients: ingredients ?? this.ingredients,
       steps: steps ?? this.steps,
@@ -338,7 +358,10 @@ class Recipe extends Equatable {
       forksCount: forksCount ?? this.forksCount,
       authorName: authorName ?? this.authorName,
       authorPhoto: authorPhoto ?? this.authorPhoto,
+      authorSignatureUrl:
+          authorSignatureUrl ?? this.authorSignatureUrl,
       isLiked: isLiked ?? this.isLiked,
+      isSaved: isSaved ?? this.isSaved,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -356,6 +379,7 @@ class Recipe extends Equatable {
         labels,
         dietaryTags,
         cuisineTags,
+        tags,
         difficulty,
         ingredients,
         steps,
@@ -373,7 +397,9 @@ class Recipe extends Equatable {
         forksCount,
         authorName,
         authorPhoto,
+        authorSignatureUrl,
         isLiked,
+        isSaved,
         createdAt,
         updatedAt,
       ];

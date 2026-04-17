@@ -19,6 +19,7 @@ const _preferences = <({String key, String label, String section})>[
   (key: 'follow_accepted', label: 'Follow accepted', section: 'Social'),
   // Recipes
   (key: 'recipe_liked', label: 'Likes', section: 'Recipes'),
+  (key: 'recipe_saved', label: 'Saves', section: 'Recipes'),
   (key: 'recipe_forked', label: 'Remixes', section: 'Recipes'),
   (key: 'recipe_shared', label: 'Shares', section: 'Recipes'),
   // Kitchen
@@ -32,8 +33,19 @@ const _preferences = <({String key, String label, String section})>[
     label: 'Suggestion approvals',
     section: 'Kitchen',
   ),
+  (
+    key: 'suggestion_denied',
+    label: 'Suggestion declined',
+    section: 'Kitchen',
+  ),
+  (
+    key: 'kitchen_invite',
+    label: 'Kitchen welcome & invites',
+    section: 'Kitchen',
+  ),
   (key: 'kitchen_joined', label: 'Member joins', section: 'Kitchen'),
   (key: 'kitchen_removed', label: 'Removals', section: 'Kitchen'),
+  (key: 'system', label: 'Product updates', section: 'Other'),
 ];
 
 /// Riverpod provider that loads notification preferences from the server,
